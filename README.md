@@ -31,6 +31,7 @@ The community edition of low.js runs on POSIX based systems such as Linux, uClin
 
     git clone https://github.com/neonious/lowjs
     cd lowjs
+    git submodule update --init --recursive
     make
 
 low.js is now built in bin and can be called via bin/low, the lib directory is also required for low to work (it accesses it via path_to_bin/../lib) and must be copied when creating a distribution.
