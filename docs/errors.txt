@@ -1,0 +1,6 @@
+
+
+All duk functions throw C-style on error, so
+- make sure everything stays in clean state
+
+- do not be in a C++ constructor at this point

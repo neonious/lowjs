@@ -1,0 +1,58 @@
+crash
+timeout
+breakonsigint
+strict mode
+
+
+/// TODO: when this is done, tab should work in repl
+not supported
+crypto
+fs.watch
+
+
+in repl:
+require('dns').resolve4('www.lowjs.org', function(err, res) {console.log("RESOLVE " + JSON.stringify(res));});
+gibt seg fault
+
+read/write things must be put on stash!
+
+OnSocketData from web thread
+
+push bare index
+
+safe calls must result into uncaughtException call
+
+werden socekts ordentlich geclosed oder nur shutdown
+
+make sure that everything gets freed (see dnsresolver + everything where duk throws)
+LowServer better onEvents handling
+
+allow more than 64 where hostname is asked for ... low_inet_ntop
+error
+
+
+net
+process
+terminal
+
+
+if direct but read called, wait for read
+
+
+http
+dgram
+tls
+https
+vm
+zlib
+crypto
+child processes
+
+
+
+
+allow usage without new everywhere
+remove usage of std containers, as we cannot control memory full situations here
+
+
+customPromisifyArgs alle gesetzt

@@ -1,0 +1,11 @@
+There are 3 thread types:
+- the loop, runs on the user thread. It runs the JavaScript program
+- the data threads
+- the web thread
+
+All functions must only used on the loop thread, with exception of
+- low_loop_set_callback
+- low_data_set_callback
+- low_web_set_poll_events
+- LowFD::SetFD
+LowFDs, LowLoopCallbacks or LowDataCallbacks must be destructed in the loop thread

@@ -1,0 +1,53 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "build_summary": "cd summary && webpack --mode production && html-inline -i build/index.html -o ../summary.html -b build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "classnames": "^2.2.6",
+    "execa": "^0.10.0",
+    "fs-extra": "^7.0.0",
+    "fs-readdir-recursive": "^1.1.0",
+    "globby": "^8.0.1",
+    "html-inline": "^1.2.0",
+    "lodash": "^4.17.10",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "typescript": "^3.0.1",
+    "yargs": "^12.0.1"
+  },
+  "devDependencies": {
+    "@types/classnames": "^2.2.6",
+    "@types/execa": "^0.9.0",
+    "@types/fs-extra": "^5.0.4",
+    "@types/fs-readdir-recursive": "^1.0.0",
+    "@types/globby": "^8.0.0",
+    "@types/lodash": "^4.14.116",
+    "@types/react": "^16.4.11",
+    "@types/react-dom": "^16.0.7",
+    "@types/yargs": "^11.1.1",
+    "autoprefixer": "^9.1.1",
+    "browser-sync": "^2.24.6",
+    "clean-webpack-plugin": "^0.1.19",
+    "css-loader": "^1.0.0",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "html-webpack-plugin": "^3.2.0",
+    "node-sass": "^4.9.3",
+    "postcss-loader": "^3.0.0",
+    "sass-loader": "^7.1.0",
+    "source-map-support": "^0.5.8",
+    "style-loader": "^0.22.1",
+    "ts-loader": "^4.5.0",
+    "ts-node": "^7.0.1",
+    "typings-for-css-modules-loader": "^1.7.0",
+    "webpack": "^4.16.5",
+    "webpack-cli": "^3.1.0"
+  }
+}

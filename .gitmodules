@@ -1,0 +1,9 @@
+[submodule "deps/mbedtls"]
+	path = deps/mbedtls
+	url = https://github.com/ARMmbed/mbedtls
+[submodule "deps/duktape"]
+	path = deps/duktape
+	url = https://github.com/svaarala/duktape
+[submodule "deps/c-ares"]
+	path = deps/c-ares
+	url = https://github.com/c-ares/c-ares.git

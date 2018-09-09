@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "strict": true,
+        "moduleResolution": "node",
+        "target": "es6",
+        "esModuleInterop": true,
+    },
+    "files": [
+        "tests.ts",
+        "summary/result.ts"
+    ]
+}

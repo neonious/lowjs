@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "checkJs": false,
+        "module": "commonjs",
+        "target": "ES5",
+        "allowJs": true,
+        "rootDir": "./",
+        "baseUrl": "./",
+        "outDir": "./build",
+        "lib": [
+            "es2015"
+        ]
+    },
+    "exclude": [
+        "./build/**"
+    ]
+}

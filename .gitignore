@@ -1,0 +1,17 @@
+.vscode
+.DS_Store
+/build
+/bin
+/lib
+/lib_js/build
+/lib_neonone/build
+/util/dukc
+/test/duk_crash
+*.d
+*.o
+/node_modules
+/test/tests_script/node_modules
+/test/node/
+/test/compiled/
+/test/tests_script/summary.html
+*.scss.d.ts

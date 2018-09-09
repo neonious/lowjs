@@ -1,0 +1,106 @@
+.button {
+    background-color: lightgrey;
+    width: 100px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-bottom: 30px;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 10px;
+    display: flex;
+    box-shadow: 1px 1px 3px 3px grey;
+    justify-content: center;
+    align-items: center;
+    &:hover {
+        background-color: lighten(lightgrey, 5%);
+    }
+}
+
+.buttons {
+    display: flex;
+}
+
+.results-container {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.results {
+    max-width: 1600px;
+    margin: auto;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    .result {
+        margin: 2px;
+        border: 1px solid darkgray;
+        display: flex;
+        flex-direction: column;
+        &.open {
+            display: block;
+        }
+        &.closed {
+            display: block;
+        }
+        $summaryColor:lightgrey;
+        .summary {
+            padding: 5px;
+            justify-content: space-between;
+            cursor: pointer;
+            display: flex;
+            &:hover {
+                filter: brightness(105%);
+            }
+            .file {
+                display: block;
+                flex: 1 1 auto;
+            }
+            .node-failed {
+                font-weight: bold;
+                flex: 0 0 120px;
+            }
+            .status-string {
+                user-select: none;
+                flex: 0 0 90px;
+                text-align: right;
+            }
+        }
+        .detail {
+            padding: 5px;
+            .row {
+                padding: 5px;
+                display: flex;
+                .header {
+                    flex: 0 0 100px;
+                    font-weight: bold;
+                }
+                .text {
+                    border: 1px solid #eee;
+                    padding: 4px;
+                    flex: 1 1 auto;
+                    overflow: auto;
+                    white-space: pre-wrap;
+                }
+            }
+        }
+    }
+    $okColor:rgb(209, 252, 209);
+    $failColor:rgb(255, 251, 193);
+    .ok {
+        background-color: $okColor;
+    }
+    .error {
+        background-color: $failColor;
+    }
+    .crashed {
+        background-color: rgb(255, 181, 181);
+    }
+    .timeout {
+        background-color: rgb(162, 184, 255);
+    }
+    .transpile_failed {
+        background-color: rgb(162, 249, 255);
+    }
+}

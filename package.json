@@ -1,0 +1,25 @@
+{
+  "name": "lowjs",
+  "version": "0.1.0",
+  "description": "The Node.JS port for embedded devices.",
+  "author": "neonious GmbH",
+  "scripts": {
+    "test": "cd test/tests_script && ts-node tests.ts run"
+  },
+  "devDependencies": {
+    "ts-node": "^7.0.1",
+    "typescript": "^2.9.1"
+  },
+  "dependencies": {
+    "babel": "^6.23.0",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^6.4.1",
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-3": "^6.24.1",
+    "babel-runtime": "^6.26.0",
+    "regenerator-runtime": "^0.12.1"
+  }
+}
