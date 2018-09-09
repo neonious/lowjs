@@ -29,9 +29,10 @@ All of this becomes especially important if additional features will be added th
 
 The community edition of low.js runs on POSIX based systems such as Linux, uClinux or Mac OS X. It is available on Github. Currently there is no ./configure. You might need programming skills to get low.js running on your systems.
 
-git clonse https://github.com/neonious/lowjs
-cd lowjs
-make
+    git clone https://github.com/neonious/lowjs
+    cd lowjs
+    make
+
 low.js is now built in bin and can be called via bin/low, the lib directory is also required for low to work (it accesses it via path_to_bin/../lib) and must be copied when creating a distribution.
 
 ### low.js for ESP32
@@ -50,19 +51,19 @@ We are very happy for every person or company who is willing to contribute to lo
 
 ### Contact us
 
-neonious GmbH
-Münsterstr. 246
-40470 Düsseldorf
-Germany
-
-Managing Director / CEO
-Thomas Rogg
-
-TEL +49 211 9241 8187
-FAX +49 211 9241 8172
-
-info@neonious.com
-District Court Düsseldorf
-HRB 83086
+    neonious GmbH
+    Münsterstr. 246
+    40470 Düsseldorf
+    Germany
+    
+    Managing Director / CEO
+    Thomas Rogg
+    
+    TEL +49 211 9241 8187
+    FAX +49 211 9241 8172
+    
+    info@neonious.com
+    District Court Düsseldorf
+    HRB 83086
 
 ESP32 and ESP32-WROVER are products by Espressif Systems (https://www.espressif.com/). neonious GmbH is in no way affiliated with this company.
