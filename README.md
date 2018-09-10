@@ -12,7 +12,7 @@ low.js allows you to use Node.JS scripts on smaller devices such as routers whic
 
 For people interested in electronics, the neonious one is a great microcontroller board based on low.js for ESP32. Programmable in JavaScript ES 6 with the Node API, through an on-board browser-based IDE + Debugger or external IDE. Includes Wifi, Ethernet, additional Flash and an additional I/O controller.
 
-More information on the neonious one: http://www.neonious.com/.
+More information on the neonious one: https://www.neonious.com/.
 
 ### Professionals
 
@@ -42,12 +42,17 @@ The ESP32 edition is identical to the community edition, but adapted for the ESP
 It is pre-flashed on the neonious one and plain ESP32-WROVER modules which you can order from neonious (direct link to store).
 
 
+## Documentation
+
+The documentation is located at https://www.neonious.com/Documentation/lowjs
+
+
 ## License / Authors / Contributions
 The community edition is placed under the MIT license. More information.
 
 low.js is developed and maintained by neonious GmbH, the makers of the neonious one microcontroller board.
 
-We are very happy for every person or company who is willing to contribute to low.js and its related products. We will gladly accept any code contribution which helps the cause after an appropriate review. Bug reports and suggestions are also welcome!
+We appreciate every person or company who is willing to contribute to low.js and its related products. We will gladly accept any code contribution which helps the cause after an appropriate review. Bug reports and suggestions are also welcome!
 
 
 ### Contact us
