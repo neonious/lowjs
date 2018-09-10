@@ -20,7 +20,7 @@ low.js for ESP32 is a port of Node.JS with far lower system requirements, low en
 
 low.js for ESP32 adds the additional benefit of fast software development and maintenance. The complete software stack of an IoT product (microcontrollers, websites, servers) can be based on the same software base. No specialized software developers are needed for the microcontroller software.
 
-All of this becomes especially important if additional features will be added throughout the products life time via software update, which helps the product to stay leaders in their markets over time.
+All of this becomes especially important if additional features will be added throughout the product's life time via software update, which helps the product to stay a leader in its market over time.
 
 
 ## Where to get?
