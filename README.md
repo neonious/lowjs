@@ -39,7 +39,7 @@ low.js is now built in bin and can be called via bin/low, the lib directory is a
 ### low.js for ESP32
 The ESP32 edition is identical to the community edition, but adapted for the ESP32 microcontroller. This version is not Open Source.
 
-It is pre-flashed on the neonious one and plain ESP32-WROVER modules which you can order from neonious (direct link to store).
+It is pre-flashed on the neonious one and plain ESP32-WROVER modules which you can order from neonious (https://www.neonious.com/Store).
 
 
 ## Documentation
