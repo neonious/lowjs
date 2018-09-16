@@ -6,8 +6,8 @@ var tls = require('tls');
 var path = require('path');
 
 var options = {
-    key: fs.readFileSync(path.join(__dirname, 'client.key')),
-    cert: fs.readFileSync(path.join(__dirname, 'client.crt'))
+    key: fs.readFileSync(path.join(__dirname, 'server.key')),
+    cert: fs.readFileSync(path.join(__dirname, 'server.crt'))
 };
 //console.log(JSON.stringify(options, null, 2));
 
