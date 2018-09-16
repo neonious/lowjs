@@ -1,5 +1,5 @@
 # lowjs
-low.js is a port of Node.JS with far lower system requirements. With low.js, you can program JavaScript applications utilizing the full Node.JS API and run them not only on normal PCs, but also on embedded devices, such as ones based on the $ 3 ESP32 microcontroller with Wifi on-board.
+low.js is a port of Node.JS with far lower system requirements. With low.js, you can program JavaScript applications utilizing the full Node.JS API and run them not only on normal PCs, but also on embedded devices, such as ones based on the $3 ESP32 microcontroller with Wifi on-board.
 
 It currently uses under 2 MB of disk space and requires a minimum of around 1.5 MB of RAM (ESP32 version).
 
@@ -16,7 +16,7 @@ More information on the neonious one: https://www.neonious.com/.
 
 ### Professionals
 
-low.js for ESP32 is a port of Node.JS with far lower system requirements, low enough to run comfortably on the ESP32-WROVER module. With unit costs of under 3 $ for large amounts, the ESP32-WROVER module is a very cost effective solution for any (IoT) device requiring both a microcontroller and a Wifi connection.
+low.js for ESP32 is a port of Node.JS with far lower system requirements, low enough to run comfortably on the ESP32-WROVER module. With unit costs of under $3 for large amounts, the ESP32-WROVER module is a very cost effective solution for any (IoT) device requiring both a microcontroller and a Wifi connection.
 
 low.js for ESP32 adds the additional benefit of fast software development and maintenance. The complete software stack of an IoT product (microcontrollers, websites, servers) can be based on the same software base. No specialized software developers are needed for the microcontroller software.
 
