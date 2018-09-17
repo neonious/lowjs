@@ -27,7 +27,7 @@ enum
 
 class LowFile : public LowFD, public LowDataCallback, public LowLoopCallback
 {
-public:
+  public:
     LowFile(low_main_t *low, const char *path, int flags, int callIndex);
     virtual ~LowFile();
 
@@ -38,11 +38,11 @@ public:
 
     bool FinishPhase();
 
-protected:
+  protected:
     virtual bool OnData();
     virtual bool OnLoop();
 
-private:
+  private:
     low_main_t *mLow;
     char *mPath;
     int mFlags;

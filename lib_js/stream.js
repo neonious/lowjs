@@ -401,6 +401,7 @@ class Writable extends EventEmitter {
             } else {
                 if (this._writableEOF && !this._writableEmittedEOF) {
                     this._writableEmittedEOF = true;
+
                     if (this._final)
                         this._final((err) => { if (err) this.emit('error', err); this.emit('finish'); });
                     else

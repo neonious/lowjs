@@ -17,23 +17,24 @@ class LowLoopCallback
     friend void low_loop_clear_callback(low_main_t *low,
                                         LowLoopCallback *callback);
     friend duk_ret_t low_fs_open_sync(duk_context *ctx);
+    friend duk_ret_t low_fs_close_sync(duk_context *ctx);
     friend duk_ret_t low_fs_waitdone(duk_context *ctx);
 
-public:
+  public:
     LowLoopCallback(low_main_t *low)
         : mLow(low), mNext(nullptr), mLoopClearOnReset(true)
     {
     }
     virtual ~LowLoopCallback() { low_loop_clear_callback(mLow, this); }
 
-protected:
+  protected:
     virtual bool OnLoop() = 0;
 
-private:
+  private:
     low_main_t *mLow;
     LowLoopCallback *mNext;
 
-protected:
+  protected:
     bool mLoopClearOnReset;
 };
 

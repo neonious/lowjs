@@ -27,10 +27,10 @@ LowFile::LowFile(low_main_t *low, const char *path, int flags, int callID)
     : LowFD(low, LOWFD_TYPE_FILE), LowDataCallback(low), LowLoopCallback(low),
       mLow(low), mClose(false)
 {
-    if(callID)
+    if (callID)
     {
         mCallID = low_add_stash(mLow, callID);
-        if(mCallID)
+        if (mCallID)
             mLow->run_ref++;
     }
     else
@@ -40,8 +40,8 @@ LowFile::LowFile(low_main_t *low, const char *path, int flags, int callID)
     int len = 32 + strlen(path) + strlen(low->cwd);
 
     mPath = (char *)low_alloc(len);
-    if(mPath)
-        if(!low_fs_resolve(mPath, len, low->cwd, path))
+    if (mPath)
+        if (!low_fs_resolve(mPath, len, low->cwd, path))
         {
             printf("fs resolve error!\n");
 
@@ -66,11 +66,11 @@ LowFile::~LowFile()
 {
     low_data_clear_callback(mLow, this);
 
-    if(FD() >= 0)
+    if (FD() >= 0)
         close(FD());
-    if(mPath)
+    if (mPath)
         low_free(mPath);
-    if(mCallID)
+    if (mCallID)
     {
         low_remove_stash(mLow, mCallID);
         mLow->run_ref--;
@@ -83,14 +83,14 @@ LowFile::~LowFile()
 
 void LowFile::Read(int pos, unsigned char *data, int len, int callIndex)
 {
-    if(mClose)
+    if (mClose)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "read");
         duk_call(mLow->duk_ctx, 1);
         return;
     }
-    if(mPhase != LOWFILE_PHASE_READY)
+    if (mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "read");
@@ -98,12 +98,14 @@ void LowFile::Read(int pos, unsigned char *data, int len, int callIndex)
         return;
     }
 
-    if(callIndex)
+    if (callIndex != -1)
     {
         mCallID = low_add_stash(mLow, callIndex);
-        if(mCallID)
+        if (mCallID)
             mLow->run_ref++;
     }
+    else
+        mCallID = 0;
 
     mPos = pos;
     mData = data;
@@ -119,14 +121,14 @@ void LowFile::Read(int pos, unsigned char *data, int len, int callIndex)
 
 void LowFile::Write(int pos, unsigned char *data, int len, int callIndex)
 {
-    if(mClose)
+    if (mClose)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "write");
         duk_call(mLow->duk_ctx, 1);
         return;
     }
-    if(mPhase != LOWFILE_PHASE_READY)
+    if (mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "write");
@@ -134,12 +136,14 @@ void LowFile::Write(int pos, unsigned char *data, int len, int callIndex)
         return;
     }
 
-    if(callIndex)
+    if (callIndex != -1)
     {
         mCallID = low_add_stash(mLow, callIndex);
-        if(mCallID)
+        if (mCallID)
             mLow->run_ref++;
     }
+    else
+        mCallID = 0;
 
     mPos = pos;
     mData = data;
@@ -155,14 +159,14 @@ void LowFile::Write(int pos, unsigned char *data, int len, int callIndex)
 
 void LowFile::FStat(int callIndex)
 {
-    if(mClose)
+    if (mClose)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "fstat");
         duk_call(mLow->duk_ctx, 1);
         return;
     }
-    if(mPhase != LOWFILE_PHASE_READY)
+    if (mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "fstat");
@@ -170,12 +174,15 @@ void LowFile::FStat(int callIndex)
         return;
     }
 
-    if(callIndex)
+    if (callIndex != -1)
     {
         mCallID = low_add_stash(mLow, callIndex);
-        if(mCallID)
+        if (mCallID)
             mLow->run_ref++;
     }
+    else
+        mCallID = 0;
+
     mPhase = LOWFILE_PHASE_FSTAT;
     mDataDone = false;
     low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_READ);
@@ -187,14 +194,14 @@ void LowFile::FStat(int callIndex)
 
 bool LowFile::Close(int callIndex)
 {
-    if(mClose)
+    if (mClose)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "close");
         duk_call(mLow->duk_ctx, 1);
         return true;
     }
-    if(mPhase != LOWFILE_PHASE_READY)
+    if (mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "close");
@@ -202,12 +209,21 @@ bool LowFile::Close(int callIndex)
         return true;
     }
 
-    if(callIndex)
+    // We must no longer advertise, so we do not remove other persons FD later on
+    int fd = FD();
+    SetFD(-1);
+    AdvertiseFD();
+    SetFD(fd);
+
+    if (callIndex != -1)
     {
         mCallID = low_add_stash(mLow, callIndex);
-        if(mCallID)
+        if (mCallID)
             mLow->run_ref++;
     }
+    else
+        mCallID = 0;
+
     mPhase = LOWFILE_PHASE_CLOSING;
     mDataDone = false;
     low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_READ);
@@ -221,7 +237,7 @@ bool LowFile::Close(int callIndex)
 
 bool LowFile::OnData()
 {
-    switch(mPhase)
+    switch (mPhase)
     {
     case LOWFILE_PHASE_OPENING:
         SetFD(open(mPath, mFlags, 0666));
@@ -237,18 +253,18 @@ bool LowFile::OnData()
 
     case LOWFILE_PHASE_READING:
         mError = 0;
-        if(mPos != -1)
+        if (mPos != -1)
         {
-            if(lseek(FD(), mPos, SEEK_SET) != mPos)
+            if (lseek(FD(), mPos, SEEK_SET) != mPos)
             {
                 mError = errno;
                 mSyscall = "lseek";
             }
         }
-        if(!mError)
+        if (!mError)
         {
             mLen = read(FD(), mData, mLen);
-            if(mLen < 0)
+            if (mLen < 0)
             {
                 mError = errno;
                 mSyscall = "read";
@@ -261,18 +277,18 @@ bool LowFile::OnData()
 
     case LOWFILE_PHASE_WRITING:
         mError = 0;
-        if(mPos != -1)
+        if (mPos != -1)
         {
-            if(lseek(FD(), mPos, SEEK_SET) != mPos)
+            if (lseek(FD(), mPos, SEEK_SET) != mPos)
             {
                 mError = errno;
                 mSyscall = "lseek";
             }
         }
-        if(!mError)
+        if (!mError)
         {
             mLen = write(FD(), mData, mLen);
-            if(mLen < 0)
+            if (mLen < 0)
             {
                 mError = errno;
                 mSyscall = "write";
@@ -292,7 +308,7 @@ bool LowFile::OnData()
         break;
 
     case LOWFILE_PHASE_CLOSING:
-        if(FD() >= 0)
+        if (FD() >= 0)
         {
             mError = close(FD()) < 0 ? errno : 0;
             mSyscall = "close";
@@ -312,7 +328,7 @@ bool LowFile::OnData()
 
 bool LowFile::OnLoop()
 {
-    if(mClose)
+    if (mClose)
         return false;
     FinishPhase();
     return !mClose;
@@ -324,29 +340,30 @@ bool LowFile::OnLoop()
 
 bool LowFile::FinishPhase()
 {
-    if(mPhase == LOWFILE_PHASE_READY)
+    if (mPhase == LOWFILE_PHASE_READY)
         return true;
-    if(!mDataDone)
+    if (!mDataDone)
         return false;
 
     int phase = mPhase;
     mPhase = LOWFILE_PHASE_READY;
 
-    if(phase == LOWFILE_PHASE_OPENING && !mError)
+    if (phase == LOWFILE_PHASE_OPENING && !mError)
         AdvertiseFD();
-    if(mCallID)
-    {
+    if ((phase == LOWFILE_PHASE_OPENING && mError) || phase == LOWFILE_PHASE_CLOSING)
+        mClose = true;
 
+    if (mCallID)
+    {
         int callID = mCallID;
         mCallID = 0;
         mLow->run_ref--;
 
-        switch(phase)
+        switch (phase)
         {
         case LOWFILE_PHASE_OPENING:
-            if(mError)
+            if (mError)
             {
-                mClose = true;
                 low_push_stash(mLow, callID, true);
                 low_push_error(mLow, mError, mSyscall);
                 duk_call(mLow->duk_ctx, 1);
@@ -364,7 +381,7 @@ bool LowFile::FinishPhase()
         case LOWFILE_PHASE_READING:
         case LOWFILE_PHASE_WRITING:
             low_push_stash(mLow, callID, true);
-            if(mError)
+            if (mError)
             {
                 low_push_error(mLow, mError, mSyscall);
                 duk_call(mLow->duk_ctx, 1);
@@ -379,7 +396,7 @@ bool LowFile::FinishPhase()
 
         case LOWFILE_PHASE_FSTAT:
             low_push_stash(mLow, callID, true);
-            if(mError)
+            if (mError)
             {
                 low_push_error(mLow, mError, mSyscall);
                 duk_call(mLow->duk_ctx, 1);
@@ -421,9 +438,8 @@ bool LowFile::FinishPhase()
             break;
 
         case LOWFILE_PHASE_CLOSING:
-            mClose = true;
             low_push_stash(mLow, callID, true);
-            if(mError)
+            if (mError)
                 low_push_error(mLow, mError, mSyscall);
             else
                 duk_push_null(mLow->duk_ctx);
@@ -431,7 +447,7 @@ bool LowFile::FinishPhase()
             return true;
         }
     }
-    else if(mError)
+    else if (mError)
     {
         low_push_error(mLow, mError, mSyscall);
         duk_throw(mLow->duk_ctx);

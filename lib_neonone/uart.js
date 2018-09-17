@@ -48,14 +48,21 @@ class UART extends stream.Duplex {
                 });
             },
             final(callback) {
-                this.destroy();
+                this._destroy(null, callback);
             },
             destroy(err, callback) {
+                if (this._destroyed) {
+                    callback(err);
+                    return;
+                }
+                this._destroyed = true;
+
                 if (this._ref) {
                     native.runRef(-1);
                     this._ref = false;
                 }
                 native.destroyPeripherial(index);
+                callback(err);
             }
         });
     }
@@ -72,7 +79,7 @@ class UART extends stream.Duplex {
         return this;
     }
     unref() {
-        if (this._ref && !this.destoyed) {
+        if (this._ref && !this.destroyed) {
             native.runRef(-1);
             this._ref = false;
         }

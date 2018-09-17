@@ -80,14 +80,17 @@ class Socket extends stream.Duplex {
                 });
             },
             final(callback) {
-                if (this._readableEOF)
+                if (this._readableEOF) {
                     this.destroy();
-                else
+                    callback();
+                } else
                     native.shutdown(this._socketFD, callback);
             },
             destroy(err, callback) {
-                if (this._timeout)
+                if (this._timeout) {
                     clearTimeout(this._timeout);
+                    delete this._timeout;
+                }
 
                 native.close(this._socketFD, (err2) => {
                     if (err || err2) {

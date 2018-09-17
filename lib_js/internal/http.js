@@ -225,8 +225,8 @@ class ServerResponse extends stream.Writable {
                 native.httpWrite(this.connection._socketFD, null, (err) => {
                     if (err)
                         this.destroy(err);
-                    else
-                        callback();
+
+                    callback();
                 });
             },
             destroy(err, callback) {
