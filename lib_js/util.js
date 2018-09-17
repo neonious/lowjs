@@ -470,6 +470,19 @@ function formatValue(ctx, value, recurseTimes) {
     let keys;
     let symbols = Object.getOwnPropertySymbols(value);
 
+    if (Array.isArray(value)) {
+        // DukTape lists array items as property symbol
+        // Remove this workaround as soon as the issue is fixed:
+        // https://github.com/svaarala/duktape/issues/1978
+        for (let i = 0; i < symbols.length;) {
+            let val = symbols[i] | 0;
+            if (symbols[i] == 'length' || (symbols[i] === val + '' && val >= 0 && val < value.length))
+                symbols.splice(i, 1);
+            else
+                i++;
+        }
+    }
+
     // Look up the keys of the object.
     if (ctx.showHidden) {
         keys = Object.getOwnPropertyNames(value);
@@ -508,57 +521,62 @@ function formatValue(ctx, value, recurseTimes) {
     let raw;
     let extra;
 
-    // Iterators and the rest are split to reduce checks
-    if (value[Symbol.iterator]) {
+    // DukTape is not setting value[Symbol.iterator] for Arrays.
+    // Do the checks for the different types in any case
+    if (Array.isArray(value)) {
         noIterator = false;
-        if (Array.isArray(value)) {
-            // Only set the constructor for non ordinary ("Array [...]") arrays.
-            const prefix = getPrefix(constructor, tag);
-            braces = [`${prefix === 'Array ' ? '' : prefix}[`, ']'];
-            if (value.length === 0 && keyLength === 0)
-                return `${braces[0]}]`;
-            formatter = formatArray;
-        } else if (isSet(value)) {
-            const prefix = getPrefix(constructor, tag);
-            if (value.size === 0 && keyLength === 0)
-                return `${prefix}{}`;
-            braces = [`${prefix}{`, '}'];
-            formatter = formatSet;
-        } else if (isMap(value)) {
-            const prefix = getPrefix(constructor, tag);
-            if (value.size === 0 && keyLength === 0)
-                return `${prefix}{}`;
-            braces = [`${prefix}{`, '}'];
-            formatter = formatMap;
-        } else if (isTypedArray(value)) {
-            braces = [`${getPrefix(constructor, tag)}[`, ']'];
-            formatter = formatTypedArray;
-        } else if (isMapIterator(value)) {
-            braces = [`[${tag}] {`, '}'];
-            formatter = formatMapIterator;
-        } else if (isSetIterator(value)) {
-            braces = [`[${tag}] {`, '}'];
-            formatter = formatSetIterator;
-        } else {
-            // Check for boxed strings with valueOf()
-            // The .valueOf() call can fail for a multitude of reasons
-            try {
-                raw = value.valueOf();
-            } catch (e) { /* ignore */ }
+        // Only set the constructor for non ordinary ("Array [...]") arrays.
+        const prefix = getPrefix(constructor, tag);
+        braces = [`${prefix === 'Array ' ? '' : prefix}[`, ']'];
+        if (value.length === 0 && keyLength === 0)
+            return `${braces[0]}]`;
+        formatter = formatArray;
+    } else if (isSet(value)) {
+        noIterator = false;
+        const prefix = getPrefix(constructor, tag);
+        if (value.size === 0 && keyLength === 0)
+            return `${prefix}{}`;
+        braces = [`${prefix}{`, '}'];
+        formatter = formatSet;
+    } else if (isMap(value)) {
+        noIterator = false;
+        const prefix = getPrefix(constructor, tag);
+        if (value.size === 0 && keyLength === 0)
+            return `${prefix}{}`;
+        braces = [`${prefix}{`, '}'];
+        formatter = formatMap;
+    } else if (isTypedArray(value)) {
+        noIterator = false;
+        braces = [`${getPrefix(constructor, tag)}[`, ']'];
+        formatter = formatTypedArray;
+    } else if (isMapIterator(value)) {
+        noIterator = false;
+        braces = [`[${tag}] {`, '}'];
+        formatter = formatMapIterator;
+    } else if (isSetIterator(value)) {
+        noIterator = false;
+        braces = [`[${tag}] {`, '}'];
+        formatter = formatSetIterator;
+    } else if (value[Symbol.iterator]) {
+        noIterator = false;
+        // Check for boxed strings with valueOf()
+        // The .valueOf() call can fail for a multitude of reasons
+        try {
+            raw = value.valueOf();
+        } catch (e) { /* ignore */ }
 
-            if (typeof raw === 'string') {
-                const formatted = formatPrimitive(stylizeNoColor, raw, ctx);
-                if (keyLength === raw.length)
-                    return ctx.stylize(`[String: ${formatted}]`, 'string');
-                base = `[String: ${formatted}]`;
-                // For boxed Strings, we have to remove the 0-n indexed entries,
-                // since they just noisy up the output and are redundant
-                // Make boxed primitive Strings look like such
-                keys = keys.slice(value.length);
-                braces = ['{', '}'];
-            } else {
-                noIterator = true;
-            }
+        if (typeof raw === 'string') {
+            const formatted = formatPrimitive(stylizeNoColor, raw, ctx);
+            if (keyLength === raw.length)
+                return ctx.stylize(`[String: ${formatted}]`, 'string');
+            base = `[String: ${formatted}]`;
+            // For boxed Strings, we have to remove the 0-n indexed entries,
+            // since they just noisy up the output and are redundant
+            // Make boxed primitive Strings look like such
+            keys = keys.slice(value.length);
+            braces = ['{', '}'];
+        } else {
+            noIterator = true;
         }
     }
     if (noIterator) {
