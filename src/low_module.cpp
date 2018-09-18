@@ -54,7 +54,7 @@ void low_module_init(duk_context *ctx)
 //  low_module_main
 // -----------------------------------------------------------------------------
 
-void neonious_start_result(const char *code);
+bool neonious_start_result(const char *code);
 
 static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
 {
@@ -65,9 +65,9 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
         if(!low_module_resolve_c(path, ".", res_id))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
-            neonious_start_result("FILE_NOT_FOUND");
+            if(!neonious_start_result("FILE_NOT_FOUND"))
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            duk_type_error(ctx, "cannot resolve module '%s'", path);
+                duk_type_error(ctx, "cannot resolve module '%s'", path);
             return 1;
         }
 
