@@ -13,6 +13,14 @@
 #include <unistd.h>
 #include <errno.h>
 
+// used in low_hrtime() below
+#define NANOS_PER_SEC 1000000000
+#define NANOS_PER_MICROSEC 1000
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+#include "esp32/include/esp_timer.h"
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
 // Global variables
 #if !LOW_ESP32_LWIP_SPECIALITIES
 extern char **environ;
@@ -216,4 +224,43 @@ duk_ret_t low_tty_info(duk_context *ctx)
 #else
     return 0;
 #endif /* LOW_HAS_TERMIOS */
+}
+
+duk_ret_t low_hrtime(duk_context *ctx)
+{
+    uint64_t t;
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+    t = NANOS_PER_MICROSEC * (uint64_t)esp_timer_get_time();
+#else
+#ifdef __APPLE__
+    // Mac OS X >= 10.12 also support clock_gettime(CLOCK_MONOTONIC),
+    // but this also works for older versions
+    static clock_serv_t cclock;
+    static bool alloc_cclock = false;
+    mach_timespec_t ts;
+
+    if (!alloc_cclock)
+    {
+        host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
+        alloc_cclock = true;
+    }
+    clock_get_time(cclock, &ts);
+#else
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+        low_error_errno();
+#endif /* __APPLE__ */
+
+    t = (((uint64_t)ts.tv_sec) * NANOS_PER_SEC + ts.tv_nsec);
+
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+    uint32_t *fields = (uint32_t *)duk_require_buffer_data(ctx, 0, nullptr);
+
+    fields[0] = (t / NANOS_PER_SEC) >> 32;
+    fields[1] = (t / NANOS_PER_SEC) & 0xffffffff;
+    fields[2] = t % NANOS_PER_SEC;
+
+    return 1;
 }

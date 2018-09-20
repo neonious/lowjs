@@ -4,6 +4,11 @@
 let native = require('native');
 let events = require('events');
 
+const {
+    ERR_INVALID_ARG_TYPE,
+    ERR_OUT_OF_RANGE
+} = require('internal/errors').codes;
+
 /*
 Error.captureStackTrace = function (obj, constructor) {
     // Breaks test/assert_throws_stack.js
@@ -237,6 +242,30 @@ process.stdin.on('pause', () => {
 process.stdin.on('resume', () => {
     process.stdin.ref();
 });
+
+process.hrtime = function hrtime(time) {
+    const hrValues = new Uint32Array(3);
+    native.hrtime(hrValues);
+
+    if (time !== undefined) {
+        if (!Array.isArray(time)) {
+            throw new ERR_INVALID_ARG_TYPE('time', 'Array', time);
+        }
+        if (time.length !== 2) {
+            throw new ERR_OUT_OF_RANGE('time', 2, time.length);
+        }
+
+        const sec = (hrValues[0] * 0x100000000 + hrValues[1]) - time[0];
+        const nsec = hrValues[2] - time[1];
+        const needsBorrow = nsec < 0;
+        return [needsBorrow ? sec - 1 : sec, needsBorrow ? nsec + 1e9 : nsec];
+    }
+
+    return [
+        hrValues[0] * 0x100000000 + hrValues[1],
+        hrValues[2]
+    ];
+};
 
 exports.console = require('console');
 
