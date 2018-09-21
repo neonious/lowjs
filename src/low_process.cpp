@@ -13,13 +13,21 @@
 #include <unistd.h>
 #include <errno.h>
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+#include "esp_timer.h"
+#elif defined(__APPLE__)
+#include <libproc.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
+#else
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <time.h>
+#endif /* __APPLE__ */
+
 // used in low_hrtime() below
 #define NANOS_PER_SEC 1000000000
 #define NANOS_PER_MICROSEC 1000
-
-#if LOW_ESP32_LWIP_SPECIALITIES
-#include "esp32/include/esp_timer.h"
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 // Global variables
 #if !LOW_ESP32_LWIP_SPECIALITIES
@@ -226,6 +234,10 @@ duk_ret_t low_tty_info(duk_context *ctx)
 #endif /* LOW_HAS_TERMIOS */
 }
 
+// -----------------------------------------------------------------------------
+//  low_hrtime
+// -----------------------------------------------------------------------------
+
 duk_ret_t low_hrtime(duk_context *ctx)
 {
     uint64_t t;
@@ -253,11 +265,9 @@ duk_ret_t low_hrtime(duk_context *ctx)
 #endif /* __APPLE__ */
 
     t = (((uint64_t)ts.tv_sec) * NANOS_PER_SEC + ts.tv_nsec);
-
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     uint32_t *fields = (uint32_t *)duk_require_buffer_data(ctx, 0, nullptr);
-
     fields[0] = (t / NANOS_PER_SEC) >> 32;
     fields[1] = (t / NANOS_PER_SEC) & 0xffffffff;
     fields[2] = t % NANOS_PER_SEC;
