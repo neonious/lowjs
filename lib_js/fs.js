@@ -278,18 +278,17 @@ class ReadStream extends stream.Readable {
                     }
 
                     this._posSet = true;
-                    if (bytesRead == 0)
+                    if (bytesRead == 0) {
                         this.push(null);
-                    else {
+                        if (this._autoClose)
+                            this.close();
+                    } else {
                         this._pos += bytesRead;
                         this.bytesRead += bytesRead;
 
                         this.push(bytesRead != buf.length ? buf.slice(0, bytesRead) : buf);
                     }
                 });
-            },
-            final(callback) {
-                this._destroy(null, callback);
             },
             destroy(err, callback) {
                 if (this._autoClose)
