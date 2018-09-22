@@ -49,7 +49,7 @@ The documentation is located at https://www.neonious.com/Documentation/lowjs
 
 ## Running tests
 
-Please see the [lowjs test documentation](/neonious/lowjs/blob/master/test/README.md).
+Please see the [lowjs test documentation](https://github.com/neonious/lowjs/blob/master/test/README.md).
 
 
 ## License / Authors / Contributions
