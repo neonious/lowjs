@@ -7,9 +7,13 @@ Prerequisite:
     npm install
     cd test/tests_script && npm install
 
+Be sure your working directory is the project root before continuing.
+
 It is recommended to run a single test file first, like:
 
     npm run test -- run node/parallel/test-fs-close.js
+
+You may see compile errors for some files, but as long as the program says it has written a summary file at the end, everything is good.
 
 In order to run more tests:
 

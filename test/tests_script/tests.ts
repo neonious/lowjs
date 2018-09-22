@@ -126,7 +126,7 @@ async function runTestsInternal() {
                 return null;
             }
             console.log('====================================================');
-            console.log('Testing file', relFile, ` (${finished.length++}/${files.length})`);
+            console.log('Testing file', relFile, ` (${finished.length + 1}/${files.length})`);
             const opts = {
                 cwd: path.dirname(abs),
                 reject: false,
@@ -315,7 +315,7 @@ async function runTests() {
     await transformFiles(OTHERTESTS, TESTS_COMPILED, async (_, source) => babelTransform(source));
 
     console.log('Making lowjs...');
-    await execa('make', { cwd: PROJ_DIR });
+    await execa('make', { cwd: PROJ_DIR, stdio: 'inherit' });
 
     console.log('Running tests...');
     const finished = await runTestsInternal();
