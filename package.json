@@ -4,7 +4,7 @@
   "description": "The Node.JS port for embedded devices.",
   "author": "neonious GmbH",
   "scripts": {
-    "test": "cd test/tests_script && ts-node tests.ts run"
+    "test": "cd test/tests_script && ts-node tests.ts"
   },
   "devDependencies": {
     "ts-node": "^7.0.1",

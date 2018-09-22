@@ -47,6 +47,11 @@ It is pre-flashed on the neonious one and plain ESP32-WROVER modules which you c
 The documentation is located at https://www.neonious.com/Documentation/lowjs
 
 
+## Running tests
+
+Please see the [lowjs test documentation](/neonious/lowjs/blob/master/test/README.md).
+
+
 ## License / Authors / Contributions
 The community edition is placed under the MIT license. More information.
 

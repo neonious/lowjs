@@ -15,19 +15,34 @@ import { TestResult, ResultType } from './summary/result';
 
 const tmpResults = path.resolve(os.tmpdir(), 'results');
 
+/* todo
+
+In no particular order:
+
+* execute tests in parallel that can safely be executed in parallel (e.g. tests in compiled/node/parallel)
+* log diagnostics/output into summary file if es5 transformation fails
+* general optimization
+    * node -> lowjs test flow seems clunky and is slow, we execute most test 2 times!
+    * do more in parallel
+* way to open test file from summary file directly, maybe even utilizing sourcemaps
+* also support tests written in typescript
+* should exit process on unhandled promise, is that the case?
+* parallel/test-util-inspect.js transforms of node tests (remove last 5 rows)
+* all console.error in red
+* do not hardcode nodejs repo commit id
+
+*/
+
 process.on('unhandledRejection', (reason, p) => {
     console.error(chalk.white.bgRed('Unhandled Rejection at: Promise' + p, 'reason:', reason));
     console.error(reason);
 });
-const blacklist = new Set(['node/tick-processor/test-tick-processor-builtin.js', 'node/parallel/test-vm-sigint.js']);
+
+const blacklist = new Set(['node/tick-processor/test-tick-processor-builtin.js', 'node/parallel/test-vm-sigint.js']); // somehow test runs timeout with these files, without being able to kill them
+
 const argv = yargs
     .strict()
     .command('run [files..]', 'Run tests.', yargs => {
-        return yargs.positional('files', {
-            describe: 'The files to test.'
-        })
-    })
-    .command('watch [files..]', 'Watch tests.', yargs => {
         return yargs.positional('files', {
             describe: 'The files to test.'
         })
@@ -40,7 +55,7 @@ const argv = yargs
     .argv;
 
 interface Options2 {
-    command: 'run' | 'watch';
+    command: 'run';
     files?: string[];
     clear: boolean;
 }
@@ -54,7 +69,7 @@ const { files: optsFiles, command } = options;
 
 console.log('Options', JSON.stringify(options, null, 4));
 
-const PROJ_DIR = path.resolve(__dirname, '..', '..'); // todo what about ts-node and __dirname?
+const PROJ_DIR = path.resolve(__dirname, '..', '..');
 assert(fs.pathExistsSync(path.resolve(PROJ_DIR, 'Makefile')))
 const NODEJS_REPO = path.resolve(PROJ_DIR, 'test', 'node');
 const NODEJS_REPO_TESTS = path.resolve(NODEJS_REPO, 'test');
@@ -79,9 +94,6 @@ async function fileOlderThan(file: string, otherFile: string) {
     return stat.mtime < otherStat.mtime;
 }
 
-// todo parallel and non parallel files
-// todo also support ts tests
-
 async function runTestsInternal() {
     let files: string[];
     if (!optsFiles) {
@@ -96,16 +108,15 @@ async function runTestsInternal() {
         files = await globby(optsFiles, { cwd: TESTS_COMPILED });
         files = files.map(f => path.resolve(TESTS_COMPILED, f));
         if (!files.length) {
-            console.error('No files found matching your criteria!'); // todo in red
+            console.error('No files found matching your criteria!');
             process.exit(1);
         }
     }
-    // todo parallel/test-util-inspect.js transformen von node tests (letzte 5 zeilen raus)
-    // todo asserts raus
+
     assert(files.length);
     files.forEach(f => assert(path.isAbsolute(f)));
 
-    const parallel = false; // todo umstellen
+    const parallel = false;
     const finished: TestResult[] = [];
     async function runAbs(abs: string) {
         const relFile = path.relative(TESTS_COMPILED, abs);
@@ -123,7 +134,7 @@ async function runTestsInternal() {
                 killSignal: 'SIGKILL'
             };
             let output = '';
-            let proc = execa('node', [abs], opts); // TODOOO effektiver machen
+            let proc = execa('node', [abs], opts);
             proc.stdout.on('data', (data: string) => {
                 output += data;
             })
@@ -151,7 +162,6 @@ async function runTestsInternal() {
             }
             const crash = !!result.signal && result.signal !== 'SIGKILL';
             const { signal, timedOut: to, code, stdout, stderr, killed, cmd } = result;
-            //console.log('output', JSON.stringify({ signal, timedOut: to, code, stdout, stderr, killed, cmd }, null, 4));
             const resultType = result.timedOut ? 'timeout' : result.signal ? 'crashed' : code !== 0 ? 'error' : 'ok';
             const col = resultType === 'ok' ? chalk.green : chalk.red;
             console.log('Test ', col(resultType.toUpperCase()), ': ', relFile);
@@ -175,7 +185,6 @@ async function runTestsInternal() {
         const MAX = 5;
         let running = 0;
         const pending: string[] = [];
-        // todo status in console auch besser anzeigen, erst ganz am ende
         async function runItem(abs: string) {
             running++;
             const testResult = await runAbs(abs);
@@ -204,10 +213,11 @@ async function runTestsInternal() {
 
 async function checkoutIfNotCheckouted() {
     if (!await fs.pathExists(NODEJS_REPO)) {
-        console.log(`Cloning node repo into ${NODEJS_REPO}, this may take a while...`);
+        console.log(`Cloning node repository into ${NODEJS_REPO}, this may take a while...`);
         await fs.mkdirp(NODEJS_REPO);
-        await execa('git', ['clone', 'https://github.com/neoncom/node.git', NODEJS_REPO], { stdio: 'inherit' });
-        await execa('git', ['checkout', '--track', 'origin/nodejs_lowjs_test'], { cwd: NODEJS_REPO });
+        await execa('git', ['clone', 'https://github.com/nodejs/node.git', NODEJS_REPO], { stdio: 'inherit' });
+        await execa('git', ['branch', 'lowjs_test', '44d04a8c01dba1d7e4a9c9d9a4415eeacc580bf4'], { cwd: NODEJS_REPO });
+        await execa('git', ['checkout', 'lowjs_test'], { cwd: NODEJS_REPO });
     }
 }
 
@@ -218,11 +228,7 @@ function babelTransform(text: string) {
         presets: [
             "es2015",
             "stage-3"
-        ],
-        // plugins: [ // todo rein
-        //     "transform-runtime",
-        //     "transform-async-to-generator"
-        // ]
+        ]
     });
     const { code: compiled } = babelResult;
     assert(compiled);
@@ -240,7 +246,7 @@ async function transformNodeSource(relFile: string, source: string): Promise<str
         .replace('exports.buildType = process.config.target_defaults.default_configuration;', '')
         .replace("assert.fail(`Unexpected global(s) found: ${leaked.join(', ')}`);", ''); // else babel global is leaked
 }
-// todo sourcemaps einbauen und sourcefile preview und open file on click
+
 async function runTests() {
 
     if (options.clear) {
@@ -253,7 +259,7 @@ async function runTests() {
         const files = read(from);
         assert(files.length)
         files.forEach(f => assert(!path.isAbsolute(f)));
-        const fileErrors = [];// todo also get babel output of failed
+        const fileErrors = [];
         for (const relFile of files) {
             const file = path.resolve(from, relFile);
             const destFile = path.resolve(to, relFile);
@@ -295,19 +301,15 @@ async function runTests() {
             }
         }
         return fileErrors;
-    } // todo do more parallel in this script
+    }
 
     console.log('Transforming and compiled node test files...');
     const transpileErrors = await transformFiles(NODEJS_REPO_TESTS, NODETESTS_COMPILED_DIR, async (relFile, source) => {
         const transformed = await transformNodeSource(relFile, source);
         if (transformed === false)
             return false;
-        // console.log('babel transform', path.resolve(NODEJS_REPO_TESTS, relFile));
         return babelTransform(transformed)
     });
-
-    // await fs.emptyDir(NODETESTS_COMPILED_DIR); // TODOOOO raus
-    // await fs.copy(NODEJS_REPO_TESTS, NODETESTS_COMPILED_DIR);
 
     console.log('Compiling other test files...');
     await transformFiles(OTHERTESTS, TESTS_COMPILED, async (_, source) => babelTransform(source));
@@ -319,7 +321,6 @@ async function runTests() {
     const finished = await runTestsInternal();
     const results = finished.concat(transpileErrors);
 
-    // TODOOOO should exit process on unhandled promise, is that the case?
     const ok = results.filter(f => f.resultType === 'ok');
     console.log(`${ok.length} / ${results.length} tests OK.`);
     console.log(`Generating summary file...`);
@@ -328,55 +329,4 @@ async function runTests() {
     await fs.emptyDir(tmpResults);
 }
 
-(async () => {
-    if (command === 'run') {
-        await runTests();
-    } else {
-        throw new Error('watch not impl.');
-    }
-})();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// todo --watch noch impl
-
-
-
-
-// async function watchTests() {
-//     await runTests();
-//     watchFiles(NODETESTS_TRANSFORM_SCRIPT, async () => {
-//         await transformNodeTests(NODETESTS_DOWNLOAD_DIR, NODETESTS_TRANSFORMED_DIR);
-//     });
-//     watchFiles(NODETESTS_TRANSFORMED_DIR, async () => {
-//         // todo compile to TESTS_COMPILED/node
-//     })
-//     watchFiles(OTHERTESTS, async () => {
-//         // todo compile to TESTS_COMPILED
-//     })
-//     watchFiles(LOWJS_SOURCE, async () => {
-//         await execa('make');
-//     })
-//     watchFiles([LOWJS_BINS, TESTS_COMPILED], async () => {
-//         await runTestsInternal();
-//     })
-// }
-// async function transformNodeTests(fromDir: string, toDir: string) {
-
-// }
-
-// async function watchFiles(globs: string | string[], callback: () => Promise<void>) {
-
-// }
+runTests();
