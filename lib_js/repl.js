@@ -50,6 +50,10 @@
 let native = require('native');
 
 let builtinLibs = [];
+const {
+    isIdentifierStart,
+    isIdentifierChar
+  } = require('internal/util/identifier');
 const internalUtil = require('internal/util');
 const { isTypedArray } = require('internal/util/types');
 const util = require('util');
