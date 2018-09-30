@@ -5,9 +5,9 @@
 #include "low_loop.h"
 #include "LowLoopCallback.h"
 
+#include "low_config.h"
 #include "low_main.h"
 #include "low_system.h"
-#include "low_config.h"
 
 #include <errno.h>
 
@@ -21,7 +21,7 @@ void user_cpu_load(bool active);
 
 bool low_loop_run(low_main_t *low)
 {
-    while(!low->duk_flag_stop && low->run_ref)
+    while(!low->duk_flag_stop && (low->run_ref || low->loop_callback_first))
     {
         int millisecs = -1;
         if(low->chore_times.size())
@@ -55,12 +55,13 @@ bool low_loop_run(low_main_t *low)
                         iterData->second.stamp = tick_count;
 
                     low->chore_times.insert(
-                        pair<int, int>(iterData->second.stamp, index));
+                      pair<int, int>(iterData->second.stamp, index));
                 }
 
                 int args[2] = {index, erase};
-                if(duk_safe_call(low->duk_ctx, low_loop_call_chore_safe, args,
-                                 0, 1) != DUK_EXEC_SUCCESS)
+                if(duk_safe_call(
+                     low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) !=
+                   DUK_EXEC_SUCCESS)
                 {
                     if(!low->duk_flag_stop) // flag stop also produces error
                         low_duk_print_error(low->duk_ctx);
@@ -110,8 +111,8 @@ bool low_loop_run(low_main_t *low)
                     ts.tv_nsec -= 1000000000;
                 }
 
-                pthread_cond_timedwait(&low->loop_thread_cond,
-                                       &low->loop_thread_mutex, &ts);
+                pthread_cond_timedwait(
+                  &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
             }
             else
                 pthread_cond_wait(&low->loop_thread_cond,
@@ -130,11 +131,13 @@ bool low_loop_run(low_main_t *low)
                 if(!low->loop_callback_first)
                     low->loop_callback_last = NULL;
                 callback->mNext = NULL;
-                low->run_ref--;
 
                 pthread_mutex_unlock(&low->loop_thread_mutex);
-                if(duk_safe_call(low->duk_ctx, low_loop_call_callback_safe,
-                                 callback, 0, 1) != DUK_EXEC_SUCCESS)
+                if(duk_safe_call(low->duk_ctx,
+                                 low_loop_call_callback_safe,
+                                 callback,
+                                 0,
+                                 1) != DUK_EXEC_SUCCESS)
                 {
                     if(!low->duk_flag_stop) // flag stop also produces error
                         low_duk_print_error(low->duk_ctx);
@@ -280,7 +283,6 @@ void low_loop_set_callback(low_main_t *low, LowLoopCallback *callback)
         return;
     }
 
-    low->run_ref++;
     if(low->loop_callback_last)
         low->loop_callback_last->mNext = callback;
     else
@@ -300,8 +302,6 @@ void low_loop_clear_callback(low_main_t *low, LowLoopCallback *callback)
     pthread_mutex_lock(&low->loop_thread_mutex);
     if(callback->mNext || low->loop_callback_last == callback)
     {
-        low->run_ref--;
-
         LowLoopCallback *elem = low->loop_callback_first;
         if(elem == callback)
         {
