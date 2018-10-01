@@ -188,6 +188,47 @@ exports.readFileSync = (path, options) => {
         return buf;
 };
 
+exports.stat = (path, options, callback) => {
+    if (!callback) {
+        callback = options;
+        options = null;
+    }
+
+    exports.open(path, 'r', (err, fd) => {
+        if (err) {
+            callback(err);
+            return;
+        }
+
+        let stat = exports.fstat(fd, (err, stat) => {
+            exports.close(fd, (err2) => {
+                if (err || err2) {
+                    callback(err ? err : err2);
+                    return;
+                }
+
+                callback(null, stat);
+            });
+        });
+    });
+};
+
+exports.statSync = (path, options) => {
+    // we do not support bigint option, so lets forget about options
+
+    let fd = exports.openSync(path, 'r');
+    let stat;
+    try {
+        stat = exports.fstatSync(fd);
+    } catch (e) {
+        exports.closeSync(fd);
+        throw e;
+    }
+    exports.closeSync(fd);
+
+    return stat;
+};
+
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {
         callback = options;
