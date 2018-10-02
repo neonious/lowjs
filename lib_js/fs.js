@@ -57,6 +57,8 @@ exports.write = (fd, buffer, offset, length, position, callback) => {
 };
 
 class Stats {
+  // sorry but octal literals are no-no in strict mode
+  // also these are copied from sys/stat.h so not sure about portability
   static S_IFMT = parseInt('0170000', 8)
   static S_IFDIR = parseInt('0040000', 8)
   static S_IFCHR = parseInt('0020000', 8)
@@ -68,6 +70,9 @@ class Stats {
   
   constructor (stat) { Object.assign(this, stat) }
   get fileType() { return this.mode & Stats.S_IFMT }
+  get atime() { return new Date(this.atimeMs) }
+  get mtime() { return new Date(this.mtimeMs) }
+  
   isFile = () => this.fileType == Stats.S_IFREG
   isDirectory = () => this.fileType == Stats.S_IFDIR
   isBlockDevice = () => this.fileType == Stats.S_IFBLK
