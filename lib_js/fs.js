@@ -56,8 +56,30 @@ exports.write = (fd, buffer, offset, length, position, callback) => {
     }
 };
 
-exports.fstat = native.fstat;
+class Stats {
+  static S_IFMT = parseInt('0170000', 8)
+  static S_IFDIR = parseInt('0040000', 8)
+  static S_IFCHR = parseInt('0020000', 8)
+  static S_IFBLK = parseInt('0060000', 8)
+  static S_IFREG = parseInt('0100000', 8)
+  static S_IFIFO = parseInt('0010000', 8)
+  static S_IFLNK = parseInt('0120000', 8)
+  static S_IFSOCK = parseInt('0140000', 8)
+  
+  constructor (stat) { Object.assign(this, stat) }
+  get fileType() { return this.mode & Stats.S_IFMT }
+  isFile = () => this.fileType == Stats.S_IFREG
+  isDirectory = () => this.fileType == Stats.S_IFDIR
+  isBlockDevice = () => this.fileType == Stats.S_IFBLK
+  isCharacterDevice = () => this.fileType == Stats.S_IFCHR
+  isSymbolicLink = () => this.fileType == Stats.S_IFLNK
+  isFIFO = () => this.fileType == Stats.S_IFIFO
+  isSocket = () => this.fileType == Stats.S_IFSOCK
+}
 
+exports.Stats = Stats
+
+exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(stat)))
 exports.openSync = native.openSync;
 exports.closeSync = native.closeSync;
 
@@ -111,7 +133,7 @@ exports.writeSync = (fd, buffer, offset, length, position) => {
 
 exports.fstatSync = (fd) => {
     let resErr, resStat;
-    native.fstat(fd, (err, stat) => {
+    exports.fstat(fd, (err, stat) => {
         resErr = err;
         resStat = stat;
     });
