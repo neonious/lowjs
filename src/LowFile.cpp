@@ -425,13 +425,26 @@ bool LowFile::FinishPhase()
                     ctime: Mon, 10 Oct 2011 23:24:11 GMT,
                     birthtime: Mon, 10 Oct 2011 23:24:11 GMT }
                 */
+#define applyStat(name) {#name, (double)mStat.st_##name}
                 duk_number_list_entry numberList[] = {
-                    {"size", (double)mStat.st_size},
+#if defined(_POSIX_VERSION)
+                    applyStat(dev),
+                    applyStat(ino),
+                    applyStat(mode),
+                    applyStat(nlink),
+                    applyStat(uid),
+                    applyStat(gid),
+                    applyStat(rdev),
+                    applyStat(blksize),
+                    applyStat(blocks),
+#endif
+                    applyStat(size),
                     {"atimeMs", mStat.st_atime * 1000.0},
                     {"mtimeMs", mStat.st_mtime * 1000.0},
-                    //                {"ctimeMs", st_ctime * 1000.0}, not set
-                    //                yet by our file system
-                    {NULL, 0.0}};
+                    // {"ctimeMs", mStat.st_ctime * 1000.0}, not set due to vendor specific
+                    {NULL, 0.0}
+                };
+#undef applyStat
                 duk_put_number_list(mLow->duk_ctx, -1, numberList);
                 duk_call(mLow->duk_ctx, 2);
             }
