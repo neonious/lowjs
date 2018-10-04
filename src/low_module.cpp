@@ -407,17 +407,21 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
             duk_get_prop_string(ctx, -3, "require"); /* require */
         duk_dup(ctx, -4);                            /* module */
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-        char *apath = path;
-#else
-        char apath[PATH_MAX];
-        realpath(path, apath);
+        const char *apath = path;
+#if !LOW_ESP32_LWIP_SPECIALITIES
+        char path2[PATH_MAX];
+        if(path[0] == '/')
+        {
+        	// Do not do this for lib:
+        	realpath(path, path2);
+        	apath = path2;
+        }
 #endif
         duk_push_string(ctx, apath); /* __filename */
         for(len = strlen(apath) - 1; len > 0; len--)
             if(apath[len] == '/')
                 break;
-        duk_push_lstring(ctx, apath, len); /* __dirname */
+        duk_push_lstring(ctx, apath, len == -1 ? 0 : len); /* __dirname */
         duk_call(ctx, 5);
 
         /* [ ... module result ] */

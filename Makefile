@@ -1,4 +1,4 @@
-FLAGS = -O3
+FLAGS = -g
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
@@ -66,7 +66,7 @@ deps/duktape/src-low/duktape.o: deps/duktape/src-low/duktape.c Makefile
 
 lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
 	rm -rf lib lib_js/build
-	cd lib_js && ../node_modules/typescript/bin/tsc
+	cd lib_js && node ../node_modules/typescript/bin/tsc
 	mkdir lib
 	./util/dukc lib_js/build lib
 	touch lib/BUILT
