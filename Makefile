@@ -1,4 +1,4 @@
-FLAGS = -g
+FLAGS = -O3
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
@@ -8,6 +8,12 @@ CXXFLAGS = $(FLAGS) -Iinclude -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/includ
 
 LD = g++
 LDFLAGS = $(FLAGS) -lm -lpthread
+
+# So distribution, built under Alpine Linux/musl, runs everywhere
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	LDFLAGS += -static -static-libstdc++ -static-libgcc
+endif
 
 OBJECTS =							\
 	deps/duktape/src-low/duktape.o		\
@@ -107,3 +113,17 @@ deps/c-ares/libcares.la: deps/c-ares/Makefile
 
 deps/mbedtls/programs/test/benchmark:
 	cd deps/mbedtls && make
+
+# Builds distribution
+DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`date +"%Y%m%d"`
+
+dist: bin/low
+	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
+	mkdir dist
+	cp -r bin lib dist
+	strip dist/bin/low
+	rm dist/lib/BUILT
+	mv dist $(DIST_NAME)
+	tar -c $(DIST_NAME) > $(DIST_NAME).tar
+	gzip $(DIST_NAME).tar
+	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar
