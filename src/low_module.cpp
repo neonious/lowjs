@@ -408,7 +408,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
         duk_dup(ctx, -4);                            /* module */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-        char *apath = path;
+        const char *apath = path;
 #else
         char apath[PATH_MAX];
         realpath(path, apath);
