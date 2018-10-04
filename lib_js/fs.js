@@ -72,6 +72,7 @@ class Stats {
   get fileType() { return this.mode & Stats.S_IFMT }
   get atime() { return new Date(this.atimeMs) }
   get mtime() { return new Date(this.mtimeMs) }
+  get ctime() { return new Date(this.ctimeMs) }
   
   isFile = () => this.fileType == Stats.S_IFREG
   isDirectory = () => this.fileType == Stats.S_IFDIR

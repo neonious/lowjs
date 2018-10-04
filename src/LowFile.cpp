@@ -405,29 +405,9 @@ bool LowFile::FinishPhase()
             {
                 duk_push_null(mLow->duk_ctx);
                 duk_push_object(mLow->duk_ctx);
-                /*
-                dev: 2114,
-                    ino: 48064969,
-                    mode: 33188,
-                    nlink: 1,
-                    uid: 85,
-                    gid: 100,
-                    rdev: 0,
-                    size: 527,
-                    blksize: 4096,
-                    blocks: 8,
-                    atimeMs: 1318289051000.1,
-                    mtimeMs: 1318289051000.1,
-                    ctimeMs: 1318289051000.1,
-                    birthtimeMs: 1318289051000.1,
-                    atime: Mon, 10 Oct 2011 23:24:11 GMT,
-                    mtime: Mon, 10 Oct 2011 23:24:11 GMT,
-                    ctime: Mon, 10 Oct 2011 23:24:11 GMT,
-                    birthtime: Mon, 10 Oct 2011 23:24:11 GMT }
-                */
+
 #define applyStat(name) {#name, (double)mStat.st_##name}
                 duk_number_list_entry numberList[] = {
-#if defined(_POSIX_VERSION)
                     applyStat(dev),
                     applyStat(ino),
                     applyStat(mode),
@@ -437,14 +417,13 @@ bool LowFile::FinishPhase()
                     applyStat(rdev),
                     applyStat(blksize),
                     applyStat(blocks),
-#endif
                     applyStat(size),
                     {"atimeMs", mStat.st_atime * 1000.0},
                     {"mtimeMs", mStat.st_mtime * 1000.0},
-                    // {"ctimeMs", mStat.st_ctime * 1000.0}, not set due to vendor specific
+                    {"ctimeMs", mStat.st_ctime * 1000.0},
                     {NULL, 0.0}
                 };
-#undef applyStat
+
                 duk_put_number_list(mLow->duk_ctx, -1, numberList);
                 duk_call(mLow->duk_ctx, 2);
             }
