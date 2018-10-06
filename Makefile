@@ -118,11 +118,13 @@ deps/mbedtls/programs/test/benchmark:
 DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`date +"%Y%m%d"`
 
 dist: bin/low lib/BUILT
-	rm -rf $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
+	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
 	mkdir $(DIST_NAME)
 	cp -r bin lib $(DIST_NAME)
 	strip $(DIST_NAME)/bin/low
 	rm $(DIST_NAME)/lib/BUILT
 	tar -c $(DIST_NAME) > $(DIST_NAME).tar
 	gzip $(DIST_NAME).tar
+	mkdir dist
+	mv $(DIST_NAME).tar.gz dist
 	rm -rf $(DIST_NAME) $(DIST_NAME).tar
