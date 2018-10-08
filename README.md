@@ -11,6 +11,13 @@ low.js is a port of Node.JS with far lower system requirements.
 For more information on low.js, please visit http://www.lowjs.org/ .
 
 
+## First steps / documentation
+
+To try out low.js, download the [webserver example](http://www.lowjs.org/lowjs-webserver-example.tar.gz) which you can run with both low.js and Node.js.
+
+The documentation is located at [lowjs documentation](https://www.neonious.com/Documentation/lowjs).
+
+
 ## Compile from source
 
 In case the binary distributions available at http://www.lowjs.org/ do not work for your needs,  you can compile from source.
@@ -39,11 +46,6 @@ The compilation itself can be done with these commands:
 low.js is now built in bin and can be called via bin/low.
 
 The lib directory is also required for low to work (it accesses it via path_to_bin/../lib) and must be copied when creating a distribution. When creating a distribution, it might also make sense to strip the binary with the strip command, to save some KB.
-
-
-## Documentation
-
-The documentation is located at [lowjs documentation](https://www.neonious.com/Documentation/lowjs).
 
 
 ## Running tests
