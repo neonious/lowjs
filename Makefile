@@ -120,7 +120,7 @@ DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`date +"%Y%m%d"`
 dist: bin/low lib/BUILT
 	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
 	mkdir $(DIST_NAME)
-	cp -r bin lib $(DIST_NAME)
+	cp -r bin lib LICENSE README.md $(DIST_NAME)
 	strip $(DIST_NAME)/bin/low
 	rm $(DIST_NAME)/lib/BUILT
 	tar -c $(DIST_NAME) > $(DIST_NAME).tar
