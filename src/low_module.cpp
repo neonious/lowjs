@@ -3,14 +3,15 @@
 // -----------------------------------------------------------------------------
 
 #include "low_module.h"
-#include "low_main.h"
-#include "low_system.h"
 #include "low_alloc.h"
 #include "low_config.h"
+#include "low_fs.h"
+#include "low_main.h"
+#include "low_system.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 // Global variables
@@ -62,7 +63,7 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
     if(path)
     {
         char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
-        if(!low_module_resolve_c(path, ".", res_id))
+        if(!low_module_resolve_c(ctx, path, ".", res_id))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
             if(!neonious_start_result("FILE_NOT_FOUND"))
@@ -84,8 +85,20 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
 
 bool low_module_main(low_main_t *low, const char *path)
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
     if(duk_safe_call(low->duk_ctx, low_module_main_safe, (void *)path, 0, 1) !=
        DUK_EXEC_SUCCESS)
+#else
+    char path2[PATH_MAX];
+    if(path)
+        realpath(path, path2);
+
+    if(duk_safe_call(low->duk_ctx,
+                     low_module_main_safe,
+                     (void *)(path ? path2 : NULL),
+                     0,
+                     1) != DUK_EXEC_SUCCESS)
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     {
         if(!low->duk_flag_stop) // flag stop also produces error
             low_duk_print_error(low->duk_ctx);
@@ -102,8 +115,11 @@ bool low_module_main(low_main_t *low, const char *path)
 // -----------------------------------------------------------------------------
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-bool get_data_block(const char *path, unsigned char **data, int *len,
-                    bool showErr, bool escapeZero = false);
+bool get_data_block(const char *path,
+                    unsigned char **data,
+                    int *len,
+                    bool showErr,
+                    bool escapeZero = false);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 void low_module_run(duk_context *ctx, const char *path, int flags)
@@ -116,10 +132,19 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
 
     bool isLib = memcmp(path, "lib:", 4) == 0;
 
+    len = strlen(path);
+    for(len--; len >= 0; len--)
+        if(path[len] == '.')
+            break;
+    if(path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] == 'J') &&
+       (path[len + 2] == 's' || path[len + 2] == 'S') &&
+       (path[len + 3] == 'o' || path[len + 3] == 'O') &&
+       (path[len + 4] == 'n' || path[len + 4] == 'N'))
+        flags |= LOW_MODULE_FLAG_JSON;
+
 #if LOW_ESP32_LWIP_SPECIALITIES
     char *txt;
 
-    len = strlen(path);
     if(len > 1000)
         goto cantLoad;
 
@@ -132,32 +157,6 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
         sprintf(txt, "/lib/%s.low", path + 4);
         flags |= LOW_MODULE_FLAG_DUK_FORMAT;
     }
-    /*
-        else if(memcmp(path, "module:", 7) == 0)
-        {
-            for(len--; len >= 0; len--)
-                if(path[len] == '.')
-                    break;
-            if(path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] ==
-       'J') && (path[len + 2] == 's' || path[len + 2] == 'S') && (path[len + 3]
-       == 'o' || path[len + 3] == 'O') && (path[len + 4] == 'n' || path[len + 4]
-       == 'N'))
-            {
-                type |= MODULE_LOAD_JSON;
-
-                strcpy(txt, "/fs/modules/");
-                memcpy(txt + 12, path + 7, len - 7 + 6);
-            }
-            else
-            {
-                type |= MODULE_LOAD_DUK_FORMAT;
-
-                strcpy(txt, "/fs/modules/");
-                memcpy(txt + 12, path + 7, len - 7);
-                strcpy(txt + 12 + len - 7, ".duk");
-            }
-        }
-    */
     else if(path[0] == '/')
         sprintf(txt, "/fs/user/.build%s", path);
     else
@@ -208,7 +207,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     int fd;
     if(isLib)
     {
-        if(strlen(path) > 1000)
+        if(len > 1000)
             goto cantLoad;
 
         char *txt = (char *)low_alloc(1024);
@@ -289,7 +288,8 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     duk_put_prop_string(ctx, -2, "children");
 
     duk_push_object(ctx);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "childrenMap");
 
@@ -299,7 +299,8 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     duk_push_c_function(ctx, low_module_require, 1);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "module");
 
@@ -324,7 +325,8 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     duk_push_c_function(ctx, low_module_resolve, 1);
 
     duk_dup(ctx, -3);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "module");
 
@@ -350,7 +352,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
             duk_xmove_top(ctx, low->stash_ctx, 1);
 
         duk_get_prop_string(
-            ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
+          ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
         duk_dup(ctx, !isLib && !(flags & LOW_MODULE_FLAG_JSON) ? -3 : -4);
         duk_put_prop_string(ctx, -2, path);
         duk_pop_2(ctx);
@@ -370,7 +372,8 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     {
         if(flags & LOW_MODULE_FLAG_DUK_FORMAT)
         {
-            memcpy(duk_push_fixed_buffer(ctx, len), data,
+            memcpy(duk_push_fixed_buffer(ctx, len),
+                   data,
                    len); // TODO: remove copy
             low_free(data);
             duk_load_function(ctx);
@@ -380,10 +383,10 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
             // TODO: remove concat
             bool shebang = len >= 2 && data[0] == '#' && data[1] == '!';
             duk_push_string(
-                ctx,
-                shebang
-                    ? "function(exports,require,module,__filename,__dirname){//"
-                    : "function(exports,require,module,__filename,__dirname){");
+              ctx,
+              shebang
+                ? "function(exports,require,module,__filename,__dirname){//"
+                : "function(exports,require,module,__filename,__dirname){");
             duk_push_lstring(ctx, (char *)data, len);
             low_free(data);
             duk_push_string(ctx, "\n}"); /* Newline allows module last line to
@@ -407,21 +410,11 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
             duk_get_prop_string(ctx, -3, "require"); /* require */
         duk_dup(ctx, -4);                            /* module */
 
-        const char *apath = path;
-#if !LOW_ESP32_LWIP_SPECIALITIES
-        char path2[PATH_MAX];
-        if(path[0] == '/')
-        {
-        	// Do not do this for lib:
-        	realpath(path, path2);
-        	apath = path2;
-        }
-#endif
-        duk_push_string(ctx, apath); /* __filename */
-        for(len = strlen(apath) - 1; len > 0; len--)
-            if(apath[len] == '/')
+        duk_push_string(ctx, path); /* __filename */
+        for(len = strlen(path) - 1; len > 0; len--)
+            if(path[len] == '/')
                 break;
-        duk_push_lstring(ctx, apath, len == -1 ? 0 : len); /* __dirname */
+        duk_push_lstring(ctx, path, len == -1 ? 0 : len); /* __dirname */
         duk_call(ctx, 5);
 
         /* [ ... module result ] */
@@ -451,7 +444,8 @@ duk_ret_t low_module_require(duk_context *ctx)
 
     // Get parent ID
     duk_push_current_function(ctx);
-    duk_get_prop_string(ctx, -1,
+    duk_get_prop_string(ctx,
+                        -1,
                         "\xff"
                         "module");
     duk_remove(ctx, -2);
@@ -461,10 +455,10 @@ duk_ret_t low_module_require(duk_context *ctx)
     duk_pop(ctx);
 
     // We always resolve with our own function
-    if(!low_module_resolve_c(id, parent_id, res_id))
+    if(!low_module_resolve_c(ctx, id, parent_id, res_id))
     {
-        duk_type_error(ctx, "cannot resolve module '%s', parent '%s'", id,
-                       parent_id);
+        duk_type_error(
+          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
     }
 
@@ -475,7 +469,7 @@ duk_ret_t low_module_require(duk_context *ctx)
         duk_xmove_top(ctx, low->stash_ctx, 1);
 
     duk_get_prop_string(
-        ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
+      ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
     if(duk_get_prop_string(ctx, -1, res_id))
     {
         duk_remove(ctx, -2);
@@ -494,7 +488,8 @@ duk_ret_t low_module_require(duk_context *ctx)
 
     if(memcmp(parent_id, "lib:", 4) != 0) // security check
     {
-        duk_get_prop_string(ctx, -2,
+        duk_get_prop_string(ctx,
+                            -2,
                             "\xff"
                             "childrenMap");
         if(duk_get_prop_string(ctx, -1, res_id))
@@ -530,7 +525,8 @@ duk_ret_t low_module_resolve(duk_context *ctx)
 
     // Get parent ID
     duk_push_current_function(ctx);
-    duk_get_prop_string(ctx, -1,
+    duk_get_prop_string(ctx,
+                        -1,
                         "\xff"
                         "module");
     duk_remove(ctx, -2);
@@ -539,15 +535,15 @@ duk_ret_t low_module_resolve(duk_context *ctx)
     const char *parent_id = duk_get_string(ctx, -1);
     duk_pop_2(ctx);
 
-    if(low_module_resolve_c(id, parent_id, res_id))
+    if(low_module_resolve_c(ctx, id, parent_id, res_id))
     {
         duk_push_string(ctx, res_id);
         return 1;
     }
     else
     {
-        duk_type_error(ctx, "cannot resolve module '%s', parent '%s'", id,
-                       parent_id);
+        duk_type_error(
+          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
     }
 }
@@ -585,7 +581,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "children");
 
     duk_push_object(ctx);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "childrenMap");
 
@@ -595,7 +592,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_push_c_function(ctx, low_module_require, 1);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "module");
 
@@ -621,7 +619,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_push_c_function(ctx, low_module_resolve, 2);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2,
+    duk_put_prop_string(ctx,
+                        -2,
                         "\xff"
                         "module");
 
@@ -650,7 +649,9 @@ duk_ret_t low_module_make(duk_context *ctx)
 //                         result must be min 1024 bytes
 // -----------------------------------------------------------------------------
 
-bool low_module_resolve_c(const char *module_id, const char *parent_id,
+bool low_module_resolve_c(duk_context *ctx,
+                          const char *module_id,
+                          const char *parent_id,
                           char *res_id)
 {
     struct stat st;
@@ -682,232 +683,203 @@ bool low_module_resolve_c(const char *module_id, const char *parent_id,
             sprintf(res_id, "lib:%s", module_id);
             return true;
         }
-        /*
-        // package manager module
-        sprintf(res_id, "/fs/modules/%s/index.low", module_id);
-        if (stat(res_id, &st) == 0)
-        {
-            sprintf(res_id, "module:%s/index.js", module_id);
-            return true;
-        }
-
-        sprintf(res_id, "/fs/modules/%s.low", module_id);
-        if (stat(res_id, &st) == 0)
-        {
-            sprintf(res_id, "module:%s.js", module_id);
-            return true;
-        }
-*/
     }
 
     if(memcmp(parent_id, "lib:", 4) == 0)
         return false;
 
-    char *start, *path;
-    bool isModule;
-
-#if LOW_ESP32_LWIP_SPECIALITIES
-    if(memcmp(parent_id, "module:", 7) == 0 && module_id[0] != '/')
+    const char *parent_end = NULL;
+    while(true)
     {
-        strcpy(res_id, "/fs/modules/");
-        path = start = res_id + 12;
-        parent_id += 7;
-        isModule = true;
-    }
-    else
-    {
-        strcpy(res_id, "/fs/user/");
-        start = res_id + 8;
-        path = res_id + 9;
-        isModule = false;
-    }
-#else
-    path = start = res_id;
-    isModule = false;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-    path[0] = 0;
-    if(module_id[0] != '/')
-    {
-        for(const char *parent_path = parent_id; *parent_path; parent_path++)
+        if(!parent_end)
         {
-            if(path != start)
-            {
-                if(path[-1] == '/' && parent_path[0] == '/')
-                    continue;
-                else if(path[-1] == '/' && parent_path[0] == '.' &&
-                        (!parent_path[1] || parent_path[1] == '/'))
-                {
-                    parent_path++;
-                    if(!*parent_path)
-                        break;
-                    continue;
-                }
-                else if(path[-1] == '/' && parent_path[0] == '.' &&
-                        parent_path[1] == '.' &&
-                        (!parent_path[2] || parent_path[2] == '/')
-#if !LOW_ESP32_LWIP_SPECIALITIES
-                        && !(path - start > 2 && path[-2] == '.' &&
-                             path[-3] == '.' &&
-                             (path - start == 3 || path[-4] == '/'))
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-                )
-                {
-                    path--;
-                    while(path != start && path[-1] != '/')
-                        path--;
-#if LOW_ESP32_LWIP_SPECIALITIES
-                    if(path == start)
-                        return false;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-                    parent_path += 2;
-                    if(!*parent_path)
-                        break;
-                }
-                else
-                    *path++ = *parent_path;
-            }
-            else
-                *path++ = *parent_path;
+            // For next start
+            parent_end = parent_id + strlen(parent_id);
+            if(!((module_id[0] == '.' && module_id[1] == '/') ||
+                 (module_id[0] == '/') ||
+                 (module_id[0] == '.' && module_id[1] == '.' &&
+                  module_id[2] == '/')))
+                continue;
 
-            if(path - res_id == 1024)
-                return false;
-        }
-        while(path != start && path[-1] != '/')
-            path--;
-#if LOW_ESP32_LWIP_SPECIALITIES
-        if(path == start)
-            return false;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-    }
-    for(const char *module_path = module_id; *module_path; module_path++)
-    {
-        if(path != start)
-        {
-            if(path[-1] == '/' && module_path[0] == '/')
-                continue;
-            else if(path[-1] == '/' && module_path[0] == '.' &&
-                    (!module_path[1] || module_path[1] == '/'))
-            {
-                module_path++;
-                if(!*module_path)
-                    break;
-                continue;
-            }
-            else if(path[-1] == '/' && module_path[0] == '.' &&
-                    module_path[1] == '.' &&
-                    (!module_path[2] || module_path[2] == '/')
-#if !LOW_ESP32_LWIP_SPECIALITIES
-                    &&
-                    !(path - start > 2 && path[-2] == '.' && path[-3] == '.' &&
-                      (path - start == 3 || path[-4] == '/'))
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            )
-            {
-                path--;
-                while(path != start && path[-1] != '/')
-                    path--;
-#if LOW_ESP32_LWIP_SPECIALITIES
-                if(path == start)
-                    return false;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-                module_path += 2;
-                if(!*module_path)
-                    break;
-            }
-            else
-                *path++ = *module_path;
+            low_fs_resolve(res_id, 1024, parent_id, module_id);
         }
         else
-            *path++ = *module_path;
+        {
+            // Go through node_modules
+            while(parent_id != parent_end && parent_end[-1] != '/')
+                parent_end--;
+            if(parent_id == parent_end)
+                return false;
 
-        if(path - res_id == 1024)
-            return false;
-    }
-    bool isFolder = path[-1] == '/';
-    if(isFolder)
-        path--;
+            low_fs_resolve(res_id, 1024, parent_id, module_id, parent_end);
+            parent_end--;
+        }
 
-    if(path[-3] == '.' && (path[-2] == 'j' || path[-2] == 'J') &&
-       (path[-1] == 's' || path[-1] == 'S'))
-        path -= 3;
+        char *path = res_id + strlen(res_id);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        char *start = res_id + 8; // /fs/user
+#endif                            /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    if(isModule)
-    {
+        bool isFolder = path[-1] == '/';
+        if(isFolder)
+            path--;
+
         if(!isFolder)
         {
-            if(path + 4 - res_id >= 1024)
-                return false;
-            strcpy(path, ".low");
-            if(stat(res_id, &st) == 0)
+            // LOAD_AS_FILE
+
+            path[0] = 0;
+            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
             {
-                strcpy(path, ".js");
-                memmove(res_id + 7, start, path + 4 - start);
-                memcpy(res_id, "module:", 7);
+#if LOW_ESP32_LWIP_SPECIALITIES
+                memmove(res_id, start, path + 1 - start);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 return true;
             }
-        }
 
-        if(path + 10 - res_id >= 1024)
-            return false;
-        strcpy(path, "/index.low");
-        if(stat(res_id, &st) == 0)
-        {
-            strcpy(path, "/index.js");
-            memmove(res_id + 7, start, path + 10 - start);
-            memcpy(res_id, "module:", 7);
-            return true;
-        }
-
-        if(!isFolder)
-        {
-            // For example JSON
-            if(path - res_id >= 1024)
-                return false;
-            path[0] = '\0';
-            if(stat(res_id, &st) == 0)
-            {
-                memmove(res_id + 7, start, path + 1 - start);
-                memcpy(res_id, "module:", 7);
-                return true;
-            }
-        }
-    }
-    else
-    {
-        if(!isFolder)
-        {
             if(path + 3 - res_id >= 1024)
                 return false;
             strcpy(path, ".js");
-            if(stat(res_id, &st) == 0)
+            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
             {
+#if LOW_ESP32_LWIP_SPECIALITIES
                 memmove(res_id, start, path + 4 - start);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 return true;
             }
+
+            if(path + 5 - res_id >= 1024)
+                return false;
+            strcpy(path, ".json");
+            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+            {
+#if LOW_ESP32_LWIP_SPECIALITIES
+                memmove(res_id, start, path + 6 - start);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+                return true;
+            }
+        }
+
+        // LOAD_AS_DIRECTORY
+
+        if(path + 13 - res_id >= 1024)
+            return false;
+        strcpy(path, "/package.json");
+
+        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+        {
+            int len = st.st_size;
+            void *data = duk_push_buffer(ctx, len, false);
+
+            int fd = open(res_id, O_RDONLY);
+            if(fd < 0)
+                return false;
+
+            if(read(fd, data, len) != len)
+            {
+                close(fd);
+                duk_pop(ctx);
+                return false;
+            }
+            close(fd);
+
+            // Read package.json content
+            duk_buffer_to_string(ctx, -1);
+            duk_json_decode(ctx, -1);
+
+            if(duk_get_prop_string(ctx, -1, "main"))
+            {
+                const char *str = duk_get_string(ctx, -1);
+                len = strlen(str);
+
+                char *res_id2 = (char *)duk_push_buffer(ctx, 1024, false);
+                low_fs_resolve(res_id2, 1024, res_id, str);
+
+                char *path = res_id2 + strlen(res_id2);
+#if LOW_ESP32_LWIP_SPECIALITIES
+                char *start = res_id2 + 8; // /fs/user
+#else
+                char *start = res_id2;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+                bool isFolder = path[-1] == '/';
+                if(isFolder)
+                    path--;
+
+                path[0] = 0;
+                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    memmove(res_id, start, path + 1 - start);
+                    duk_pop_3(ctx);
+                    return true;
+                }
+
+                if(path + 3 - res_id2 >= 1024)
+                    return false;
+                strcpy(path, ".js");
+                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    memmove(res_id, start, path + 4 - start);
+                    duk_pop_3(ctx);
+                    return true;
+                }
+
+                if(path + 5 - res_id2 >= 1024)
+                    return false;
+                strcpy(path, ".json");
+                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    memmove(res_id, start, path + 6 - start);
+                    duk_pop_3(ctx);
+                    return true;
+                }
+
+                if(path + 9 - res_id2 >= 1024)
+                    return false;
+                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    memmove(res_id, start, path + 10 - start);
+                    duk_pop_3(ctx);
+                    return true;
+                }
+
+                if(path + 11 - res_id2 >= 1024)
+                    return false;
+                strcpy(path, "/index.json");
+                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    memmove(res_id, start, path + 12 - start);
+                    duk_pop_3(ctx);
+                    return true;
+                }
+
+                duk_pop_3(ctx);
+            }
+            else
+                duk_pop_2(ctx);
         }
 
         if(path + 9 - res_id >= 1024)
             return false;
         strcpy(path, "/index.js");
-        if(stat(res_id, &st) == 0)
+        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
+#if LOW_ESP32_LWIP_SPECIALITIES
             memmove(res_id, start, path + 10 - start);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             return true;
         }
 
-        if(!isFolder)
+        if(path + 11 - res_id >= 1024)
+            return false;
+        strcpy(path, "/index.json");
+        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
-            // For example JSON
-            if(path - res_id >= 1024)
-                return false;
-            path[0] = '\0';
-            if(stat(res_id, &st) == 0)
-            {
-                memmove(res_id, start, path + 1 - start);
-                return true;
-            }
+#if LOW_ESP32_LWIP_SPECIALITIES
+            memmove(res_id, start, path + 12 - start);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            return true;
         }
     }
-
     return false;
 }

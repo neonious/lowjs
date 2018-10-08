@@ -24,6 +24,9 @@ duk_ret_t low_module_require(duk_context *ctx);
 duk_ret_t low_module_resolve(duk_context *ctx);
 duk_ret_t low_module_make(duk_context *ctx);
 
-bool low_module_resolve_c(const char *module_id, const char *parent_id, char *res_id);
+bool low_module_resolve_c(duk_context *ctx,
+                          const char *module_id,
+                          const char *parent_id,
+                          char *res_id);
 
 #endif /* __LOW_MODULE_H__ */

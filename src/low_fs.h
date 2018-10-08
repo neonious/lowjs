@@ -20,6 +20,10 @@ duk_ret_t low_fs_fstat(duk_context *ctx);
 duk_ret_t low_fs_waitdone(duk_context *ctx);
 duk_ret_t low_fs_file_pos(duk_context *ctx);
 
-bool low_fs_resolve(char *res, int res_len, const char *base, const char *add);
+bool low_fs_resolve(char *res,
+                    int res_len,
+                    const char *base,
+                    const char *add,
+                    const char *add_node_modules_at = NULL);
 
 #endif /* __LOW_FS_H__ */
