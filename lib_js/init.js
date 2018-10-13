@@ -9,21 +9,89 @@ const {
     ERR_OUT_OF_RANGE
 } = require('internal/errors').codes;
 
-/*
+class StackObj {
+    constructor(file, func, line) {
+        this._file = file;
+        this._func = func;
+        this._line = line;
+    }
+
+    getFileName() { return this._file; }
+    getFunctionName() { return this._func; }
+    getLineNumber() { return this._line; }
+    getColumnNumber() { return 0; }
+    isEval() { return false; }
+    getEvalOrigin() { return ''; }
+}
+function getStackObjs(constructor) {
+    // Error().stack is set directly by DukTape, without any prepareStackTrace
+    // In case captureStackTrace is used, this creates the vector of StackObj out of Error().stack
+    let startAt = constructor && constructor.name ? constructor.name : constructor;
+
+    let txt = new Error().stack;
+    let stack = [];
+
+    // Remove getStackObjs
+    let pos = txt.indexOf('    at ');
+    if (pos >= 0)
+        txt = txt.substr(pos + 1);
+
+    while (true) {
+        let pos = txt.indexOf('    at ');
+        if (pos < 0)
+            break;
+        pos += '    at '.length;
+        let posEnd = txt.indexOf('\n', pos);
+
+        let file, func;
+        let line = posEnd >= 0 ? txt.substring(pos, posEnd) : txt.substr(pos);
+
+        // Handle line
+        let pos2 = line.indexOf(' (');
+        if (pos2 >= 0) {
+            func = line.substr(0, pos2);
+            pos2 += 2;
+
+            let pos3 = line.indexOf(')', pos2);
+            if (pos3 >= 0 && pos2 != pos3) {
+                let pos4 = line.lastIndexOf(':', pos3);
+                if (pos4 != -1 && pos4 < pos3) {
+                    file = line.substring(pos2, pos4);
+                    line = line.substring(pos4 + 1, pos3);
+                } else {
+                    file = line.substring(pos2, pos3);
+                    line = undefined;
+                }
+            } else {
+                file = undefined;
+                line = undefined;
+            }
+
+            if (startAt && startAt == func) {
+                stack = [];
+                startAt = null;
+            } else
+                stack.push(new StackObj(file, func, line));
+        }
+
+        if (posEnd < 0)
+            break;
+        txt = txt.substr(posEnd + 1);
+    }
+
+    return stack;
+}
+
+Error.prepareStackTrace = function (obj, objs) {
+    let txt = 'Error';
+    for (let i = 0; i < objs.length; i++)
+        txt += '\n    at ' + objs[i].getFunctionName() + ' (' + objs[i].getFileName() + (objs[i].getLineNumber() === undefined ? '' : ':' + objs[i].getLineNumber()) + ')';
+
+    return txt;
+}
 Error.captureStackTrace = function (obj, constructor) {
-    // Breaks test/assert_throws_stack.js
-    // TODO: only take after constructor
-    var fakeObj = {
-        getFileName: () => { return ''; },
-        getLineNumber: () => { return 0; },
-        getColumnNumber: () => { return 0; },
-        isEval: () => { return false; },
-        getEvalOrigin: () => { return ''; },
-        getFunctionName: () => { return ''; }
-    };
-    obj.stack = [fakeObj, fakeObj, fakeObj];//new Error().stack; -- this should be an array with getFileName and so on.. it is not! So setting it to empty
+    obj.stack = Error.prepareStackTrace(obj, getStackObjs(constructor));
 };
-*/
 
 class Timeout {
     constructor(func, delay, oneshot) {
