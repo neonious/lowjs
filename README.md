@@ -38,9 +38,8 @@ With this software installed, please install pyyaml with pip:
 
 The compilation itself can be done with these commands:
 
-    git clone https://github.com/neonious/lowjs
+    git clone --recurse-submodules https://github.com/neonious/lowjs
     cd lowjs
-    git submodule update --init --recursive
     make
 
 low.js is now built in bin and can be called via bin/low.
