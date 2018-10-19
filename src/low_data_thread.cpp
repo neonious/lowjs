@@ -118,7 +118,7 @@ void low_data_clear_callback(low_main_t *low, LowDataCallback *callback)
     }
     else if(low->data_callback_first[1] == callback)
     {
-        LowDataCallback *elem = low->data_callback_first[0];
+        LowDataCallback *elem = low->data_callback_first[1];
         low->data_callback_first[1] = elem->mNext;
         if(!low->data_callback_first[1])
             low->data_callback_last[1] = NULL;
