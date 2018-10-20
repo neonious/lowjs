@@ -257,6 +257,20 @@ exports.statSync = (path, options) => {
     return stat;
 };
 
+exports.rename = (old_name, new_name, callback) => {
+    if(!callback) {
+        callback = new_name;
+    }
+    if (typeof old_name != 'string') {
+        throw new Error('TypeError [ERR_INVALID_ARG_TYPE]');
+    } 
+    if (typeof new_name != 'string') {
+        throw new('TYPE ERROR INVALID TYPE');
+    }
+    native.rename(old_name, new_name, callback);
+    
+};
+
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {
         callback = options;

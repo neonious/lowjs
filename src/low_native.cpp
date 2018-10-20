@@ -11,6 +11,7 @@
 #include "low_tls.h"
 #include "low_http.h"
 #include "low_dns.h"
+#include "low_fs_misc.h"
 
 // The methods of the module 'native', accessable by files in lib_js directory
 duk_function_list_entry g_low_native_methods[] = {
@@ -29,6 +30,7 @@ duk_function_list_entry g_low_native_methods[] = {
     {"close", low_fs_close, 2},
     {"closeSync", low_fs_close_sync, 1},
     {"read", low_fs_read, 6},
+    {"rename", low_fs_rename, 3},
     {"write", low_fs_write, 6},
     {"fstat", low_fs_fstat, 2},
     {"waitDone", low_fs_waitdone, 1},
