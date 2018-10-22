@@ -31,6 +31,7 @@ duk_function_list_entry g_low_native_methods[] = {
     {"closeSync", low_fs_close_sync, 1},
     {"read", low_fs_read, 6},
     {"rename", low_fs_rename, 3},
+    {"unlink", low_fs_unlink, 2},
     {"write", low_fs_write, 6},
     {"fstat", low_fs_fstat, 2},
     {"waitDone", low_fs_waitdone, 1},

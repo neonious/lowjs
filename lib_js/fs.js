@@ -5,6 +5,8 @@ let stream = require('stream');
 
 exports.open = native.open;
 exports.close = native.close;
+exports.rename = native.rename;
+exports.unlink = native.unlink;
 
 exports.read = (fd, buffer, offset, length, position, callback) => {
     let cb;
@@ -257,19 +259,6 @@ exports.statSync = (path, options) => {
     return stat;
 };
 
-exports.rename = (old_name, new_name, callback) => {
-    if(!callback) {
-        callback = new_name;
-    }
-    if (typeof old_name != 'string') {
-        throw new Error('TypeError [ERR_INVALID_ARG_TYPE]');
-    } 
-    if (typeof new_name != 'string') {
-        throw new('TYPE ERROR INVALID TYPE');
-    }
-    native.rename(old_name, new_name, callback);
-    
-};
 
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {

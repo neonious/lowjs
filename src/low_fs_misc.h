@@ -8,6 +8,7 @@
 #include "duktape.h"
 
 duk_ret_t low_fs_rename(duk_context *ctx);
+duk_ret_t low_fs_unlink(duk_context *ctx);
 
 
 #endif

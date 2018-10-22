@@ -1,9 +1,9 @@
 // -----------------------------------------------------------------------------
-//  LowNFD.h
+//  LowFSMisc.h
 // -----------------------------------------------------------------------------
 
-#ifndef __LOWNFD_H__
-#define __LOWNFD_H__
+#ifndef __LOWFSMisc_H__
+#define __LOWFSMisc_H__
 
 
 #include "LowDataCallback.h"
@@ -18,14 +18,17 @@ struct low_main_t;
 enum
 {
 
-    LOWNFD_PHASE_RENAME
+    LOWFSMISC_PHASE_RENAME,
+    LOWFSMISC_PHASE_UNLINK
 };
 
-class LowNFD : public LowDataCallback, public LowLoopCallback
+class LowFSMisc : public LowDataCallback, public LowLoopCallback
 {
   public:
-    LowNFD(low_main_t *low, const char *old_name, const char *new_name, int callIndex);
-    virtual ~LowNFD();
+    LowFSMisc(low_main_t *low);
+    virtual ~LowFSMisc();
+    void ReName( const char *old_name, const char *new_name, int callIndex);
+    void UnLink( const char *file_name, int callIndex);
 
 
   protected:
@@ -34,8 +37,8 @@ class LowNFD : public LowDataCallback, public LowLoopCallback
 
   private:
     low_main_t *mLow;
-    char *mold_name;
-    char *mnew_name;
+    char *mOldName;
+    char *mNewName;
 
     int mCallID;
 

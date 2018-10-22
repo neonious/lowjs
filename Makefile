@@ -1,4 +1,4 @@
-FLAGS = -O3
+FLAGS = -O3 -g
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
@@ -25,6 +25,7 @@ OBJECTS =							\
 	src/low_process.o				\
 	src/low_loop.o					\
 	src/low_fs.o					\
+	src/low_fs_misc.o					\
 	src/low_http.o					\
 	src/low_net.o					\
 	src/low_tls.o					\
@@ -34,6 +35,7 @@ OBJECTS =							\
 	src/low_alloc.o					\
 	src/low_system.o				\
 	src/LowFile.o					\
+	src/LowFSMisc.o					\
 	src/LowServerSocket.o			\
 	src/LowSocket.o					\
 	src/LowHTTPDirect.o				\
