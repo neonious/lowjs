@@ -14,10 +14,6 @@ function uncurryThis(func) {
 // Cached to make sure no userland code can tamper with it.
 const isArrayBufferView = ArrayBuffer.isView;
 
-function isTypedArray(value) {
-    return false;
-}
-
 function isUint8Array(value) {
     return value instanceof Uint8Array;
 }
