@@ -5,6 +5,8 @@ let stream = require('stream');
 
 exports.open = native.open;
 exports.close = native.close;
+exports.rename = native.rename;
+exports.unlink = native.unlink;
 
 exports.read = (fd, buffer, offset, length, position, callback) => {
     let cb;
@@ -256,6 +258,7 @@ exports.statSync = (path, options) => {
 
     return stat;
 };
+
 
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {
