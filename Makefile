@@ -1,4 +1,4 @@
-FLAGS = -O3 -g
+FLAGS = -O3
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
