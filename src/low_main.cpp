@@ -8,31 +8,32 @@
 #include "low_data_thread.h"
 #include "low_web_thread.h"
 
-#include "LowSocket.h"
-#include "LowFD.h"
+#include "LowCryptoHash.h"
 #include "LowDataCallback.h"
+#include "LowFD.h"
 #include "LowLoopCallback.h"
+#include "LowSocket.h"
 #include "LowTLSContext.h"
 
-#include "low_system.h"
 #include "low_alloc.h"
 #include "low_config.h"
+#include "low_system.h"
 
 #include "duktape.h"
 #if LOW_INCLUDE_CARES_RESOLVER
-#include "LowDNSResolver.h"
 #include "../deps/c-ares/ares.h"
+#include "LowDNSResolver.h"
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-#include <unistd.h>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
 
 #define TAG "low_main"
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -83,7 +84,10 @@ static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 }
 
-static void low_duk_free(void *udata, void *ptr) { low_free(ptr); }
+static void low_duk_free(void *udata, void *ptr)
+{
+    low_free(ptr);
+}
 
 static void low_duk_fatal(void *udata, const char *msg)
 {
@@ -94,8 +98,9 @@ static void low_duk_fatal(void *udata, const char *msg)
 #else
     low_error(msg);
 
-    fprintf(stderr, "--- exiting as we reached fatal error handler, should not "
-                    "happen ---\n");
+    fprintf(stderr,
+            "--- exiting as we reached fatal error handler, should not "
+            "happen ---\n");
     exit(EXIT_FAILURE);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 }
@@ -103,8 +108,8 @@ static void low_duk_fatal(void *udata, const char *msg)
 low_main_t *low_init()
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    int err = ares_library_init_mem(ARES_LIB_INIT_ALL, low_alloc, low_free,
-                                    low_realloc);
+    int err = ares_library_init_mem(
+      ARES_LIB_INIT_ALL, low_alloc, low_free, low_realloc);
     if(err)
     {
         fprintf(stderr, "C-ares error: %s\n", ares_strerror(err));
@@ -134,7 +139,7 @@ low_main_t *low_init()
     low->stash_ctx = low->duk_ctx = NULL;
 #else
     low->stash_ctx = low->duk_ctx = duk_create_heap(
-        low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
+      low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
     if(!low->duk_ctx)
     {
         fprintf(stderr, "Cannot initialize Duktape heap\n");
@@ -229,16 +234,19 @@ low_main_t *low_init()
     {
 #if LOW_ESP32_LWIP_SPECIALITIES
         err = xTaskCreatePinnedToCore((void (*)(void *))low_data_thread_main,
-                                      "data", CONFIG_DATA_THREAD_STACK_SIZE,
-                                      low, CONFIG_DATA_PRIORITY,
-                                      &low->data_thread[i], 0);
+                                      "data",
+                                      CONFIG_DATA_THREAD_STACK_SIZE,
+                                      low,
+                                      CONFIG_DATA_PRIORITY,
+                                      &low->data_thread[i],
+                                      0);
         if(err != pdPASS)
         {
-            fprintf(stderr, "failed to create data task, error code: %d\n",
-                    err);
+            fprintf(
+              stderr, "failed to create data task, error code: %d\n", err);
 #else
-        if(pthread_create(&low->data_thread[i], NULL, low_data_thread_main,
-                          low) != 0)
+        if(pthread_create(
+             &low->data_thread[i], NULL, low_data_thread_main, low) != 0)
         {
             pthread_mutex_lock(&low->data_thread_mutex);
             low->destroying = 1;
@@ -340,9 +348,13 @@ low_main_t *low_init()
         goto err;
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
-    err = xTaskCreatePinnedToCore((void (*)(void *))low_web_thread_main, "web",
-                                  CONFIG_WEB_THREAD_STACK_SIZE, low,
-                                  CONFIG_WEB_PRIORITY, &low->web_thread, 0);
+    err = xTaskCreatePinnedToCore((void (*)(void *))low_web_thread_main,
+                                  "web",
+                                  CONFIG_WEB_THREAD_STACK_SIZE,
+                                  low,
+                                  CONFIG_WEB_PRIORITY,
+                                  &low->web_thread,
+                                  0);
     if(err != pdPASS)
     {
         fprintf(stderr, "failed to create web task, error code: %d\n", err);
@@ -518,8 +530,8 @@ bool low_reset(low_main_t *low)
     pthread_cond_broadcast(&low->web_thread_done_cond);
     pthread_mutex_unlock(&low->web_thread_mutex);
 
-    duk_context *new_ctx = duk_create_heap(low_duk_alloc, low_duk_realloc,
-                                           low_duk_free, low, low_duk_fatal);
+    duk_context *new_ctx = duk_create_heap(
+      low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
     if(!new_ctx && low->stash_ctx)
     {
         fprintf(stderr, "Cannot create Duktape heap, trying after free\n");
@@ -531,7 +543,7 @@ bool low_reset(low_main_t *low)
         alloc_reset_heap();
 
         duk_context *new_ctx = duk_create_heap(
-            low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
+          low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
     }
     if(!new_ctx)
     {
@@ -544,6 +556,23 @@ bool low_reset(low_main_t *low)
         duk_copy_breakpoints(low->stash_ctx, new_ctx);
         duk_destroy_heap(low->stash_ctx);
     }
+
+    // After finalizers.. they must not use DukTape heap!
+#if LOW_INCLUDE_CARES_RESOLVER
+    for(int i = 0; i < low->resolvers.size(); i++)
+        if(low->resolvers[i])
+            delete low->resolvers[i];
+    ares_library_cleanup();
+
+    pthread_mutex_destroy(&low->resolvers_mutex);
+#endif /* LOW_INCLUDE_CARES_RESOLVER */
+    for(int i = 0; i < low->tlsContexts.size(); i++)
+        if(low->tlsContexts[i])
+            delete low->tlsContexts[i];
+    for(int i = 0; i < low->cryptoHashes.size(); i++)
+        if(low->cryptoHashes[i])
+            delete low->cryptoHashes[i];
+
     low->stash_ctx = low->duk_ctx = new_ctx;
 
     low->chores.clear();
@@ -675,6 +704,9 @@ void low_destroy(low_main_t *low)
     for(int i = 0; i < low->tlsContexts.size(); i++)
         if(low->tlsContexts[i])
             delete low->tlsContexts[i];
+    for(int i = 0; i < low->cryptoHashes.size(); i++)
+        if(low->cryptoHashes[i])
+            delete low->cryptoHashes[i]; // TODO: also needed in restart?
 
     pthread_mutex_destroy(&low->ref_mutex);
     low_free(low);

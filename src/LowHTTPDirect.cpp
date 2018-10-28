@@ -108,13 +108,25 @@ void LowHTTPDirect::Init()
 //  LowHTTPDirect::Detach
 // -----------------------------------------------------------------------------
 
-void LowHTTPDirect::Detach()
+void LowHTTPDirect::Detach(bool pushRemainingRead)
 {
+    if(pushRemainingRead)
+    {
+        low_web_clear_poll(mLow, mSocket);
+        if(mRemainingRead)
+            memcpy(duk_push_fixed_buffer(mLow->duk_ctx, mRemainingReadLen),
+                   mRemainingRead,
+                   mRemainingReadLen);
+        else
+            duk_push_fixed_buffer(mLow->duk_ctx, 0);
+    }
+
     if(mSocket)
     {
         mSocket->SetDirect(NULL, 0);
         mSocket = NULL;
     }
+
     low_loop_set_callback(mLow, this);
 }
 

@@ -1,16 +1,69 @@
+<!DOCTYPE html>
 <html>
 
 <head>
     <title>Welcome to low.js!</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript">
+        // Helper function to escape HTML, so no XSS is possible
+        var entityMap = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': '&quot;',
+            "'": '&#39;',
+            "/": '&#x2F;'
+        };
+        function escapeHTML(string) {
+            return String(string).replace(/[&<>"'\/]/g, function (s) {
+                return entityMap[s];
+            });
+        }
+        function addMessage(txt) {
+            var messages = document.getElementById('messages');
+            messages.innerHTML += txt + '<br>';
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Connect via WebSocket
+        var loc = window.location;
+        var wss = new WebSocket((loc.protocol === "https:" ? "wss://" : "ws://") + loc.host + "/Chat");
+
+        // Output messages received via WebSocket
+        wss.onmessage = function (event) {
+            addMessage(escapeHTML(event.data));
+        }
+
+        // Send message via WebSocket
+        function messageSubmit() {
+            var txt = document.getElementById('messageSend').value;
+            document.getElementById('messageSend').value = '';
+
+            addMessage('<font color="#999999">' + escapeHTML(txt) + '</font>');
+            wss.send(txt);
+            return false;
+        }
+    </script>
 </head>
 
 <body>
     <div>
         <h1 class='welcome'>Welcome to low.js!</h1>
+
         <p class='explain'>This page is served by the JavaScript program you just started.</p>
-        <p class='explain'>Add files to www directory to serve them, too!<br><small>Do not forget to add mime type in handleRequest()...</small></p>
+        <p class='explain'>Add files to www directory to serve them, too!<br><small>(Do not forget to add mime type in
+                handleRequest() first.)</small></p>
+
+        <p class='explain'>Chat with everybody else having this website open:<br><small>(uses
+                WebSockets)</small></p>
+        <p>
+            <form onsubmit="javascript:return messageSubmit()"><input type="text" id="messageSend"><input type="submit"
+                    value="Send!"></form>
+        </p>
+        <p class='explain'>Chat window:<br><small>(Own messages are grey.)</small></p>
+        <div id="messages">
+        </div>
     </div>
 </body>
 

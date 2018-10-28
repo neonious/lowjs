@@ -8,22 +8,27 @@
 
 #include "low_main.h"
 
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
 #include "mbedtls/certs.h"
-#include "mbedtls/x509.h"
-#include "mbedtls/ssl.h"
-#include "mbedtls/net_sockets.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/entropy.h"
 #include "mbedtls/error.h"
+#include "mbedtls/net_sockets.h"
+#include "mbedtls/ssl.h"
+#include "mbedtls/x509.h"
 
 using namespace std;
 
 class LowTLSContext
 {
-public:
-    LowTLSContext(low_main_t *low, const char *cert = NULL, int certLen = 0,
-                  const char *key = NULL, int keyLen = 0, const char *ca = NULL,
-                  int caLen = 0, bool isServer = false);
+  public:
+    LowTLSContext(low_main_t *low,
+                  const char *cert = NULL,
+                  int certLen = 0,
+                  const char *key = NULL,
+                  int keyLen = 0,
+                  const char *ca = NULL,
+                  int caLen = 0,
+                  bool isServer = false);
     ~LowTLSContext();
 
     bool IsOK() { return mIsOK; }
@@ -34,7 +39,7 @@ public:
 
     mbedtls_ssl_config &GetSSLConfig() { return conf; }
 
-private:
+  private:
     low_main_t *mLow;
     int mRef;
     int mIndex;

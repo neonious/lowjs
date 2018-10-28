@@ -1,7 +1,16 @@
-Simple webserver made for low.js/Node.JS
+Simple webserver with chat functionality via WebSocket made for low.js/Node.JS
 
-Run with bin/low examples/webserver/index.js from lowjs directory,
+Run with bin/low lowjs-webserver-example/index.js from lowjs directory
 and then open the links given with the web browser.
 
 The https link will give a certificate warning, which is correct, because
 the certificate is self-signed.
+
+In node_modules you can find the following modules, transpiled to ES5 via
+TypeScript:
+
+ws:		6.1.0
+async_limited:	1.0.0
+
+The package.json is NOT included, so a npm install does not replace the
+transpiled files with the non-transpiled versions.

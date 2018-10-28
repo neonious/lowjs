@@ -1,1 +1,1 @@
-throw new Error('zlib module is not implemented yet')
+console.log("zlib module not implemented yet!");

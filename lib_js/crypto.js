@@ -1,16 +1,32 @@
 'use script';
-throw new Error('crypto module is not implemented yet')
 
+let native = require('native');
+
+// TODO: make Hash a transform stream
 class Hash {
-    update() {
+    constructor(type) {
+        this._native = native.createCryptoHash(this, type);
+    }
+
+    update(data, encoding) {
+        if (typeof data === 'string')
+            data = Buffer.from(data, encoding);
+
+        native.cryptoHashUpdate(this._native, data);
         return this;
     }
 
-    digest() {
-        return "cryptohash";
+    digest(encoding) {
+        let val = new Buffer(20);
+        native.cryptoHashDigest(this._native, val);
+        if (encoding)
+            return val.toString(encoding);
+        else
+            return val;
     }
 }
 
+// Fake Hmac to make express work
 class Hmac {
     update() {
         return this;
@@ -22,8 +38,8 @@ class Hmac {
 
 }
 
-exports.createHash = function () {
-    return new Hash();
+exports.createHash = function (type) {
+    return new Hash(type);
 }
 
 exports.createHmac = function () {

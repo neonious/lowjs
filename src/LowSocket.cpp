@@ -6,17 +6,17 @@
 #include "LowSocketDirect.h"
 #include "LowTLSContext.h"
 
-#include "low_web_thread.h"
-#include "low_main.h"
-#include "low_system.h"
 #include "low_alloc.h"
 #include "low_config.h"
+#include "low_main.h"
+#include "low_system.h"
+#include "low_web_thread.h"
 
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include <lwip/sockets.h>
@@ -31,14 +31,14 @@
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low, int fd)
-    : LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
-      mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
-      mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
-      mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
-      mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
-      mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
-      mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low, int fd) :
+    LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
+    mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
+    mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
+    mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
+    mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
+    mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
+    mSSL(NULL)
 {
     AdvertiseFD();
     InitSocket(NULL);
@@ -48,16 +48,22 @@ LowSocket::LowSocket(low_main_t *low, int fd)
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low, int fd, struct sockaddr *remoteAddr,
-                     int acceptCallID, LowSocketDirect *direct, int directType,
-                     LowTLSContext *tlsContext, bool clearOnReset)
-    : LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
-      mType(LOWSOCKET_TYPE_ACCEPTED), mAcceptConnectCallID(acceptCallID),
-      mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
-      mConnected(false), mClosed(false), mDestroyed(false), mCloseCallID(0),
-      mReadData(NULL), mWriteData(NULL), mDirect(direct),
-      mDirectType(directType), mDirectReadEnabled(direct != NULL),
-      mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low,
+                     int fd,
+                     struct sockaddr *remoteAddr,
+                     int acceptCallID,
+                     LowSocketDirect *direct,
+                     int directType,
+                     LowTLSContext *tlsContext,
+                     bool clearOnReset) :
+    LowFD(low, LOWFD_TYPE_SOCKET, fd),
+    LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_ACCEPTED),
+    mAcceptConnectCallID(acceptCallID), mAcceptConnectError(false),
+    mReadCallID(0), mWriteCallID(0), mConnected(false), mClosed(false),
+    mDestroyed(false), mCloseCallID(0), mReadData(NULL), mWriteData(NULL),
+    mDirect(direct), mDirectType(directType),
+    mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
+    mTLSContext(tlsContext), mSSL(NULL)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
@@ -96,15 +102,18 @@ LowSocket::LowSocket(low_main_t *low, int fd, struct sockaddr *remoteAddr,
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low, LowSocketDirect *direct, int directType,
-                     LowTLSContext *tlsContext, bool clearOnReset)
-    : LowFD(low, LOWFD_TYPE_SOCKET), LowLoopCallback(low), mLow(low),
-      mType(LOWSOCKET_TYPE_CONNECTED), mAcceptConnectCallID(0),
-      mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
-      mConnected(false), mClosed(false), mDestroyed(false), mCloseCallID(0),
-      mReadData(NULL), mWriteData(NULL), mDirect(direct),
-      mDirectType(directType), mDirectReadEnabled(direct != NULL),
-      mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low,
+                     LowSocketDirect *direct,
+                     int directType,
+                     LowTLSContext *tlsContext,
+                     bool clearOnReset) :
+    LowFD(low, LOWFD_TYPE_SOCKET),
+    LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_CONNECTED),
+    mAcceptConnectCallID(0), mAcceptConnectError(false), mReadCallID(0),
+    mWriteCallID(0), mConnected(false), mClosed(false), mDestroyed(false),
+    mCloseCallID(0), mReadData(NULL), mWriteData(NULL), mDirect(direct),
+    mDirectType(directType), mDirectReadEnabled(direct != NULL),
+    mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
@@ -179,7 +188,9 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         mNodeFamily = 6;
 
         addr = (struct sockaddr_in6 *)remoteAddr;
-        if(inet_ntop(AF_INET6, addr->sin6_addr.s6_addr, mRemoteHost,
+        if(inet_ntop(AF_INET6,
+                     addr->sin6_addr.s6_addr,
+                     mRemoteHost,
                      sizeof(mRemoteHost)) == NULL)
         {
             mAcceptConnectErrno = errno;
@@ -226,8 +237,8 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
             return false;
         }
 
-        mbedtls_ssl_set_bio(mSSL, &FD(), mbedtls_net_send, mbedtls_net_recv,
-                            NULL);
+        mbedtls_ssl_set_bio(
+          mSSL, &FD(), mbedtls_net_send, mbedtls_net_recv, NULL);
     }
 
     return true;
@@ -237,8 +248,11 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
 //  LowSocket::Connect
 // -----------------------------------------------------------------------------
 
-bool LowSocket::Connect(struct sockaddr *remoteAddr, int remoteAddrLen,
-                        int callIndex, int &err, const char *&syscall)
+bool LowSocket::Connect(struct sockaddr *remoteAddr,
+                        int remoteAddrLen,
+                        int callIndex,
+                        int &err,
+                        const char *&syscall)
 {
     if(mType != LOWSOCKET_TYPE_CONNECTED || FD() >= 0)
     {
@@ -291,7 +305,7 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr, int remoteAddrLen,
         else
         {
             mAcceptConnectCallID =
-                callIndex != -1 ? low_add_stash(mLow, callIndex) : 0;
+              callIndex != -1 ? low_add_stash(mLow, callIndex) : 0;
             low_web_set_poll_events(mLow, this, POLLOUT);
 
             return true;
@@ -355,11 +369,11 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
         mReadCallID = low_add_stash(mLow, callIndex);
 
         short events =
-            mClosed ? 0
-                    : (POLLIN | (!mConnected || (mWriteData && !mWritePos) ||
-                                         mDirectWriteEnabled
-                                     ? POLLOUT
-                                     : 0));
+          mClosed ? 0
+                  : (POLLIN | (!mConnected || (mWriteData && !mWritePos) ||
+                                   mDirectWriteEnabled
+                                 ? POLLOUT
+                                 : 0));
         low_web_set_poll_events(mLow, this, events);
     }
 }
@@ -426,8 +440,8 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
         mWriteCallID = low_add_stash(mLow, callIndex);
 
         short events =
-            ((mReadData && !mReadPos) || mDirectReadEnabled ? POLLIN : 0) |
-            POLLOUT;
+          ((mReadData && !mReadPos) || mDirectReadEnabled ? POLLIN : 0) |
+          POLLOUT;
         low_web_set_poll_events(mLow, this, events);
     }
 }
@@ -552,10 +566,11 @@ bool LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
         mDirect->SetSocket(this);
         if(!mDestroyed)
             low_web_set_poll_events(
-                mLow, this,
-                mClosed ? 0
-                        : (POLLIN | (mTLSContext ? POLLOUT : 0) |
-                           (!mConnected || mDirectWriteEnabled ? POLLOUT : 0)));
+              mLow,
+              this,
+              mClosed ? 0
+                      : (POLLIN | (mTLSContext ? POLLOUT : 0) |
+                         (!mConnected || mDirectWriteEnabled ? POLLOUT : 0)));
     }
 
     return true;
@@ -586,10 +601,10 @@ void LowSocket::TriggerDirect(int trigger)
         mDirectWriteEnabled = true;
 
     short events =
-        mClosed ? 0
-                : (mDirectReadEnabled ? (POLLIN | (mTLSContext ? POLLOUT : 0))
-                                      : 0) |
-                      (!mConnected || mDirectWriteEnabled ? POLLOUT : 0);
+      mClosed
+        ? 0
+        : (mDirectReadEnabled ? (POLLIN | (mTLSContext ? POLLOUT : 0)) : 0) |
+            (!mConnected || mDirectWriteEnabled ? POLLOUT : 0);
     low_web_set_poll_events(mLow, this, events);
 }
 
@@ -726,7 +741,7 @@ bool LowSocket::OnEvents(short events)
 
             short events = mClosed ? 0
                                    : (mDirectReadEnabled ? POLLIN : 0) |
-                                         (mDirectWriteEnabled ? POLLOUT : 0);
+                                       (mDirectWriteEnabled ? POLLOUT : 0);
             low_web_set_poll_events(mLow, this, events);
         }
         else
@@ -850,7 +865,7 @@ bool LowSocket::OnLoop()
     }
 
     short events =
-        mClosed ? 0 : (mReadData ? POLLIN : 0) | (mWriteData ? POLLOUT : 0);
+      mClosed ? 0 : (mReadData ? POLLIN : 0) | (mWriteData ? POLLOUT : 0);
     low_web_set_poll_events(mLow, this, events);
     return true;
 }
@@ -888,7 +903,9 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
             sockaddr_in6 localAddr;
             socklen_t localAddrLen = sizeof(localAddr);
             if(getsockname(FD(), (sockaddr *)&localAddr, &localAddrLen) < 0 ||
-               inet_ntop(AF_INET6, localAddr.sin6_addr.s6_addr, localHost,
+               inet_ntop(AF_INET6,
+                         localAddr.sin6_addr.s6_addr,
+                         localHost,
                          sizeof(localHost)) == NULL)
             {
                 mAcceptConnectErrno = errno;
@@ -947,11 +964,11 @@ int LowSocket::DoRead()
     while(len != mReadLen)
     {
         int size = mTLSContext
-                       ? mbedtls_ssl_read(mSSL, mReadData + len, mReadLen - len)
+                     ? mbedtls_ssl_read(mSSL, mReadData + len, mReadLen - len)
 #if LOW_ESP32_LWIP_SPECIALITIES
-                       : lwip_read(FD(), mReadData + len, mReadLen - len);
+                     : lwip_read(FD(), mReadData + len, mReadLen - len);
 #else
-                       : read(FD(), mReadData + len, mReadLen - len);
+                     : read(FD(), mReadData + len, mReadLen - len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(size < 0)
         {
@@ -995,12 +1012,12 @@ int LowSocket::DoWrite()
     while(len != mWriteLen)
     {
         int size =
-            mTLSContext
-                ? mbedtls_ssl_write(mSSL, mWriteData + len, mWriteLen - len)
+          mTLSContext
+            ? mbedtls_ssl_write(mSSL, mWriteData + len, mWriteLen - len)
 #if LOW_ESP32_LWIP_SPECIALITIES
-                : ::lwip_write(FD(), mWriteData + len, mWriteLen - len);
+            : ::lwip_write(FD(), mWriteData + len, mWriteLen - len);
 #else
-                : ::write(FD(), mWriteData + len, mWriteLen - len);
+            : ::write(FD(), mWriteData + len, mWriteLen - len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(size < 0)
         {
@@ -1092,8 +1109,8 @@ int LowSocket::writev(const struct iovec *iov, int iovcnt)
     int size;
     if(mTLSContext)
     {
-        size = mbedtls_ssl_write(mSSL, (unsigned char *)iov->iov_base,
-                                 iov->iov_len);
+        size =
+          mbedtls_ssl_write(mSSL, (unsigned char *)iov->iov_base, iov->iov_len);
         if(size < 0)
         {
             if(size == MBEDTLS_ERR_SSL_WANT_WRITE)
@@ -1158,23 +1175,23 @@ void LowSocket::PushError(int call)
 
     switch(call)
     {
-    case 0:
-        error = mReadErrno;
-        ssl = mReadErrnoSSL;
-        syscall = "read";
-        break;
+        case 0:
+            error = mReadErrno;
+            ssl = mReadErrnoSSL;
+            syscall = "read";
+            break;
 
-    case 1:
-        error = mWriteErrno;
-        ssl = mWriteErrnoSSL;
-        syscall = "write";
-        break;
+        case 1:
+            error = mWriteErrno;
+            ssl = mWriteErrnoSSL;
+            syscall = "write";
+            break;
 
-    case 2:
-        error = mAcceptConnectErrno;
-        ssl = mAcceptConnectErrnoSSL;
-        syscall = mAcceptConnectSyscall;
-        break;
+        case 2:
+            error = mAcceptConnectErrno;
+            ssl = mAcceptConnectErrnoSSL;
+            syscall = mAcceptConnectSyscall;
+            break;
     }
 
     if(error && ssl)

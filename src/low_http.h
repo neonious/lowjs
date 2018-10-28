@@ -9,6 +9,7 @@
 #include "duktape.h"
 
 duk_ret_t low_http_get_request(duk_context *ctx);
+duk_ret_t low_http_detach(duk_context *ctx);
 
 duk_ret_t low_http_read(duk_context *ctx);
 

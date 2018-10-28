@@ -5,9 +5,9 @@
 #ifndef __LOW_MAIN_H__
 #define __LOW_MAIN_H__
 
+#include "low_alloc.h"
 #include "low_config.h"
 #include "low_loop.h"
-#include "low_alloc.h"
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include <freertos/FreeRTOS.h>
@@ -15,8 +15,8 @@
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #include <map>
-#include <vector>
 #include <pthread.h>
+#include <vector>
 
 using namespace std;
 
@@ -25,6 +25,7 @@ class LowDataCallback;
 class LowFD;
 class LowDNSResolver;
 class LowTLSContext;
+class LowCryptoHash;
 
 struct low_main_t
 {
@@ -35,11 +36,13 @@ struct low_main_t
     int run_ref, last_stash_index;
     int signal_call_id;
 
-    map<int, low_chore_t, less<int>,
+    map<int,
+        low_chore_t,
+        less<int>,
         low_allocator<pair<const int, low_chore_t>>>
-        chores;
+      chores;
     multimap<int, int, less<int>, low_allocator<pair<const int, int>>>
-        chore_times;
+      chore_times;
     int last_chore_time;
 
     pthread_mutex_t loop_thread_mutex;
@@ -75,6 +78,7 @@ struct low_main_t
     pthread_mutex_t resolvers_mutex;
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     vector<LowTLSContext *, low_allocator<LowTLSContext *>> tlsContexts;
+    vector<LowCryptoHash *, low_allocator<LowCryptoHash *>> cryptoHashes;
 
     pthread_mutex_t ref_mutex;
 
