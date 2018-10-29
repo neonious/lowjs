@@ -617,6 +617,7 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
 
     low_module_init(ctx);
     low_module_run(ctx, "lib:init", LOW_MODULE_FLAG_GLOBAL);
+
     return 0;
 }
 
@@ -627,7 +628,6 @@ bool low_lib_init(low_main_t *low)
     {
         if(!low->duk_flag_stop)
             low_duk_print_error(low->duk_ctx);
-        low_destroy(low);
         return false;
     }
     duk_pop(low->duk_ctx);
