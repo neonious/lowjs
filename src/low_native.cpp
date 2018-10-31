@@ -59,7 +59,7 @@ duk_function_list_entry g_low_native_methods[] = {
   {"httpWriteHead", low_http_write_head, 4},
   {"createTLSContext", low_tls_create_context, 1},
   {"makeModule", low_module_make, 2},
-  {"createCryptoHash", low_crypto_create_hash, 2},
+  {"createCryptoHash", low_crypto_create_hash, 3},
   {"cryptoHashUpdate", low_crypto_hash_update, 2},
-  {"cryptoHashDigest", low_crypto_hash_digest, 2},
+  {"cryptoHashDigest", low_crypto_hash_digest, 1},
   {NULL, NULL, 0}};

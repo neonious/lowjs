@@ -7,14 +7,17 @@
 
 #include "low_main.h"
 
-#include "mbedtls/sha1.h"
+#include "mbedtls/md.h"
 
 using namespace std;
 
 class LowCryptoHash
 {
   public:
-    LowCryptoHash(low_main_t *low);
+    LowCryptoHash(low_main_t *low,
+                  const mbedtls_md_info_t *info,
+                  unsigned char *key,
+                  int key_len);
     ~LowCryptoHash();
 
     void SetIndex(int index) { mIndex = index; }
@@ -22,11 +25,16 @@ class LowCryptoHash
     void Update(unsigned char *data, int len);
     void Digest(unsigned char *data, int len);
 
+    int OutputSize() { return mOutputSize; }
+
   private:
     low_main_t *mLow;
     int mIndex;
 
-    mbedtls_sha1_context mContext;
+    mbedtls_md_context_t mContext;
+
+    bool mHMAC;
+    int mOutputSize;
 };
 
 #endif /* __LOWCRYPTOHASH_H__ */

@@ -4,8 +4,8 @@ let native = require('native');
 
 // TODO: make Hash a transform stream
 class Hash {
-    constructor(type) {
-        this._native = native.createCryptoHash(this, type);
+    constructor(type, key) {
+        this._native = native.createCryptoHash(this, type, key);
     }
 
     update(data, encoding) {
@@ -17,8 +17,7 @@ class Hash {
     }
 
     digest(encoding) {
-        let val = new Buffer(20);
-        native.cryptoHashDigest(this._native, val);
+        let val = native.cryptoHashDigest(this._native);
         if (encoding)
             return val.toString(encoding);
         else
@@ -26,22 +25,10 @@ class Hash {
     }
 }
 
-// Fake Hmac to make express work
-class Hmac {
-    update() {
-        return this;
-    }
-
-    digest() {
-        return "cryptohmac";
-    }
-
-}
-
 exports.createHash = function (type) {
     return new Hash(type);
 }
 
-exports.createHmac = function () {
-    return new Hmac();
+exports.createHmac = function (type, key) {
+    return new Hash(type, key);
 }
