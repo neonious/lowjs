@@ -90,7 +90,7 @@ static void low_duk_fatal(void *udata, const char *msg)
 #if LOW_ESP32_LWIP_SPECIALITIES
     ESP_LOGE(TAG, "duk_fatal: %s", msg);
     vTaskDelay(5000);
-    esp_restart_noos();
+    esp_restart();
 #else
     low_error(msg);
 
