@@ -91,7 +91,7 @@ Error.prepareStackTrace = function (obj, objs) {
 }
 Error.captureStackTrace = function (obj, constructor) {
     obj.stack = Error.prepareStackTrace(obj, getStackObjs(constructor));
-};
+}
 
 class Timeout {
     constructor(func, delay, oneshot) {
@@ -338,4 +338,38 @@ process.hrtime = function hrtime(time) {
 exports.console = require('console');
 
 Buffer.from = (...args) => { return new Buffer(...args); }
-Buffer.alloc = (...args) => { return new Buffer(...args); }
+Buffer.allocUnsafe = Buffer.alloc = (...args) => { return new Buffer(...args); }
+
+// Overwrite toString because DukTape does not implement hex and base64
+Buffer.prototype.toString = ((oldFunc) => {
+    return function (encoding) {
+        if (encoding == 'hex') {
+            let txt = '';
+            for (let i = 0; i < this.length; i++) {
+                let c = this[i];
+                txt += c < 10 ? '0' + c.toString(16) : c.toString(16);
+            }
+            return txt;
+        } else if (encoding == 'base64') {
+            let txt = '';
+            for (let i = 0; i < this.length; i += 3) {
+                const _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+                let enc1 = this[i] >> 2;
+                let enc2 = ((this[i] & 3) << 4) | (this[i + 1] >> 4);
+                let enc3 = ((this[i + 1] & 15) << 2) | (this[i + 2] >> 6);
+                let enc4 = this[i + 2] & 63;
+
+                if (i + 1 == this.length)
+                    enc3 = enc4 = 64;
+                else if (i + 2 == this.length)
+                    enc4 = 64;
+
+                txt += _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+                    _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+            }
+            return txt;
+        } else
+            return oldFunc.call(this, encoding);
+    }
+})(Buffer.prototype.toString);

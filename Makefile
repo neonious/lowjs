@@ -25,15 +25,19 @@ OBJECTS =							\
 	src/low_process.o				\
 	src/low_loop.o					\
 	src/low_fs.o					\
+	src/low_fs_misc.o					\
 	src/low_http.o					\
 	src/low_net.o					\
 	src/low_tls.o					\
 	src/low_dns.o					\
+	src/low_crypto.o				\
+	src/LowCryptoHash.o				\
 	src/low_data_thread.o			\
 	src/low_web_thread.o			\
 	src/low_alloc.o					\
 	src/low_system.o				\
 	src/LowFile.o					\
+	src/LowFSMisc.o					\
 	src/LowServerSocket.o			\
 	src/LowSocket.o					\
 	src/LowHTTPDirect.o				\

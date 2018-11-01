@@ -24,8 +24,12 @@ class Readable extends EventEmitter {
     _readableBuf = [];
     _readableReading = false;
     _readableEOF = false;
-    _readableEmittedEOF = false;
     _readablePipes = {};
+
+    _readableState = {
+        finished: false,
+        errorEmitted: false
+    };
 
     constructor(options) {
         super();
@@ -66,11 +70,13 @@ class Readable extends EventEmitter {
             return this;
         this.destroyed = true;
 
-        this._readableEOF = this._readableEmittedEOF = true;
+        this._readableEOF = this._readableState.finished = true;
 
         this._destroy(err, (err) => {
-            if (err)
+            if (err) {
+                this._readableState.errorEmitted = true;
                 this.emit('error', err);
+            }
             if (this._readableEmitClose)
                 this.emit('close');
         });
@@ -104,8 +110,8 @@ class Readable extends EventEmitter {
         this.readableFlowing = true;
         while (this.readableFlowing === true && this._readableBuf.length)
             this.emit('data', this.read());
-        if (this.readableFlowing === true && this._readableEOF && !this._readableEmittedEOF) {
-            this._readableEmittedEOF = true;
+        if (this.readableFlowing === true && this._readableEOF && !this._readableState.finished) {
+            this._readableState.finished = true;
             this.emit('end');
         }
 
@@ -152,7 +158,7 @@ class Readable extends EventEmitter {
     }
 
     unshift(chunk) {
-        if (this._readableEmittedEOF)
+        if (this._readableState.finished)
             return;
         if (this._readableEncoding)
             chunk = chunk.toString(this._readableEncoding);
@@ -173,7 +179,7 @@ class Readable extends EventEmitter {
         if (this._readableObjectMode || chunk === null || chunk.length) {
             if (this.readableFlowing === true) {
                 if (chunk === null) {
-                    this._readableEmittedEOF = true;
+                    this._readableState.finished = true;
                     this.emit('end');
                 } else {
                     if (this._readableEncoding)
@@ -228,7 +234,9 @@ class Readable extends EventEmitter {
         this.on('data', pipe[1]);
         if (end)
             this.on('end', pipe[2]);
+        this._readableState.errorEmitted = true;
         this.on('error', pipe[3]);
+        destination._writableState.errorEmitted = true;
         destination.on('error', pipe[3]);
 
         destination.emit('pipe', this);
@@ -317,9 +325,13 @@ class Writable extends EventEmitter {
     _writableEmittedHighMark = false;
 
     _writableEOF = false;
-    _writableEmittedEOF = false;
     _writableBuf = [];
     _writableCorkCount = 0;
+
+    _writableState = {
+        finished: false,
+        errorEmitted: false
+    };
 
     constructor(options) {
         super();
@@ -358,11 +370,13 @@ class Writable extends EventEmitter {
         this.destroyed = true;
 
         this._writableBuf = [];
-        this._writableEOF = true;
+        this._writableEOF = this._writableState.finished = true;
 
         this._destroy(err, (err) => {
-            if (err)
+            if (err) {
+                this._writableState.errorEmitted = true;
                 this.emit('error', err);
+            }
             if (this._writableEmitClose)
                 this.emit('close');
         });
@@ -393,17 +407,17 @@ class Writable extends EventEmitter {
                         this.writableLength -= this._writableObjectMode ? 1 : entry[0].length;
                     }
                     let saveBuf = this._writableBuf;
-                    this._writev(newBuf, (err) => { if (err) this.emit('error', err); for (let i = 0; i < saveBuf.length; i++) for (let j = 2; j < saveBuf[i].length; j++) saveBuf[i][j](); this._writableNext(); });
+                    this._writev(newBuf, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } for (let i = 0; i < saveBuf.length; i++) for (let j = 2; j < saveBuf[i].length; j++) saveBuf[i][j](); this._writableNext(); });
                 }
                 let entry = this._writableBuf.shift();
                 this.writableLength -= this._writableObjectMode ? 1 : entry[0].length;
                 this._write(entry[0], entry[1], (err) => { if (err) this.emit('error', err); for (let j = 2; j < entry.length; j++) entry[j](); this._writableNext(); });
             } else {
-                if (this._writableEOF && !this._writableEmittedEOF) {
-                    this._writableEmittedEOF = true;
+                if (this._writableEOF && !this._writableState.finished) {
+                    this._writableState.finished = true;
 
                     if (this._final)
-                        this._final((err) => { if (err) this.emit('error', err); this.emit('finish'); });
+                        this._final((err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } this.emit('finish'); });
                     else
                         this.emit('finish');
                 }
@@ -444,7 +458,7 @@ class Writable extends EventEmitter {
 
         if (this._writableCorkCount == 0 && !this._writableWriting) {
             this._writableWriting = true;
-            this._write(chunk, encoding, (err) => { if (err) this.emit('error', err); callback(); this._writableNext(); });
+            this._write(chunk, encoding, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } callback(); this._writableNext(); });
         } else {
             if (!this._writableObjectMode && this._writableBuf.length) {
                 let last = this._writableBuf[this._writableBuf.length - 1];
@@ -537,13 +551,16 @@ Duplex.prototype.destroy = function (err) {
         return this;
     this.destroyed = true;
 
-    this._readableEOF = this._readableEmittedEOF = true;
+    this._readableEOF = this._readableState.finished = true;
     this._writableBuf = [];
-    this._writableEOF = true;
+    this._writableEOF = this._writableState.finished = true;
 
     this._destroy(err, (err) => {
-        if (err)
+        if (err) {
+            this._readableState.errorEmitted = true;
+            this._writableState.errorEmitted = true;
             this.emit('error', err);
+        }
         if (this._writableEmitClose)
             this.emit('close');
     });

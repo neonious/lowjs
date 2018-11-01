@@ -5,8 +5,8 @@
 #ifndef __LOWHTTPDIRECT_H__
 #define __LOWHTTPDIRECT_H__
 
-#include "LowSocketDirect.h"
 #include "LowLoopCallback.h"
+#include "LowSocketDirect.h"
 
 #include <pthread.h>
 
@@ -46,13 +46,16 @@ struct LowHTTPDirect_ParamData
 };
 
 class LowSocket;
-class LowHTTPDirect : public LowSocketDirect, public LowLoopCallback
+class LowHTTPDirect
+    : public LowSocketDirect
+    , public LowLoopCallback
 {
-public:
+  public:
     LowHTTPDirect(low_main_t *low, bool isServer);
     virtual ~LowHTTPDirect();
 
     virtual void SetSocket(LowSocket *socket);
+    void Detach(bool pushRemainingRead = false);
 
     void SetRequestCallID(int callID);
     void Read(unsigned char *data, int len, int callIndex);
@@ -60,9 +63,8 @@ public:
     void WriteHeaders(const char *txt, int index, int len, bool isChunked);
     void Write(unsigned char *data, int len, int bufferIndex, int callIndex);
 
-protected:
+  protected:
     void Init();
-    void Detach();
 
     virtual bool OnLoop();
 
@@ -72,7 +74,7 @@ protected:
     void DoWrite();
     virtual bool OnSocketWrite();
 
-private:
+  private:
     low_main_t *mLow;
     bool mIsServer, mDetached;
 

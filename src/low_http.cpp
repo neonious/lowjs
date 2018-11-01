@@ -4,12 +4,12 @@
 
 #include "low_http.h"
 
-#include "LowSocket.h"
 #include "LowHTTPDirect.h"
+#include "LowSocket.h"
 
+#include "low_alloc.h"
 #include "low_main.h"
 #include "low_system.h"
-#include "low_alloc.h"
 
 #include <errno.h>
 
@@ -51,14 +51,40 @@ duk_ret_t low_http_get_request(duk_context *ctx)
 
         if(!socket->SetDirect(direct, 0))
             duk_reference_error(
-                ctx, "file descriptor not available for direct object");
+              ctx, "file descriptor not available for direct object");
         direct->SetRequestCallID(low_add_stash(low, 1));
     }
     else
         duk_reference_error(
-            ctx, "file descriptor is already acquired by direct object");
+          ctx, "file descriptor is already acquired by direct object");
 
     return 0;
+}
+
+// -----------------------------------------------------------------------------
+//  low_http_detach
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_http_detach(duk_context *ctx)
+{
+    low_main_t *low = low_duk_get_low(ctx);
+
+    int socketFD = duk_require_int(ctx, 0);
+    auto iter = low->fds.find(socketFD);
+    if(iter == low->fds.end())
+        return 0;
+
+    if(iter->second->FDType() != LOWFD_TYPE_SOCKET)
+        duk_reference_error(ctx, "file descriptor is not a socket");
+    LowSocket *socket = (LowSocket *)iter->second;
+
+    int directType;
+    LowHTTPDirect *direct = (LowHTTPDirect *)socket->GetDirect(directType);
+    if(!direct || directType != 0)
+        duk_reference_error(ctx, "file descriptor is not an HTTP stream");
+
+    direct->Detach(true);
+    return 1;
 }
 
 // -----------------------------------------------------------------------------
@@ -72,7 +98,7 @@ duk_ret_t low_http_read(duk_context *ctx)
     int socketFD = duk_require_int(ctx, 0);
     duk_size_t buf_len;
     unsigned char *buf =
-        (unsigned char *)duk_require_buffer_data(ctx, 1, &buf_len);
+      (unsigned char *)duk_require_buffer_data(ctx, 1, &buf_len);
 
     auto iter = low->fds.find(socketFD);
     if(iter == low->fds.end())
@@ -102,9 +128,9 @@ duk_ret_t low_http_write(duk_context *ctx)
     int socketFD = duk_require_int(ctx, 0);
     duk_size_t buf_len = 0;
     unsigned char *buf =
-        duk_is_null(ctx, 1)
-            ? NULL
-            : (unsigned char *)duk_require_buffer_data(ctx, 1, &buf_len);
+      duk_is_null(ctx, 1)
+        ? NULL
+        : (unsigned char *)duk_require_buffer_data(ctx, 1, &buf_len);
 
     auto iter = low->fds.find(socketFD);
     if(iter == low->fds.end())

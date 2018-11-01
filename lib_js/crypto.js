@@ -1,31 +1,34 @@
 'use script';
-throw new Error('crypto module is not implemented yet')
 
+let native = require('native');
+
+// TODO: make Hash a transform stream
 class Hash {
-    update() {
+    constructor(type, key) {
+        this._native = native.createCryptoHash(this, type, key);
+    }
+
+    update(data, encoding) {
+        if (typeof data === 'string')
+            data = Buffer.from(data, encoding);
+
+        native.cryptoHashUpdate(this._native, data);
         return this;
     }
 
-    digest() {
-        return "cryptohash";
+    digest(encoding) {
+        let val = native.cryptoHashDigest(this._native);
+        if (encoding)
+            return val.toString(encoding);
+        else
+            return val;
     }
 }
 
-class Hmac {
-    update() {
-        return this;
-    }
-
-    digest() {
-        return "cryptohmac";
-    }
-
+exports.createHash = function (type) {
+    return new Hash(type);
 }
 
-exports.createHash = function () {
-    return new Hash();
-}
-
-exports.createHmac = function () {
-    return new Hmac();
+exports.createHmac = function (type, key) {
+    return new Hash(type, key);
 }

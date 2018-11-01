@@ -387,11 +387,14 @@ function handleServerConn(server, socket) {
         message.rawHeaders = data.slice(3);
         message.headers = {};
 
+        let upgrade = false;
         for (let i = 3; i + 1 < data.length; i += 2) {
             let key = data[i];
             let value = data[i + 1];
 
             key = key.toLowerCase();
+            if (key == 'upgrade')
+                upgrade = true;
             if (message.headers[key]) {
                 if (key == 'set-cookie')
                     message.headers[key] = [value];
@@ -406,6 +409,13 @@ function handleServerConn(server, socket) {
         message.on('error', handleError);
         response.on('error', handleError);
 
+        if (upgrade && server.listenerCount('upgrade')) {
+            let buffer = native.httpDetach(socket._socketFD);
+            socket._socketHTTPWrapped = false;
+
+            if (server.emit('upgrade', message, socket, buffer))
+                return;
+        }
         server.emit('request', message, response);
     });
 }

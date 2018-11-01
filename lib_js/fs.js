@@ -57,30 +57,30 @@ exports.write = (fd, buffer, offset, length, position, callback) => {
 };
 
 class Stats {
-  // sorry but octal literals are no-no in strict mode
-  // also these are copied from sys/stat.h so not sure about portability
-  static S_IFMT = parseInt('0170000', 8)
-  static S_IFDIR = parseInt('0040000', 8)
-  static S_IFCHR = parseInt('0020000', 8)
-  static S_IFBLK = parseInt('0060000', 8)
-  static S_IFREG = parseInt('0100000', 8)
-  static S_IFIFO = parseInt('0010000', 8)
-  static S_IFLNK = parseInt('0120000', 8)
-  static S_IFSOCK = parseInt('0140000', 8)
-  
-  constructor (stat) { Object.assign(this, stat) }
-  get fileType() { return this.mode & Stats.S_IFMT }
-  get atime() { return new Date(this.atimeMs) }
-  get mtime() { return new Date(this.mtimeMs) }
-  get ctime() { return new Date(this.ctimeMs) }
-  
-  isFile = () => this.fileType == Stats.S_IFREG
-  isDirectory = () => this.fileType == Stats.S_IFDIR
-  isBlockDevice = () => this.fileType == Stats.S_IFBLK
-  isCharacterDevice = () => this.fileType == Stats.S_IFCHR
-  isSymbolicLink = () => this.fileType == Stats.S_IFLNK
-  isFIFO = () => this.fileType == Stats.S_IFIFO
-  isSocket = () => this.fileType == Stats.S_IFSOCK
+    // sorry but octal literals are no-no in strict mode
+    // also these are copied from sys/stat.h so not sure about portability
+    static S_IFMT = parseInt('0170000', 8)
+    static S_IFDIR = parseInt('0040000', 8)
+    static S_IFCHR = parseInt('0020000', 8)
+    static S_IFBLK = parseInt('0060000', 8)
+    static S_IFREG = parseInt('0100000', 8)
+    static S_IFIFO = parseInt('0010000', 8)
+    static S_IFLNK = parseInt('0120000', 8)
+    static S_IFSOCK = parseInt('0140000', 8)
+
+    constructor(stat) { Object.assign(this, stat) }
+    get fileType() { return this.mode & Stats.S_IFMT }
+    get atime() { return new Date(this.atimeMs) }
+    get mtime() { return new Date(this.mtimeMs) }
+    get ctime() { return new Date(this.ctimeMs) }
+
+    isFile = () => this.fileType == Stats.S_IFREG
+    isDirectory = () => this.fileType == Stats.S_IFDIR
+    isBlockDevice = () => this.fileType == Stats.S_IFBLK
+    isCharacterDevice = () => this.fileType == Stats.S_IFCHR
+    isSymbolicLink = () => this.fileType == Stats.S_IFLNK
+    isFIFO = () => this.fileType == Stats.S_IFIFO
+    isSocket = () => this.fileType == Stats.S_IFSOCK
 }
 
 exports.Stats = Stats
@@ -257,6 +257,7 @@ exports.statSync = (path, options) => {
     return stat;
 };
 
+
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {
         callback = options;
@@ -291,6 +292,11 @@ exports.writeFile = (path, data, options, callback) => {
         });
     });
 };
+
+exports.rename = native.rename;
+exports.unlink = native.unlink;
+exports.renameSync = native.renameSync;
+exports.unlinkSync = native.unlinkSync;
 
 exports.writeFileSync = (path, data, options) => {
     if (typeof options === 'string')
