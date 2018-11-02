@@ -229,7 +229,6 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_STAT:
             mError = 0;
-            printf("STATTING %s\n", mOldName);
             if(stat(mOldName, &mStat) != 0)
                 mError = errno;
 
