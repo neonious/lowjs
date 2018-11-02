@@ -426,7 +426,7 @@ err:
 
 extern "C" void duk_copy_breakpoints(duk_context *from, duk_context *to);
 void alloc_reset_heap();
-
+bool isnntry2;
 bool low_reset(low_main_t *low)
 {
     low->duk_flag_stop = 1;
@@ -562,9 +562,6 @@ bool low_reset(low_main_t *low)
     for(int i = 0; i < low->resolvers.size(); i++)
         if(low->resolvers[i])
             delete low->resolvers[i];
-    ares_library_cleanup();
-
-    pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     for(int i = 0; i < low->tlsContexts.size(); i++)
         if(low->tlsContexts[i])
