@@ -70,7 +70,7 @@ public:
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
             ESP_LOGE("low_alloc", "memory full in C++ allocator, restarting");
-            esp_restart_noos();
+            esp_restart();
 #else
             throw std::bad_alloc();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */

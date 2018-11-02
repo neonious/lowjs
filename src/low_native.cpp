@@ -33,6 +33,8 @@ duk_function_list_entry g_low_native_methods[] = {
   {"read", low_fs_read, 6},
   {"write", low_fs_write, 6},
   {"fstat", low_fs_fstat, 2},
+  {"stat", low_fs_stat, 2},
+  {"statSync", low_fs_stat_sync, 1},
   {"rename", low_fs_rename, 3},
   {"unlink", low_fs_unlink, 2},
   {"renameSync", low_fs_rename_sync, 2},
@@ -59,7 +61,7 @@ duk_function_list_entry g_low_native_methods[] = {
   {"httpWriteHead", low_http_write_head, 4},
   {"createTLSContext", low_tls_create_context, 1},
   {"makeModule", low_module_make, 2},
-  {"createCryptoHash", low_crypto_create_hash, 2},
+  {"createCryptoHash", low_crypto_create_hash, 3},
   {"cryptoHashUpdate", low_crypto_hash_update, 2},
-  {"cryptoHashDigest", low_crypto_hash_digest, 2},
+  {"cryptoHashDigest", low_crypto_hash_digest, 1},
   {NULL, NULL, 0}};
