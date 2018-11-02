@@ -426,7 +426,7 @@ err:
 
 extern "C" void duk_copy_breakpoints(duk_context *from, duk_context *to);
 void alloc_reset_heap();
-bool isnntry2;
+
 bool low_reset(low_main_t *low)
 {
     low->duk_flag_stop = 1;
