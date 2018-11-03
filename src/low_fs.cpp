@@ -343,7 +343,7 @@ bool low_fs_resolve(char *res,
     path = res + 1;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    if(path[0] != '/')
+    if(add[0] != '/')
     {
         for(const char *str = base; *str && str != add_node_modules_at; str++)
         {
