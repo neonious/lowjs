@@ -18,7 +18,8 @@ enum
 {
 
     LOWFSMISC_PHASE_RENAME,
-    LOWFSMISC_PHASE_UNLINK
+    LOWFSMISC_PHASE_UNLINK,
+    LOWFSMISC_PHASE_STAT
 };
 
 class LowFSMisc
@@ -31,6 +32,7 @@ class LowFSMisc
 
     void Rename(const char *old_name, const char *new_name, int callIndex);
     void Unlink(const char *file_name, int callIndex);
+    void Stat(const char *file_name, int callIndex);
 
   protected:
     virtual bool OnData();
@@ -40,6 +42,8 @@ class LowFSMisc
     low_main_t *mLow;
     char *mOldName;
     char *mNewName;
+
+    struct stat mStat;
 
     int mCallID;
     int mPhase, mError;

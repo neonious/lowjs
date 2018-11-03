@@ -83,9 +83,12 @@ class Stats {
     isSocket = () => this.fileType == Stats.S_IFSOCK
 }
 
-exports.Stats = Stats
+exports.Stats = Stats;
 
-exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(stat)))
+exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(stat)));
+exports.stat = (path, cb) => native.stat(path, (err, stat) => cb(err, new Stats(stat)));
+exports.statSync = (path, cb) => new Stats(native.statSync(path));
+
 exports.openSync = native.openSync;
 exports.closeSync = native.closeSync;
 
@@ -215,48 +218,6 @@ exports.readFileSync = (path, options) => {
     else
         return buf;
 };
-
-exports.stat = (path, options, callback) => {
-    if (!callback) {
-        callback = options;
-        options = null;
-    }
-
-    exports.open(path, 'r', (err, fd) => {
-        if (err) {
-            callback(err);
-            return;
-        }
-
-        let stat = exports.fstat(fd, (err, stat) => {
-            exports.close(fd, (err2) => {
-                if (err || err2) {
-                    callback(err ? err : err2);
-                    return;
-                }
-
-                callback(null, stat);
-            });
-        });
-    });
-};
-
-exports.statSync = (path, options) => {
-    // we do not support bigint option, so lets forget about options
-
-    let fd = exports.openSync(path, 'r');
-    let stat;
-    try {
-        stat = exports.fstatSync(fd);
-    } catch (e) {
-        exports.closeSync(fd);
-        throw e;
-    }
-    exports.closeSync(fd);
-
-    return stat;
-};
-
 
 exports.writeFile = (path, data, options, callback) => {
     if (!callback) {

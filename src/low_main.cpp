@@ -94,7 +94,7 @@ static void low_duk_fatal(void *udata, const char *msg)
 #if LOW_ESP32_LWIP_SPECIALITIES
     ESP_LOGE(TAG, "duk_fatal: %s", msg);
     vTaskDelay(5000);
-    esp_restart_noos();
+    esp_restart();
 #else
     low_error(msg);
 
@@ -562,9 +562,6 @@ bool low_reset(low_main_t *low)
     for(int i = 0; i < low->resolvers.size(); i++)
         if(low->resolvers[i])
             delete low->resolvers[i];
-    ares_library_cleanup();
-
-    pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     for(int i = 0; i < low->tlsContexts.size(); i++)
         if(low->tlsContexts[i])

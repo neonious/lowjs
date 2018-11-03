@@ -5,12 +5,12 @@
 #ifndef __LOWFILE_H__
 #define __LOWFILE_H__
 
-#include "LowFD.h"
 #include "LowDataCallback.h"
+#include "LowFD.h"
 #include "LowLoopCallback.h"
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 struct low_main_t;
@@ -25,7 +25,10 @@ enum
     LOWFILE_PHASE_CLOSING
 };
 
-class LowFile : public LowFD, public LowDataCallback, public LowLoopCallback
+class LowFile
+    : public LowFD
+    , public LowDataCallback
+    , public LowLoopCallback
 {
   public:
     LowFile(low_main_t *low, const char *path, int flags, int callIndex);
