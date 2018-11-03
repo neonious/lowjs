@@ -280,9 +280,8 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     duk_push_false(ctx);
     duk_put_prop_string(ctx, -2, "loaded");
 
-    // Not supported yet
-    //    duk_push_array(ctx);
-    //    duk_put_prop_string(ctx, -2, "paths");
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "paths");
 
     duk_push_array(ctx);
     duk_put_prop_string(ctx, -2, "children");
@@ -573,9 +572,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_push_false(ctx);
     duk_put_prop_string(ctx, -2, "loaded");
 
-    // Not supported yet
-    //    duk_push_array(ctx);
-    //    duk_put_prop_string(ctx, -2, "paths");
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "paths");
 
     duk_push_array(ctx);
     duk_put_prop_string(ctx, -2, "children");
@@ -836,6 +834,7 @@ bool low_module_resolve_c(duk_context *ctx,
 
                 if(path + 9 - res_id2 >= 1024)
                     return false;
+                strcpy(path, "/index.js");
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 10 - start);
