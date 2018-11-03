@@ -185,6 +185,7 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
     low_main_t *low = low_duk_get_low(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
+    struct stat st;
 #if LOW_ESP32_LWIP_SPECIALITIES
     int len = 32 + strlen(file_name) + strlen(low->cwd);
     char *name = (char *)low_alloc(len);
@@ -200,7 +201,6 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
         duk_generic_error(low->duk_ctx, "fs resolve error");
     }
 
-    struct stat st;
     if(stat(name, &st) != 0)
     {
         free(name);
