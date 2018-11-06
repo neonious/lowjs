@@ -7,11 +7,6 @@ let signal = require('signal');
 
 let EventEmitter = require('events').EventEmitter;
 
-// pins
-exports.LED_RED = 1;
-exports.LED_GREEN = 2;
-exports.BUTTON = 27;
-
 // types
 exports.INPUT = 0;
 exports.INPUT_PULLUP = 1;
@@ -55,9 +50,12 @@ function handleGPIO(index, callback) {
     }
     gpioRunning = true;
 
-    native.gpioGetValues(index, exports.DIGITAL, (value) => {
+    native.gpioGetValues(index, exports.DIGITAL, (valuesLo, valuesHi) => {
         // Only the relevant bit is set correctly
-        callback(null, (value & (1 << (index - 1))) ? 1 : 0);
+        if (index === null)
+            callback(null, valuesLo, valuesHi);
+        else
+            callback(null, ((index < 32 ? valuesLo : valuesHi) & (1 << index)) ? 1 : 0);
 
         gpioRunning = false;
         if (gpioQueue.length) {
@@ -122,7 +120,7 @@ function setPWM(index, value) {
     }
 }
 
-let values = 0;
+let valuesLo = 0, valuesHi = 0;
 
 function GPIOPin(index) {
     let pinType = index == exports.LED_RED || index == exports.LED_GREEN ? exports.OUTPUT : exports.INPUT;
@@ -158,11 +156,18 @@ function GPIOPin(index) {
         else {
             disablePWM(index);
 
-            if (value)
-                values |= 1 << (index - 1);
-            else
-                values &= ~(1 << (index - 1));
-            native.gpioSetValues(values);
+            if (index < 32) {
+                if (value)
+                    valuesLo |= 1 << index;
+                else
+                    valuesLo &= ~(1 << index);
+            } else {
+                if (value)
+                    valuesHi |= 1 << index;
+                else
+                    valuesHi &= ~(1 << index);
+            }
+            native.gpioSetValues(valuesLo, valuesHi);
         }
     }
     this.getValue = (flags, callback) => {
@@ -211,7 +216,7 @@ GPIOPin.prototype = Object.create(EventEmitter.prototype);
 
 let internalPins = [];
 
-native.gpioSetCallback((index, rise) => {
+let isNeoniousOne = native.gpioSetCallback((index, rise) => {
     if (!internalPins[index])
         return;
 
@@ -222,7 +227,28 @@ native.gpioSetCallback((index, rise) => {
 });
 
 exports.pins = [];
-for (var i = 1; i <= 27; i++) {
+
+var i, last;
+if (isNeoniousOne) {
+    i = 1;
+    last = 27;
+
+    // pins
+    exports.LED_RED = 1;
+    exports.LED_GREEN = 2;
+    exports.BUTTON = 27;
+} else {
+    i = 0;
+    last = 39;
+
+    exports.ANALOG_ATTEN_DB_0 = 0;
+    exports.ANALOG_ATTEN_DB_2_5 = 1;
+    exports.ANALOG_ATTEN_DB_6 = 2;
+    exports.ANALOG_ATTEN_DB_11 = 3;
+
+    exports.setAnalogAttenuation = native.gpioSetAnalogAttenuation;
+}
+for (; i <= last; i++) {
     exports.pins[i] = internalPins[i] = new GPIOPin(i);
 }
 
@@ -247,11 +273,12 @@ exports.getPWMNanoSecs = () => {
     return signalNanoSecs;
 }
 
-exports.setValues = (bits) => {
-    values = bits;
-    native.gpioSetValues(bits);
+exports.setValues = (bitsLo, bitsHi) => {
+    valuesLo = bitsLo;
+    valuesHi = bitsHi;
+    native.gpioSetValues(bitsLo, bitsHi);
 }
 
 exports.getValues = (callback) => {
-    native.gpioGetValues(0, 0, callback);
+    handleGPIO(null, callback);
 }
