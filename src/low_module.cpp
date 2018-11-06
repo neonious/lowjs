@@ -29,7 +29,7 @@ extern duk_function_list_entry g_low_native_neon_methods[];
 void low_module_init(duk_context *ctx)
 {
     // Initialize internal require cache
-    duk_push_global_stash(ctx);
+    duk_push_heap_stash(ctx);
 
     duk_push_object(ctx);
     duk_put_prop_string(ctx, -2, "modules");
@@ -312,9 +312,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     // [... module require]
 
     // require.cache
-    duk_push_global_stash(low->stash_ctx);
-    if(low->stash_ctx != ctx)
-        duk_xmove_top(ctx, low->stash_ctx, 1);
+    duk_push_heap_stash(low->duk_ctx);
 
     duk_get_prop_string(ctx, -1, "modules");
     duk_put_prop_string(ctx, -3, "cache");
@@ -346,9 +344,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     if(!(flags & LOW_MODULE_FLAG_GLOBAL))
     {
         // Cache module
-        duk_push_global_stash(low->stash_ctx);
-        if(low->stash_ctx != ctx)
-            duk_xmove_top(ctx, low->stash_ctx, 1);
+        duk_push_heap_stash(low->duk_ctx);
 
         duk_get_prop_string(
           ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
@@ -463,9 +459,7 @@ duk_ret_t low_module_require(duk_context *ctx)
 
     // Try to find in cache
     low_main_t *low = low_duk_get_low(ctx);
-    duk_push_global_stash(low->stash_ctx);
-    if(low->stash_ctx != ctx)
-        duk_xmove_top(ctx, low->stash_ctx, 1);
+    duk_push_heap_stash(low->duk_ctx);
 
     duk_get_prop_string(
       ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
@@ -605,9 +599,7 @@ duk_ret_t low_module_make(duk_context *ctx)
 
     // require.cache
     low_main_t *low = low_duk_get_low(ctx);
-    duk_push_global_stash(low->stash_ctx);
-    if(low->stash_ctx != ctx)
-        duk_xmove_top(ctx, low->stash_ctx, 1);
+    duk_push_heap_stash(low->duk_ctx);
 
     duk_get_prop_string(ctx, -1, "modules");
     duk_put_prop_string(ctx, -3, "cache");

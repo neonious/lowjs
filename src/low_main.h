@@ -31,7 +31,7 @@ struct low_main_t
 {
     uint8_t duk_flag_stop;
     bool destroying;
-    duk_context *stash_ctx, *duk_ctx;
+    duk_context *duk_ctx;
 
     int run_ref, last_stash_index;
     int signal_call_id;

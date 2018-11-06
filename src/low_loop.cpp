@@ -77,7 +77,7 @@ bool low_loop_run(low_main_t *low)
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!low->loop_callback_first)
         {
-            duk_debugger_cooperate(low->stash_ctx);
+            duk_debugger_cooperate(low->duk_ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(false);

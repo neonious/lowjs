@@ -97,30 +97,25 @@ duk_ret_t low_run_in_context(duk_context *ctx)
 {
     low_main_t *low = low_duk_get_low(ctx);
 
-    // As long as we do not support timeout or signal, the only good thing about
-    // using a second thread is that the call stack does not include the other
-    // thread...
-    duk_push_thread(ctx);
-    duk_context *new_ctx = duk_require_context(ctx, 4);
+    duk_push_global_object(low->duk_ctx);   // 4
 
-    duk_xmove_top(new_ctx, ctx, 5);
+    duk_dup(low->duk_ctx, 1);
+    duk_set_global_object(low->duk_ctx);
+    duk_dup(low->duk_ctx, 0);
 
-    duk_dup(new_ctx, 1);
-    duk_set_global_object(new_ctx);
-    duk_dup(new_ctx, 0);
-
-    low->duk_ctx = new_ctx;
-    if(duk_safe_call(new_ctx, low_run_in_context_safe, NULL, 1, 1) !=
+    if(duk_safe_call(low->duk_ctx, low_run_in_context_safe, NULL, 1, 1) !=
        DUK_EXEC_SUCCESS)
     {
-        low->duk_ctx = ctx;
+        duk_dup(low->duk_ctx, 4);
+        duk_set_global_object(low->duk_ctx);
 
-        duk_xmove_top(ctx, new_ctx, 1);
+        duk_dup(low->duk_ctx, -1);
         duk_throw(ctx);
         return 0;
     }
-    low->duk_ctx = ctx;
 
-    duk_xmove_top(ctx, new_ctx, 1);
+    duk_dup(low->duk_ctx, 4);
+    duk_set_global_object(low->duk_ctx);
+
     return 1;
 }
