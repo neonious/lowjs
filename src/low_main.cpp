@@ -55,7 +55,7 @@ static void *low_duk_alloc(void *udata, duk_size_t size)
     {
         ESP_LOGE(TAG, "returning NULL ptr");
         low_main_t *low = (low_main_t *)udata;
-        duk_generic_error(low->stash_ctx, "memory full");
+        duk_generic_error(low->duk_ctx, "memory full");
     }
     return data;
 #else
@@ -76,7 +76,7 @@ static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
     {
         ESP_LOGE(TAG, "returning NULL ptr");
         low_main_t *low = (low_main_t *)udata;
-        duk_generic_error(low->stash_ctx, "memory full");
+        duk_generic_error(low->duk_ctx, "memory full");
     }
     return data;
 #else
@@ -136,9 +136,9 @@ low_main_t *low_init()
     low->duk_flag_stop = 0;
 #if LOW_ESP32_LWIP_SPECIALITIES
     // we are doing this on reset
-    low->stash_ctx = low->duk_ctx = NULL;
+    low->duk_ctx = NULL;
 #else
-    low->stash_ctx = low->duk_ctx = duk_create_heap(
+    low->duk_ctx = duk_create_heap(
       low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
     if(!low->duk_ctx)
     {
@@ -532,13 +532,13 @@ bool low_reset(low_main_t *low)
 
     duk_context *new_ctx = duk_create_heap(
       low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
-    if(!new_ctx && low->stash_ctx)
+    if(!new_ctx && low->duk_ctx)
     {
         fprintf(stderr, "Cannot create Duktape heap, trying after free\n");
         alloc_reset_heap();
 
-        duk_destroy_heap(low->stash_ctx);
-        low->stash_ctx = NULL;
+        duk_destroy_heap(low->duk_ctx);
+        low->duk_ctx = NULL;
 
         alloc_reset_heap();
 
@@ -551,10 +551,10 @@ bool low_reset(low_main_t *low)
         return false;
     }
 
-    if(low->stash_ctx)
+    if(low->duk_ctx)
     {
-        duk_copy_breakpoints(low->stash_ctx, new_ctx);
-        duk_destroy_heap(low->stash_ctx);
+        duk_copy_breakpoints(low->duk_ctx, new_ctx);
+        duk_destroy_heap(low->duk_ctx);
     }
 
     // After finalizers.. they must not use DukTape heap!
@@ -570,7 +570,7 @@ bool low_reset(low_main_t *low)
         if(low->cryptoHashes[i])
             delete low->cryptoHashes[i];
 
-    low->stash_ctx = low->duk_ctx = new_ctx;
+    low->duk_ctx = new_ctx;
 
     low->chores.clear();
     low->chore_times.clear();
@@ -607,7 +607,7 @@ bool low_reset(low_main_t *low)
 
 static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
 {
-    duk_push_global_stash(ctx);
+    duk_push_heap_stash(ctx);
     duk_push_object(ctx);
     duk_put_prop_string(ctx, -2, "low");
     duk_pop(ctx);
@@ -686,8 +686,8 @@ void low_destroy(low_main_t *low)
     pthread_mutex_destroy(&low->loop_thread_mutex);
     pthread_cond_destroy(&low->loop_thread_cond);
 
-    if(low->stash_ctx)
-        duk_destroy_heap(low->stash_ctx);
+    if(low->duk_ctx)
+        duk_destroy_heap(low->duk_ctx);
 
         // After finalizers.. they must not use DukTape heap!
 #if LOW_INCLUDE_CARES_RESOLVER
@@ -719,11 +719,11 @@ int low_add_stash(low_main_t *low, int index)
     if(low->duk_flag_stop)
         return 0;
 
-    duk_context *ctx = low->stash_ctx;
+    duk_context *ctx = low->duk_ctx;
     if(duk_is_undefined(ctx, index))
         return 0;
 
-    duk_push_global_stash(ctx);
+    duk_push_heap_stash(ctx);
     duk_get_prop_string(ctx, -1, "low");
 
     int stashIndex;
@@ -757,8 +757,8 @@ void low_remove_stash(low_main_t *low, int index)
     if(low->duk_flag_stop)
         return;
 
-    duk_context *ctx = low->stash_ctx;
-    duk_push_global_stash(ctx);
+    duk_context *ctx = low->duk_ctx;
+    duk_push_heap_stash(ctx);
     duk_get_prop_string(ctx, -1, "low");
     duk_del_prop_index(ctx, -1, index);
     duk_pop_2(ctx);
@@ -773,8 +773,8 @@ void low_push_stash(low_main_t *low, int index, bool remove)
     if(low->duk_flag_stop)
         return;
 
-    duk_context *ctx = low->stash_ctx;
-    duk_push_global_stash(ctx);
+    duk_context *ctx = low->duk_ctx;
+    duk_push_heap_stash(ctx);
     duk_get_prop_string(ctx, -1, "low");
     duk_get_prop_index(ctx, -1, index);
     if(remove)
