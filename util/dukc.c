@@ -1,19 +1,26 @@
 // low.js Duktape precompiler
 
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "duktape.h"
 
-// Stubs, used by DukTape to call neonious
-char user_lock_debugstream(char lock, char block) { return 0; }
+// Stubs, used by DukTape to call neonious one
+char user_lock_debugstream(char lock, char block)
+{
+    return 0;
+}
 void user_broken_debugstream() {}
-int neoniousGetStackFree() { return 10000000; }
+int neoniousGetStackFree()
+{
+    return 10000000;
+}
+void code_print_error() {}
 
 int pathStartLen;
 
@@ -94,7 +101,7 @@ char handle1(const char *fPathIn, const char *fPathOut)
 
     duk_push_string(heap, file_name);
     duk_compile_lstring_filename(
-        heap, DUK_COMPILE_FUNCTION | DUK_COMPILE_STRICT, data, len);
+      heap, DUK_COMPILE_FUNCTION | DUK_COMPILE_STRICT, data, len);
     free(data);
     duk_dump_function(heap);
 
