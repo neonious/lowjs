@@ -445,9 +445,25 @@ duk_ret_t low_module_require(duk_context *ctx)
                         "module");
     duk_remove(ctx, -2);
 
-    duk_get_prop_string(ctx, -1, "id");
-    const char *parent_id = duk_get_string(ctx, -1);
-    duk_pop(ctx);
+    const char *parent_id;
+    int popCount = 0;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
 
     // We always resolve with our own function
     if(!low_module_resolve_c(ctx, id, parent_id, res_id))
@@ -524,9 +540,25 @@ duk_ret_t low_module_resolve(duk_context *ctx)
                         "module");
     duk_remove(ctx, -2);
 
-    duk_get_prop_string(ctx, -1, "id");
-    const char *parent_id = duk_get_string(ctx, -1);
-    duk_pop_2(ctx);
+    const char *parent_id;
+    int popCount = 1;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
 
     if(low_module_resolve_c(ctx, id, parent_id, res_id))
     {
@@ -556,9 +588,10 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "parent");
 
     duk_dup(ctx, 0);
-    duk_dup(ctx, -1);
-    duk_put_prop_string(ctx, -3, "filename");
     duk_put_prop_string(ctx, -2, "id");
+
+    duk_push_null(ctx);
+    duk_put_prop_string(ctx, -2, "filename");
 
     duk_push_object(ctx);
     duk_put_prop_string(ctx, -2, "exports");
@@ -647,7 +680,7 @@ bool low_module_resolve_c(duk_context *ctx,
     struct stat st;
 
     // lib: may get native
-    if(strcmp(module_id, "native") == 0 &&
+    if(strcmp(module_id, "native") == 0 && parent_id &&
        (memcmp(parent_id, "lib:", 4) == 0 ||
         memcmp(parent_id, "module:", 7) == 0))
     {
@@ -675,7 +708,7 @@ bool low_module_resolve_c(duk_context *ctx,
         }
     }
 
-    if(memcmp(parent_id, "lib:", 4) == 0)
+    if(!parent_id || memcmp(parent_id, "lib:", 4) == 0)
         return false;
 
     const char *parent_end = NULL;
