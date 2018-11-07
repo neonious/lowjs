@@ -1,8 +1,15 @@
 // init.js
 // runs before main module, exports = global scope
 
+let jsProps = Object.getOwnPropertyNames(global);
+
 let native = require('native');
 let events = require('events');
+
+var index = jsProps.indexOf('global');
+if (index > -1)
+    jsProps.splice(index, 1);
+native.jsProps = jsProps;
 
 const {
     ERR_INVALID_ARG_TYPE,

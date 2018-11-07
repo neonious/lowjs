@@ -17,7 +17,29 @@ class Script {
             this._func.fileName = options.filename;
         else
             this._func.fileName = this._filename;
-        return native.runInContext(this._func, sandbox, options ? options.timeout : undefined, options ? !!options.breakOnSigint : undefined);
+
+        if (sandbox._vmIsRunning)
+            sandbox._vmIsRunning++;
+        else {
+            sandbox._vmIsRunning = 1;
+            for (let i = 0; i < native.jsProps.length; i++) {
+                let name = native.jsProps[i];
+                Object.defineProperty(sandbox, name,
+                    Object.getOwnPropertyDescriptor(global, name));
+            }
+        }
+
+        let res = native.runInContext(this._func, sandbox, options ? options.timeout : undefined, options ? !!options.breakOnSigint : undefined);
+        if (!--sandbox._vmIsRunning) {
+            delete sandbox._vmIsRunning;
+            for (let i = 0; i < native.jsProps.length; i++) {
+                try {   // we cannot remove unconfigurable elements... this is the best we can do
+                    delete sandbox[native.jsProps[i]];
+                } catch (e) { }
+            }
+        }
+
+        return res;
     }
 
     runInThisContext(options) {
@@ -38,12 +60,12 @@ function createScript(code, options) {
 function createContext(sandbox) {
     if (!sandbox)
         sandbox = {};
-    sandbox._isContext = true;
+    sandbox._vmIsContext = true;
     return sandbox;
 }
 
 function isContext(sandbox) {
-    return !!sandbox._isContext;
+    return !!sandbox._vmIsContext;
 }
 
 function runInContext(code, sandbox, options) {
