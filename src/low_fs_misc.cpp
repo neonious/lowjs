@@ -23,7 +23,7 @@
 
 duk_ret_t low_fs_rename(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
@@ -41,7 +41,7 @@ duk_ret_t low_fs_rename(duk_context *ctx)
 
 duk_ret_t low_fs_unlink(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -58,7 +58,7 @@ duk_ret_t low_fs_unlink(duk_context *ctx)
 
 duk_ret_t low_fs_stat(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -75,7 +75,7 @@ duk_ret_t low_fs_stat(duk_context *ctx)
 
 duk_ret_t low_fs_rename_sync(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
@@ -138,7 +138,7 @@ duk_ret_t low_fs_rename_sync(duk_context *ctx)
 
 duk_ret_t low_fs_unlink_sync(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
@@ -182,7 +182,7 @@ duk_ret_t low_fs_unlink_sync(duk_context *ctx)
 
 duk_ret_t low_fs_stat_sync(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     struct stat st;

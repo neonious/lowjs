@@ -92,6 +92,9 @@ extern "C"
     low_main_t *low_init();
     bool low_lib_init(low_main_t *low);
     void low_destroy(low_main_t *low);
+
+    duk_context *low_get_duk_context(low_main_t *low);
+    low_main_t *duk_get_low_context(duk_context *ctx);
 }
 
 #if LOW_ESP32_LWIP_SPECIALITIES
@@ -103,6 +106,5 @@ void low_remove_stash(low_main_t *low, int index);
 void low_push_stash(low_main_t *low, int index, bool remove);
 
 void low_duk_print_error(duk_context *duk);
-low_main_t *low_duk_get_low(duk_context *ctx);
 
 #endif /* __LOW_MAIN_H__ */

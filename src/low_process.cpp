@@ -4,14 +4,14 @@
 
 #include "low_process.h"
 
-#include "low_main.h"
 #include "low_alloc.h"
-#include "low_system.h"
 #include "low_config.h"
+#include "low_main.h"
+#include "low_system.h"
 
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <errno.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "esp_timer.h"
@@ -53,12 +53,12 @@ static duk_ret_t low_process_gc(duk_context *ctx)
 static duk_ret_t low_process_cwd(duk_context *ctx)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
-    duk_push_string(ctx, low_duk_get_low(ctx)->cwd);
+    duk_push_string(ctx, duk_get_low_context(ctx)->cwd);
 #else
     char path[1024];
-    if (!getcwd(path, sizeof(path)))
+    if(!getcwd(path, sizeof(path)))
     {
-        low_push_error(low_duk_get_low(ctx), errno, "getcwd");
+        low_push_error(duk_get_low_context(ctx), errno, "getcwd");
         duk_throw(ctx);
     }
 
@@ -77,10 +77,10 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
     const char *path = duk_require_string(ctx, 0);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     char *cwd = low_strdup(path);
-    if (!cwd)
+    if(!cwd)
     {
         low_push_error(low, ENOMEM, "malloc");
         duk_throw(ctx);
@@ -89,9 +89,9 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
     low_free(low->cwd);
     low->cwd = cwd;
 #else
-    if (chdir(path) < 0)
+    if(chdir(path) < 0)
     {
-        low_push_error(low_duk_get_low(ctx), errno, "getcwd");
+        low_push_error(duk_get_low_context(ctx), errno, "getcwd");
         duk_throw(ctx);
     }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -129,18 +129,18 @@ NOT DONE YET
 
 duk_ret_t low_process_info(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_object(ctx);
 #if !LOW_ESP32_LWIP_SPECIALITIES
-    for (int i = 0; environ && environ[i]; i++)
+    for(int i = 0; environ && environ[i]; i++)
     {
         int j;
-        for (j = 0; environ[i][j] && environ[i][j] != '='; j++)
+        for(j = 0; environ[i][j] && environ[i][j] != '='; j++)
         {
         }
 
-        if (environ[i][j])
+        if(environ[i][j])
         {
             duk_push_string(ctx, &environ[i][j + 1]);
             environ[i][j] = '\0';
@@ -211,13 +211,13 @@ duk_ret_t low_process_info(duk_context *ctx)
 duk_ret_t low_tty_info(duk_context *ctx)
 {
 #if LOW_HAS_TERMIOS
-    if (!g_low_system.isatty)
+    if(!g_low_system.isatty)
         return 0;
 
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     struct winsize w;
-    if (ioctl(0, TIOCGWINSZ, &w) < 0)
+    if(ioctl(0, TIOCGWINSZ, &w) < 0)
     {
         low_push_error(low, errno, "ioctl");
         duk_throw(ctx);
@@ -252,7 +252,7 @@ duk_ret_t low_hrtime(duk_context *ctx)
     static bool alloc_cclock = false;
     mach_timespec_t ts;
 
-    if (!alloc_cclock)
+    if(!alloc_cclock)
     {
         host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
         alloc_cclock = true;
@@ -260,7 +260,7 @@ duk_ret_t low_hrtime(duk_context *ctx)
     clock_get_time(cclock, &ts);
 #else
     struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+    if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
         low_error_errno();
 #endif /* __APPLE__ */
 

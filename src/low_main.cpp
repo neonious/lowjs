@@ -418,6 +418,29 @@ err:
     return NULL;
 }
 
+// -----------------------------------------------------------------------------
+//  duk_get_low_context
+// -----------------------------------------------------------------------------
+
+low_main_t *duk_get_low_context(duk_context *ctx)
+{
+    duk_memory_functions funcs;
+    duk_get_memory_functions(ctx, &funcs);
+    return (low_main_t *)funcs.udata;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_get_duk_context
+// -----------------------------------------------------------------------------
+
+duk_context *low_get_duk_context(low_main_t *low)
+{
+    // Used from applications, as low_main_t is not available there
+    return low->duk_ctx;
+}
+
+
 #if LOW_ESP32_LWIP_SPECIALITIES
 
 // -----------------------------------------------------------------------------
@@ -798,15 +821,4 @@ void low_duk_print_error(duk_context *ctx)
     }
     else
         low_error("JavaScript error with without error object");
-}
-
-// -----------------------------------------------------------------------------
-//  low_duk_get_low
-// -----------------------------------------------------------------------------
-
-low_main_t *low_duk_get_low(duk_context *ctx)
-{
-    duk_memory_functions funcs;
-    duk_get_memory_functions(ctx, &funcs);
-    return (low_main_t *)funcs.udata;
 }

@@ -15,9 +15,13 @@ ifeq ($(UNAME_S),Linux)
 	LDFLAGS += -static -static-libstdc++ -static-libgcc
 endif
 
+OBJECTS_LOW =							\
+	app/main.o
+OBJECTS_LOW_WITH_NATIVE_MODULE =							\
+	examples/low_with_native_module/main.o		\
+	examples/low_with_native_module/native_adder.o
 OBJECTS =							\
 	deps/duktape/src-low/duktape.o		\
-	app/main.o						\
 	src/low_main.o					\
 	src/low_module.o				\
 	src/low_native.o				\
@@ -49,13 +53,16 @@ OBJECTS =							\
 all: bin/low lib/BUILT
 
 clean:
-	rm -rf */*.o */*.d bin/* deps/duktape/src-low lib lib_js/build node_modules util/dukc test/duk_crash
+	rm -rf */*.o */*.d examples/low_with_native_module/*.o examples/low_with_native_module/*.d bin/* deps/duktape/src-low lib lib_js/build node_modules util/dukc test/duk_crash
 	cd deps/c-ares && make clean
 	cd deps/mbedtls && make clean
 
-bin/low: $(OBJECTS) deps/mbedtls/programs/test/benchmark
+bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
-	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(LDFLAGS)
+	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
+bin/low_with_native_module: $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) deps/mbedtls/programs/test/benchmark
+	mkdir -p bin
+	 $(LD) -o bin/low_with_native_module deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) $(LDFLAGS)
 util/dukc: deps/duktape/src-low/duktape.o util/dukc.o
 	 $(LD) -o util/dukc deps/duktape/src-low/duktape.o util/dukc.o $(LDFLAGS)
 
@@ -72,7 +79,7 @@ deps/duktape/src-low/duktape.o: deps/duktape/src-low/duktape.c Makefile
 %.o : %.cpp Makefile deps/c-ares/libcares.la
 	$(CXX) $(CXXFLAGS) -MMD -o $@ -c $<
 
--include $(OBJECTS:.o=.d)
+-include $(OBJECTS:.o=.d) $(OBJECTS_LOW:.o=.d) $(OBJECTS_LOW_WITH_NATIVE_MODULE:.o=.d)
 
 lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
 	rm -rf lib lib_js/build

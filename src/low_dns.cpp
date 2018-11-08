@@ -5,19 +5,19 @@
 #include "low_dns.h"
 #include "LowDNSWorker.h"
 
+#include "low_alloc.h"
 #include "low_main.h"
 #include "low_system.h"
-#include "low_alloc.h"
 
 #include "low_config.h"
 #if LOW_INCLUDE_CARES_RESOLVER
 #include "LowDNSResolver.h"
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <errno.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 // -----------------------------------------------------------------------------
 //  low_dns_lookup
@@ -31,22 +31,22 @@ duk_ret_t low_dns_lookup(duk_context *ctx)
 
     switch(family)
     {
-    case 4:
-        family = AF_INET;
-        break;
-    case 6:
-        family = AF_INET6;
-        break;
-    case 0:
-        family = AF_UNSPEC;
-        break;
-    default:
-        duk_type_error(ctx, "unknown family");
-        return 0;
+        case 4:
+            family = AF_INET;
+            break;
+        case 6:
+            family = AF_INET6;
+            break;
+        case 0:
+            family = AF_UNSPEC;
+            break;
+        default:
+            duk_type_error(ctx, "unknown family");
+            return 0;
     }
     hints = (hints & 1) ? AI_ADDRCONFIG : 0 | (hints & 2) ? AI_V4MAPPED : 0;
 
-    LowDNSWorker *worker = new(low_new) LowDNSWorker(low_duk_get_low(ctx));
+    LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
     if(!worker->Lookup(address, family, hints, 3))
         delete worker;
 
@@ -62,7 +62,7 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
     const char *address = duk_require_string(ctx, 0);
     int port = duk_require_int(ctx, 1);
 
-    LowDNSWorker *worker = new(low_new) LowDNSWorker(low_duk_get_low(ctx));
+    LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
     if(!worker->LookupService(address, port, 2))
         delete worker;
 
@@ -76,7 +76,7 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
 duk_ret_t low_dns_new_resolver(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     LowDNSResolver *resolver = new(low_new) LowDNSResolver(low);
     if(!resolver)
@@ -91,8 +91,9 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
     duk_push_c_function(ctx, low_dns_resolver_finalizer, 1);
     duk_set_finalizer(ctx, 0);
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
     return 1;
@@ -105,7 +106,7 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
 duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -115,8 +116,9 @@ duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
     low->resolvers[index]->Cancel();
     pthread_mutex_unlock(&low->resolvers_mutex);
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -128,7 +130,7 @@ duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
 duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -158,7 +160,8 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
            inet_ntop(info->family,
                      info->family == AF_INET ? (void *)&info->addr.addr4
                                              : (void *)&info->addr.addr6,
-                     host + 1, 64) != NULL)
+                     host + 1,
+                     64) != NULL)
         {
             int len = strlen(host);
             if(info->udp_port && info->udp_port != 53)
@@ -207,8 +210,9 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
     }
     ares_free_data(list);
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 1;
 }
@@ -220,7 +224,7 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
 duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -286,8 +290,9 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
         duk_throw(ctx);
     }
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -299,7 +304,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
 duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);
@@ -313,7 +318,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 
     pthread_mutex_lock(&low->resolvers_mutex);
     LowDNSResolver_Query *query =
-        new(low_new) LowDNSResolver_Query(low->resolvers[index]);
+      new(low_new) LowDNSResolver_Query(low->resolvers[index]);
     if(!query)
     {
         pthread_mutex_unlock(&low->resolvers_mutex);
@@ -327,8 +332,9 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
     query->Resolve(hostname, type, ttl, 0, 4);
     pthread_mutex_unlock(&low->resolvers_mutex);
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -340,7 +346,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);
@@ -352,7 +358,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 
     pthread_mutex_lock(&low->resolvers_mutex);
     LowDNSResolver_GetHostByAddr *query =
-        new(low_new) LowDNSResolver_GetHostByAddr(low->resolvers[index]);
+      new(low_new) LowDNSResolver_GetHostByAddr(low->resolvers[index]);
     if(!query)
     {
         pthread_mutex_unlock(&low->resolvers_mutex);
@@ -373,8 +379,9 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
         return 0;
     }
 #else
-    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
-                             "use dns.lookup instead.");
+    duk_reference_error(ctx,
+                        "low.js was compiled without c-ares. Recompile or "
+                        "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -387,7 +394,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 
 duk_ret_t low_dns_resolver_finalizer(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);

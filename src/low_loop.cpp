@@ -165,7 +165,7 @@ duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
 {
     int *args = (int *)udata;
 
-    low_push_stash(low_duk_get_low(ctx), args[0], args[1]);
+    low_push_stash(duk_get_low_context(ctx), args[0], args[1]);
     duk_call(ctx, 0);
     return 0;
 }
@@ -188,7 +188,7 @@ duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata)
 
 duk_ret_t low_loop_set_chore(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = low_add_stash(low, 0);
 
     int delay = duk_require_int(ctx, 1);
@@ -213,7 +213,7 @@ duk_ret_t low_loop_set_chore(duk_context *ctx)
 
 duk_ret_t low_loop_clear_chore(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     auto iter = low->chores.find(index);
@@ -239,7 +239,7 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
 
 duk_ret_t low_loop_chore_ref(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
     bool ref = duk_require_boolean(ctx, 1);
 
@@ -265,7 +265,7 @@ duk_ret_t low_loop_chore_ref(duk_context *ctx)
 
 duk_ret_t low_loop_run_ref(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
     low->run_ref += duk_require_int(ctx, 0);
     return 0;
 }
