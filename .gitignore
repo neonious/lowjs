@@ -4,7 +4,7 @@
 /bin
 /lib
 /lib_js/build
-/lib_neonone/build
+/lib_js_esp32/build
 /util/dukc
 /test/duk_crash
 *.d

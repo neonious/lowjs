@@ -1,9 +1,12 @@
 'use strict';
 
-// TODO: allow 3 different frequencies
+// TODO: allow multiple frequencies for pwm (3 for neonious one, other for esp32)
 
 let native = require('native');
-let signal = require('signal');
+
+// set below
+let isNeoniousOne;
+let signal;
 
 let EventEmitter = require('events').EventEmitter;
 
@@ -70,35 +73,43 @@ let pwmPins = [], pwmDuty = [];
 let signalNanoSecs = 10000000; // 100 Hz
 
 function sendPWMSignal() {
-    if (pwmPins.length == 0) {
-        signal.clear();
-        return;
-    }
+    if (isNeoniousOne) {
+        if (!signal)
+            signal = require('signal');
+        if (pwmPins.length == 0) {
+            signal.clear();
+            return;
+        }
 
-    let pins = [];
-    let eventNanoSecs = [];
+        let pins = [];
+        let eventNanoSecs = [];
 
-    let pin = 1, setEvent = 1 << pwmPins.length;
-    for (let i = 0; i < pwmPins.length; i++) {
-        pins.push({
-            index: pwmPins[i],
-            setEvents: setEvent,
-            clearEvents: pin
-        });
-        eventNanoSecs.push((pwmDuty[i] * signalNanoSecs) | 0);
-        pin <<= 1;
-    }
-    eventNanoSecs.push(0);
-    eventNanoSecs.push(signalNanoSecs | 0);
+        let pin = 1, setEvent = 1 << pwmPins.length;
+        for (let i = 0; i < pwmPins.length; i++) {
+            pins.push({
+                index: pwmPins[i],
+                setEvents: setEvent,
+                clearEvents: pin
+            });
+            eventNanoSecs.push((pwmDuty[i] * signalNanoSecs) | 0);
+            pin <<= 1;
+        }
+        eventNanoSecs.push(0);
+        eventNanoSecs.push(signalNanoSecs | 0);
 
-    signal.send(signal.RESTART, pins, eventNanoSecs);
+        signal.send(signal.RESTART, pins, eventNanoSecs);
+    } else
+        native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
 }
 
 function disablePWM(index) {
     let val = pwmPins.indexOf(index);
     if (val >= 0) {
-        pwmPins.splice(val, 1);
-        pwmDuty.splice(val, 1);
+        if (isNeoniousOne) {
+            pwmPins.splice(val, 1);
+            pwmDuty.splice(val, 1);
+        } else
+            pwmPins[val] = -1;
         sendPWMSignal();
     }
 }
@@ -110,14 +121,26 @@ function setPWM(index, value) {
             pwmDuty[val] = value;
             sendPWMSignal();
         }
-    } else {
-        if (pwmPins.length == 6)
+        return;
+    }
+
+    if (!isNeoniousOne) {
+        let val = pwmPins.indexOf(-1);
+        if (val >= 0) {
+            pwmPins[val] = index;
+            pwmDuty[val] = value;
+            sendPWMSignal();
+            return;
+        }
+
+        if (pwmPins.length == 8)
+            throw new RangeError('more than 8 PWM pins are not supported');
+    } else if (pwmPins.length == 6)
             throw new RangeError('more than 6 PWM pins are not supported');
 
-        pwmPins.push(index);
-        pwmDuty.push(value);
-        sendPWMSignal();
-    }
+    pwmPins.push(index);
+    pwmDuty.push(value);
+    sendPWMSignal();
 }
 
 let valuesLo = 0, valuesHi = 0;
@@ -216,7 +239,7 @@ GPIOPin.prototype = Object.create(EventEmitter.prototype);
 
 let internalPins = [];
 
-let isNeoniousOne = native.gpioSetCallback((index, rise) => {
+isNeoniousOne = native.gpioSetCallback((index, rise) => {
     if (!internalPins[index])
         return;
 
