@@ -14,7 +14,7 @@
 
 duk_ret_t low_crypto_create_hash(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     const char *type = duk_require_string(ctx, 1);
 
@@ -70,7 +70,7 @@ duk_ret_t low_crypto_create_hash(duk_context *ctx)
 
 duk_ret_t low_crypto_hash_finalizer(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int index = duk_require_int(ctx, 0);
     if(index < 0 || index >= low->cryptoHashes.size())
@@ -87,7 +87,7 @@ duk_ret_t low_crypto_hash_finalizer(duk_context *ctx)
 
 duk_ret_t low_crypto_hash_update(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int index = duk_require_int(ctx, 0);
     if(index < 0 || index >= low->cryptoHashes.size())
@@ -107,7 +107,7 @@ duk_ret_t low_crypto_hash_update(duk_context *ctx)
 
 duk_ret_t low_crypto_hash_digest(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int index = duk_require_int(ctx, 0);
     if(index < 0 || index >= low->cryptoHashes.size())

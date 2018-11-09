@@ -17,7 +17,13 @@ struct low_main_t;
 
 void low_module_init(duk_context *ctx);
 
+extern "C" bool low_module_make_native(low_main_t *low,
+                                       const char *name,
+                                       void (*setup_safe_cb)(low_main_t *main,
+                                                             void *data),
+                                       void *cb_data);
 extern "C" bool low_module_main(low_main_t *low, const char *path);
+
 void low_module_run(duk_context *ctx, const char *path, int flags);
 
 duk_ret_t low_module_require(duk_context *ctx);

@@ -19,7 +19,7 @@
 
 duk_ret_t low_http_get_request(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int socketFD = duk_require_int(ctx, 0);
     auto iter = low->fds.find(socketFD);
@@ -67,7 +67,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
 
 duk_ret_t low_http_detach(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int socketFD = duk_require_int(ctx, 0);
     auto iter = low->fds.find(socketFD);
@@ -93,7 +93,7 @@ duk_ret_t low_http_detach(duk_context *ctx)
 
 duk_ret_t low_http_read(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int socketFD = duk_require_int(ctx, 0);
     duk_size_t buf_len;
@@ -123,7 +123,7 @@ duk_ret_t low_http_read(duk_context *ctx)
 
 duk_ret_t low_http_write(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int socketFD = duk_require_int(ctx, 0);
     duk_size_t buf_len = 0;
@@ -155,7 +155,7 @@ duk_ret_t low_http_write(duk_context *ctx)
 
 duk_ret_t low_http_write_head(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     int socketFD = duk_require_int(ctx, 0);
     const char *headers = duk_require_string(ctx, 1);

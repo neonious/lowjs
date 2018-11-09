@@ -5,9 +5,9 @@
 #include "low_tls.h"
 #include "LowTLSContext.h"
 
+#include "low_alloc.h"
 #include "low_main.h"
 #include "low_system.h"
-#include "low_alloc.h"
 
 #include <errno.h>
 
@@ -17,7 +17,7 @@
 
 duk_ret_t low_tls_create_context(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     unsigned char *cert = NULL, *key = NULL, *ca = NULL;
     char *my_cert = NULL, *my_key = NULL, *my_ca = NULL;
@@ -110,7 +110,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     }
 
     LowTLSContext *context = new(low_new) LowTLSContext(
-        low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, true);
+      low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, true);
     low_free(my_cert);
     low_free(my_key);
     low_free(my_ca);
@@ -148,7 +148,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
 
 duk_ret_t low_tls_context_finalizer(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_index");
     int index = duk_require_int(ctx, -1);

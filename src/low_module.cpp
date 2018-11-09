@@ -52,6 +52,129 @@ void low_module_init(duk_context *ctx)
 }
 
 // -----------------------------------------------------------------------------
+//  low_module_make_native
+// -----------------------------------------------------------------------------
+
+static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
+{
+    low_main_t *low = *(low_main_t **)udata;
+    char *name = (char *)(((void **)udata)[1]);
+    void (*setup_safe_cb)(low_main_t * main, void *data) =
+      (void (*)(low_main_t * main, void *data))(((void **)udata)[2]);
+    void *setup_safe_cb_data = ((void **)udata)[3];
+
+    duk_push_object(ctx); // our new module!
+
+    duk_push_string(ctx, name);
+    duk_put_prop_string(ctx, -2, "id");
+
+    duk_push_null(ctx);
+    duk_put_prop_string(ctx, -2, "filename");
+
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, -2, "exports");
+
+    duk_push_false(ctx);
+    duk_put_prop_string(ctx, -2, "loaded");
+
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "paths");
+
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "children");
+
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "childrenMap");
+
+    // [... module]
+
+    // require function
+    duk_push_c_function(ctx, low_module_require, 1);
+
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "module");
+
+    duk_push_string(ctx, "name");
+    duk_push_string(ctx, "require"); // this is used in call stack
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx, -2, "module");
+
+    // [... module require]
+
+    // require.cache
+    duk_push_heap_stash(ctx);
+
+    duk_get_prop_string(ctx, -1, "modules");
+    duk_put_prop_string(ctx, -3, "cache");
+    duk_pop(ctx);
+
+    // require.resolve
+    duk_push_c_function(ctx, low_module_resolve, 2);
+
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "module");
+
+    duk_push_string(ctx, "name");
+    duk_push_string(ctx, "resolve"); // this is used in call stack
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+    duk_put_prop_string(ctx, -2, "resolve");
+
+    duk_put_prop_string(ctx, -2, "require");
+
+    // [... module]
+
+    duk_get_prop_string(ctx, 0, "exports");
+    setup_safe_cb(low, setup_safe_cb_data);
+
+    /* module.loaded = true */
+    duk_push_true(ctx);
+    duk_put_prop_string(ctx, 0, "loaded");
+
+    // Add to lib_modules
+    duk_push_heap_stash(ctx);
+    duk_get_prop_string(ctx, -1, "lib_modules");
+    duk_dup(ctx, 0);
+
+    char txt[80];
+    sprintf(txt, "lib:%s", name);
+    duk_put_prop_string(ctx, -2, txt);
+
+    return 0;
+}
+
+bool low_module_make_native(low_main_t *low,
+                            const char *name,
+                            void (*setup_safe_cb)(low_main_t *main, void *data),
+                            void *setup_safe_cb_data)
+{
+    void *data[4] = {
+      (void *)low, (void *)name, (void *)setup_safe_cb, setup_safe_cb_data};
+    if(duk_safe_call(
+         low->duk_ctx, low_module_make_native_safe, (void *)data, 0, 1) !=
+       DUK_EXEC_SUCCESS)
+    {
+        if(!low->duk_flag_stop) // flag stop also produces error
+            low_duk_print_error(low->duk_ctx);
+        duk_pop(low->duk_ctx);
+
+        return low->duk_flag_stop;
+    }
+
+    duk_pop(low->duk_ctx);
+    return true;
+}
+
+// -----------------------------------------------------------------------------
 //  low_module_main
 // -----------------------------------------------------------------------------
 
@@ -124,8 +247,6 @@ bool get_data_block(const char *path,
 
 void low_module_run(duk_context *ctx, const char *path, int flags)
 {
-    low_main_t *low = low_duk_get_low(ctx);
-
     unsigned char *data;
     int len;
     struct stat st;
@@ -312,7 +433,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     // [... module require]
 
     // require.cache
-    duk_push_heap_stash(low->duk_ctx);
+    duk_push_heap_stash(ctx);
 
     duk_get_prop_string(ctx, -1, "modules");
     duk_put_prop_string(ctx, -3, "cache");
@@ -344,7 +465,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
     if(!(flags & LOW_MODULE_FLAG_GLOBAL))
     {
         // Cache module
-        duk_push_heap_stash(low->duk_ctx);
+        duk_push_heap_stash(ctx);
 
         duk_get_prop_string(
           ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
@@ -445,9 +566,25 @@ duk_ret_t low_module_require(duk_context *ctx)
                         "module");
     duk_remove(ctx, -2);
 
-    duk_get_prop_string(ctx, -1, "id");
-    const char *parent_id = duk_get_string(ctx, -1);
-    duk_pop(ctx);
+    const char *parent_id;
+    int popCount = 0;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
 
     // We always resolve with our own function
     if(!low_module_resolve_c(ctx, id, parent_id, res_id))
@@ -458,9 +595,7 @@ duk_ret_t low_module_require(duk_context *ctx)
     }
 
     // Try to find in cache
-    low_main_t *low = low_duk_get_low(ctx);
-    duk_push_heap_stash(low->duk_ctx);
-
+    duk_push_heap_stash(ctx);
     duk_get_prop_string(
       ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
     if(duk_get_prop_string(ctx, -1, res_id))
@@ -524,9 +659,25 @@ duk_ret_t low_module_resolve(duk_context *ctx)
                         "module");
     duk_remove(ctx, -2);
 
-    duk_get_prop_string(ctx, -1, "id");
-    const char *parent_id = duk_get_string(ctx, -1);
-    duk_pop_2(ctx);
+    const char *parent_id;
+    int popCount = 1;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
 
     if(low_module_resolve_c(ctx, id, parent_id, res_id))
     {
@@ -556,9 +707,10 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "parent");
 
     duk_dup(ctx, 0);
-    duk_dup(ctx, -1);
-    duk_put_prop_string(ctx, -3, "filename");
     duk_put_prop_string(ctx, -2, "id");
+
+    duk_push_null(ctx);
+    duk_put_prop_string(ctx, -2, "filename");
 
     duk_push_object(ctx);
     duk_put_prop_string(ctx, -2, "exports");
@@ -598,8 +750,7 @@ duk_ret_t low_module_make(duk_context *ctx)
     // [... module require]
 
     // require.cache
-    low_main_t *low = low_duk_get_low(ctx);
-    duk_push_heap_stash(low->duk_ctx);
+    duk_push_heap_stash(ctx);
 
     duk_get_prop_string(ctx, -1, "modules");
     duk_put_prop_string(ctx, -3, "cache");
@@ -647,7 +798,7 @@ bool low_module_resolve_c(duk_context *ctx,
     struct stat st;
 
     // lib: may get native
-    if(strcmp(module_id, "native") == 0 &&
+    if(strcmp(module_id, "native") == 0 && parent_id &&
        (memcmp(parent_id, "lib:", 4) == 0 ||
         memcmp(parent_id, "module:", 7) == 0))
     {
@@ -666,6 +817,17 @@ bool low_module_resolve_c(duk_context *ctx,
     if(!is_not_absolute_path && i < 1000 && strcmp(module_id, "init") != 0 &&
        strcmp(module_id, "main") != 0)
     {
+        sprintf(res_id, "lib:%s", module_id);
+
+        duk_push_heap_stash(ctx);
+        duk_get_prop_string(ctx, -1, "lib_modules");
+        if(duk_get_prop_string(ctx, -1, res_id))
+        {
+            duk_pop_3(ctx);
+            return true;
+        }
+        duk_pop_3(ctx);
+
         // system module
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
         if(stat(res_id, &st) == 0)
@@ -675,7 +837,7 @@ bool low_module_resolve_c(duk_context *ctx,
         }
     }
 
-    if(memcmp(parent_id, "lib:", 4) == 0)
+    if(!parent_id || memcmp(parent_id, "lib:", 4) == 0)
         return false;
 
     const char *parent_end = NULL;

@@ -5,8 +5,8 @@
 
 #include "low_native_aux.h"
 
-#include "low_main.h"
 #include "low_config.h"
+#include "low_main.h"
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "lwip/sockets.h"
@@ -95,9 +95,9 @@ duk_ret_t low_run_in_context_safe(duk_context *ctx, void *udata)
 
 duk_ret_t low_run_in_context(duk_context *ctx)
 {
-    low_main_t *low = low_duk_get_low(ctx);
+    low_main_t *low = duk_get_low_context(ctx);
 
-    duk_push_global_object(low->duk_ctx);   // 4
+    duk_push_global_object(low->duk_ctx); // 4
 
     duk_dup(low->duk_ctx, 1);
     duk_set_global_object(low->duk_ctx);
