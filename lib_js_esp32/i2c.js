@@ -1,67 +1,76 @@
-let stream = require('stream');
 let native = require('native');
 
 class I2C {
-    constructor(index, options) {
+    constructor(options, optionsOld) {
         // options:
         // clockHz
         // pinMISO
         // pinMOSI
 
-        index = index | 0;
-        if (index <= 0 || index > 4)
-            throw new RangeError("I2C channel " + index + " does not exist");
+        if (optionsOld)             // backwards compat, will be removed
+            options = optionsOld;   // end of 2019
 
-        index += 3;    // 4-7
-        this._index = index;
-
-        native.initPeripherial(index, options);
+        this._index = native.initPeripherial(2, options);
+        this._holdRef = true;
+        this._ref = false;
+        this._pipe = [];
     }
 
     destroy() {
         native.destroyPeripherial(this._index);
     }
 
-    bind(address) {
-        return new I2CChannel(this, address);
-    }
-}
+    transfer(address, data, bytesRead, callback) {
+        if (this._ref) {
+            this._pipe.push([address, data, callback]);
+            return;
+        }
+        if (!data) {
+            callback(null);
+            return;
+        }
 
-class I2CChannel extends stream.Duplex {
-    constructor(i2c, address) {
-        let index = i2c._index | (address << 8);
+        if (this._holdRef)
+            native.runRef(1);
+        this._ref = true;
 
-        super({
-            allowHalfOpen: false,
-            read(size) {
-                let buf = new Buffer(size);
-                native.readPeripherial(index, buf, (err, bytesRead) => {
-                    if (err) {
-                        this.destroy(err);
-                        return;
-                    }
-                    this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
-                });
-            },
-            write(chunk, encoding, callback) {
-                native.writePeripherial(index, chunk, (err, bytesWritten) => {
-                    if (err) {
-                        this.destroy(err);
-                        return;
-                    }
+        let dataOut = bytesRead ? new Buffer(bytesRead) : null;
+        native.transferPeripherial(this._index, address, data, dataOut, (err) => {
+            if(callback)
+                callback(err, dataOut);
 
-                    if (chunk.length != bytesWritten) {
-                        this._write(chunk.slice(bytesWritten), encoding, callback);
-                        return;
-                    }
-                    callback();
-                });
+            if (this._holdRef)
+                native.runRef(-1);
+            this._ref = false;
+
+            if (this._pipe.length) {
+                let entry = this._pipe.shift();
+                this.transfer(entry[0], entry[1], entry[2]);
             }
         });
+    }
+    flush(callback) {
+        if (this._ref)
+            this._pipe.push([null, null, callback]);
+        else
+            callback(null);
+    }
+
+    ref() {
+        if (this._ref && !this._holdRef)
+            native.runRef(1);
+        this._holdRef = true;
+        return this;
+    }
+
+    unref() {
+        if (this._ref && this._holdRef)
+            native.runRef(-1);
+        this._holdRef = false;
+        return this;
     }
 }
 
 module.exports = {
-    I2C,
-    I2CChannel
+    I2C
 };

@@ -10,6 +10,7 @@
 *.d
 *.o
 /node_modules
+/docs
 /test/tests_script/node_modules
 /test/node/
 /test/compiled/

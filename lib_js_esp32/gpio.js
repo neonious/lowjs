@@ -1,6 +1,13 @@
 'use strict';
 
-// TODO: allow multiple frequencies for pwm (3 for neonious one, other for esp32)
+/**
+ * Module to access pins for general purpose input/output. Also supports reading
+ * pins voltage via ADC and settings pins via PWM.
+ * 
+ * @module gpio
+ */
+
+ // TODO: allow multiple frequencies for pwm (3 for neonious one, other for esp32)
 
 let native = require('native');
 
@@ -10,18 +17,52 @@ let signal;
 
 let EventEmitter = require('events').EventEmitter;
 
-// types
+/**
+ * Pins set to this type are input pins.
+ */
 exports.INPUT = 0;
+
+/**
+ * Pins set to this type are input pins with the internal pullup resistor active.
+ */
 exports.INPUT_PULLUP = 1;
+
+/**
+ * Pins set to this type are input pins with the internal pulldown resistor active.
+ */
 exports.INPUT_PULLDOWN = 2;
+
+/**
+ * Pins set to this type are output pins.
+ */
 exports.OUTPUT = 3;
+
+/**
+ * Pins set to this type are output pins where level 1 is defined as not connected.
+ * Great for implementing busses. To use these, you need to use an external pull-up.
+ */
 exports.OUTPUT_OPENDRAIN = 4;
 
-// values
+/**
+ * Low level = 0
+ * @type {Number}
+ */
 exports.LOW = 0;
+
+/**
+ * High level = 1
+ * @type {Number}
+ */
 exports.HIGH = 1;
 
+/**
+ * Flag for GPIOPin.getValue. Retrieves level of pin (exact 0 or 1).
+ */
 exports.DIGITAL = 0;
+
+/**
+ * Flag for GPIOPin.getValue. Retrieves voltage of pin via ADC (0 = 0V, 1 = board voltage).
+ */
 exports.ANALOG = 1;
 
 // ***** ADC/GPIO GET HANDLING *****
@@ -35,8 +76,8 @@ function handleADC(index, callback) {
     }
     adcRunning = true;
 
-    native.gpioGetValues(index, exports.ANALOG, (value) => {
-        callback(null, value);
+    native.gpioGetValues(index, exports.ANALOG, (err, value) => {
+        callback(err, value);
 
         adcRunning = false;
         if (adcQueue.length) {
@@ -53,12 +94,12 @@ function handleGPIO(index, callback) {
     }
     gpioRunning = true;
 
-    native.gpioGetValues(index, exports.DIGITAL, (valuesLo, valuesHi) => {
+    native.gpioGetValues(index, exports.DIGITAL, (err, valuesLo, valuesHi) => {
         // Only the relevant bit is set correctly
         if (index === null)
-            callback(null, valuesLo, valuesHi);
+            callback(err, valuesLo, valuesHi);
         else
-            callback(null, ((index < 32 ? valuesLo : valuesHi) & (1 << index)) ? 1 : 0);
+            callback(err, ((index < 32 ? valuesLo : valuesHi) & (1 << index)) ? 1 : 0);
 
         gpioRunning = false;
         if (gpioQueue.length) {
@@ -145,11 +186,27 @@ function setPWM(index, value) {
 
 let valuesLo = 0, valuesHi = 0;
 
+/**
+ * @class
+ * A pin of the device. Do not construct new objects, access the pins via gpio.pins[]. The pin
+ * numbering for the neonious one is documented in the neonious one documentation. Please refer to it
+ * for possible limitations of supported pins.
+ * @extends events.EventEmitter
+ * @fires rise
+ * @fires fall
+ */
 function GPIOPin(index) {
     let pinType = index == exports.LED_RED || index == exports.LED_GREEN ? exports.OUTPUT : exports.INPUT;
     let isPWM = false;
     let rise = false, fall = false;
 
+    /**
+     * Sets the type of the pin.
+     * At program start, all pins are set to INPUT, with exception of the LED pins on neonious ones. These are set to OUTPUT with level 0.
+     *
+     * @param {(INPUT|INPUT_PULLUP|INPUT_PULLDOWN|OUTPUT|OUTPUT_OPENDRAIN)} type the type
+     * @returns {GPIOPin} pin itself, to chain call methods
+     */
     this.setType = (type) => {
         let setType = type;
         if (type < 3) {
@@ -163,11 +220,23 @@ function GPIOPin(index) {
         }
         native.gpioSetType(index, setType);
         pinType = type;
+        return this;
     }
+    /**
+     * Returns the type of the pin.
+     *
+     * @returns {(INPUT|INPUT_PULLUP|INPUT_PULLDOWN|OUTPUT|OUTPUT_OPENDRAIN)} the type
+     */
     this.getType = () => {
         return pinType;
     }
 
+    /**
+     * Sets the level of the pin or the pin to PWM with the given duty period if a value between 0 and 1 is given.
+     * On neonious one, PWM is implemented with the signal module, so PWM and program defined signals cannot be used at the same time.
+     *
+     * @param {Number} value 0 or 1 if a level should be set, a value between 0 and 1 for the duty period of the PWM
+     */
     this.setValue = (value) => {
         if (pinType < 3)
             throw new RangeError("pin " + index + " is set to input");
@@ -193,6 +262,21 @@ function GPIOPin(index) {
             native.gpioSetValues(valuesLo, valuesHi);
         }
     }
+
+    /**
+     * Callback for retrieval of the level or voltage (ADC) of an input pin
+     * 
+     * @callback GPIOGetValueCallback
+     * @param {?Error} err optional error. If not null, the next parameters are not set
+     * @param {Number} [value] if DIGITAL was used exactly 0 or 1, if ANALOG was used a value from 0 (= 0V) to 1 (= board voltage).
+     */
+
+    /**
+     * Retrieves the level or voltage of the input pin
+     *
+     * @param {(DIGITAL|ANALOG)} [flags=DIGITAL] are exact levels requested or shall the voltage be retrieved via ADC?
+     * @param {GPIOGetValueCallback} callback the callback called with the level or voltage
+     */
     this.getValue = (flags, callback) => {
         if (typeof flags === 'function')
             handleGPIO(index, flags);
@@ -201,6 +285,20 @@ function GPIOPin(index) {
         else
             handleGPIO(index, callback);
     }
+
+    /**
+     * Fired on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * and the level of the pin rises to 1
+     *
+     * @event rise
+     */
+
+    /**
+     * Fired on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * and the level of the pin falls to 0
+     *
+     * @event fall
+     */
 
     this.on('newListener', (event, listener) => {
         let change = false;
@@ -249,6 +347,11 @@ isNeoniousOne = native.gpioSetCallback((index, rise) => {
         internalPins[index].emit('fall');
 });
 
+/**
+ * Access all pins via this array. The index is the pin number.
+ *
+ * @type {GPIOPin[]}
+ */
 exports.pins = [];
 
 var i, last;
@@ -256,9 +359,22 @@ if (isNeoniousOne) {
     i = 1;
     last = 27;
 
-    // pins
+    /**
+     * The pin number for the red LED = 1. Only defined on the neonious one.
+     * @type {Number}
+     */
     exports.LED_RED = 1;
+
+    /**
+     * The pin number for the green LED = 2. Only defined on the neonious one.
+     * @type {Number}
+     */
     exports.LED_GREEN = 2;
+
+    /**
+     * The pin number for the user defined button = 27. Only defined on the neonious one.
+     * @type {Number}
+     */
     exports.BUTTON = 27;
 } else {
     i = 0;
@@ -275,6 +391,11 @@ for (; i <= last; i++) {
     exports.pins[i] = internalPins[i] = new GPIOPin(i);
 }
 
+/**
+ * Set the frequency of the PWM pins.
+ *
+ * @param {Number} frequency in Hz, default: 100 Hz
+ */
 exports.setFrequency = (frequency) => {
     let nanoSecs = 1000000000 / frequency;
     if (signalNanoSecs != nanoSecs) {
@@ -282,26 +403,47 @@ exports.setFrequency = (frequency) => {
         sendPWMSignal();
     }
 }
+
+/**
+ * Returns the frequency of the PWM pins.
+ *
+ * @returns {Number} in Hz, default: 100 Hz
+ */
 exports.getFrequency = () => {
     return 1000000000 / signalNanoSecs;
 }
 
-exports.setPWMNanoSecs = (nanoSecs) => {
-    if (signalNanoSecs != nanoSecs) {
-        signalNanoSecs = nanoSecs;
-        sendPWMSignal();
-    }
-}
-exports.getPWMNanoSecs = () => {
-    return signalNanoSecs;
+/**
+ * Allows to set all pins which are set to output at once, via bit array. PWM pins are not modified.
+ *
+ * @param {Number} bits the values for the first 32 pins as bit array
+ * @param {Number} [bitsHi] the values for the pins 33-39. Only required on plain ESP32-WROVER, as
+ *                 the bit numbering on the device is clumbersome: Even though there are less
+ *                 usable pins as with the neonious one, there are more pin numbers.
+ */
+exports.setValues = (bits, bitsHi) => {
+    valuesLo = bits;
+    if(bitsHi !== undefined)
+        valuesHi = bitsHi;
+    native.gpioSetValues(bits, bitsHi);
 }
 
-exports.setValues = (bitsLo, bitsHi) => {
-    valuesLo = bitsLo;
-    valuesHi = bitsHi;
-    native.gpioSetValues(bitsLo, bitsHi);
-}
+/**
+ * Callback for retrieval of the levels of all input pins at once.
+ * 
+ * @callback GPIOGetValuesCallback
+ * @param {?Error} err optional error. If not null, the next parameters are not set
+ * @param {Number} [bits] the values for the first 32 pins as bit array
+ * @param {Number} [bitsHi] the values for the pins 33-39. Only set on plain ESP32-WROVER, as
+ *                 the bit numbering on the device is clumbersome: Even though there are less
+ *                 usable pins as with the neonious one, there are more pin numbers.
+ */
 
+/**
+ * Retrieves the levels of all pins which are set to input at once, via bit array.
+ *
+ * @param {GPIOGetValuesCallback} callback the callback called with the input levels
+ */
 exports.getValues = (callback) => {
     handleGPIO(null, callback);
 }

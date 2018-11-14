@@ -139,3 +139,6 @@ dist: bin/low lib/BUILT
 	mkdir dist
 	mv $(DIST_NAME).tar.gz dist
 	rm -rf $(DIST_NAME) $(DIST_NAME).tar
+
+docs: $(shell find lib_js_esp32)
+	node ./node_modules/jsdoc/jsdoc.js lib_js_esp32 -c jsdoc.conf.json -d docs

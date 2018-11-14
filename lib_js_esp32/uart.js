@@ -1,31 +1,54 @@
+/**
+ * Module for UART interface
+ * @module uart
+ */
+
 let stream = require('stream');
 let native = require('native');
 
+/**
+ * A UART interface, implemented as Duplex stream.
+ *
+ * Check the Node.JS Duplex stream documentation on information how
+ * to read and write from the stream.
+ * 
+ * Call resume() if you are not interested in the received data so it does not
+ * fill up memory.
+ * 
+ * @extends net.Duplex
+ */
 class UART extends stream.Duplex {
-    constructor(index, options) {
-        // options:
-        // baud
-        // stopBits
-        // dataBits
-        // parity
-        // pinRX
-        // pinTX
+    /**
+     * Creates a UART interface.
+     *
+     * Trying to create more than 2 (neonious one) or 3 (ESP32-WROVER) results in an exception,
+     * as the hardware does not support more. Destroy them explicitly with distroy() when they
+     * are no longer in use.
+     *
+     * @param {Object} options The options
+     * @param {Number} [options.baud=9600] speed of link in baud
+     * @param {Number} [options.stopBits=1] number of stop bits (1 or 2)
+     * @param {Number} [options.dataBits=8] number of data bits (7 or 8)
+     * @param {String} [options.parity] either "odd", "even", or do not set for no parity
+     * @param {Number} [options.pinRX] receive pin
+     * @param {Number} [options.pinTX] transmit pin
+     */
+    constructor(options, optionsOld) {
+        if (optionsOld)             // backwards compat, will be removed
+            options = optionsOld;   // end of 2019
 
-        index = index | 0;
-        if (index <= 0 || index > 2)
-            throw new RangeError("UART channel " + index + " does not exist");
-
-        index -= 1;    // 0-1
-        this._index = index;
-
+        this._index = native.initPeripherial(0, options);
         this.ref();
-        native.initPeripherial(index, options);
 
         super({
             allowHalfOpen: false,
             read(size) {
+                // As long as we have not managed to get the GC working in the right
+                // moments, we have to do this...
+                process.gc();
+
                 let buf = new Buffer(size);
-                native.readPeripherial(index, buf, (err, bytesRead) => {
+                native.transferPeripherial(this._index, 0, null, buf, (err, bytesRead) => {
                     if (err) {
                         this.destroy(err);
                         return;
@@ -34,7 +57,11 @@ class UART extends stream.Duplex {
                 });
             },
             write(chunk, encoding, callback) {
-                native.writePeripherial(index, chunk, (err, bytesWritten) => {
+                // As long as we have not managed to get the GC working in the right
+                // moments, we have to do this...
+                process.gc();
+
+                native.transferPeripherial(this._index, 1, chunk, null, (err, bytesWritten) => {
                     if (err) {
                         this.destroy(err);
                         return;
@@ -61,16 +88,34 @@ class UART extends stream.Duplex {
                     native.runRef(-1);
                     this._ref = false;
                 }
-                native.destroyPeripherial(index);
+                native.destroyPeripherial(this._index);
                 callback(err);
             }
         });
     }
 
+    /**
+     * Callback which is called when a transfer completed.
+     *
+     * @callback UARTTransferCallback
+     * @param {?Error} err optional error. If not null, the next parameters are not set
+     */
+
+    /**
+     * Calls the callback as soon as the last transfer is completed.
+     *
+     * @param {UARTTransferCallback} callback called when the last transfer is completed
+     */
     flush(callback) {
         native.flushPeripherial(this._index, callback);
     }
 
+    /**
+     * Tells the interface to keep the program running when a transfer is taking place.
+     * This is the default.
+     *
+     * @returns {UART} interface itself, to chain call other methods
+     */
     ref() {
         if (!this._ref && !this.destroyed) {
             native.runRef(1);
@@ -78,6 +123,12 @@ class UART extends stream.Duplex {
         }
         return this;
     }
+    /**
+     * Tells the interface to not keep the program running when a transfer is taking place,
+     * but there is nothing else to do.
+     *
+     * @returns {UART} interface itself, to chain call other methods
+     */
     unref() {
         if (this._ref && !this.destroyed) {
             native.runRef(-1);
