@@ -43,10 +43,6 @@ class UART extends stream.Duplex {
         super({
             allowHalfOpen: false,
             read(size) {
-                // As long as we have not managed to get the GC working in the right
-                // moments, we have to do this...
-                process.gc();
-
                 let buf = new Buffer(size);
                 native.transferPeripherial(this._index, 0, null, buf, (err, bytesRead) => {
                     if (err) {
@@ -57,10 +53,6 @@ class UART extends stream.Duplex {
                 });
             },
             write(chunk, encoding, callback) {
-                // As long as we have not managed to get the GC working in the right
-                // moments, we have to do this...
-                process.gc();
-
                 native.transferPeripherial(this._index, 1, chunk, null, (err, bytesWritten) => {
                     if (err) {
                         this.destroy(err);

@@ -2,7 +2,7 @@
 
 /**
  * Module to access pins for general purpose input/output. Also supports reading
- * pins voltage via ADC and settings pins via PWM.
+ * pins voltage via ADC and setting pins via PWM.
  * 
  * @module gpio
  */

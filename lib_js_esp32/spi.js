@@ -101,10 +101,6 @@ class SPI {
             native.runRef(1);
         this._ref = true;
 
-        // As long as we have not managed to get the GC working in the right
-        // moments, we have to do this...
-        process.gc();
-
         let dataOut = new Buffer(data.length);
         native.transferPeripherial(this._index, pinCS, data, dataOut, (err) => {
             if(callback)

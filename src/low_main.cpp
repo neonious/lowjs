@@ -50,7 +50,7 @@ extern low_system_t g_low_system;
 static void *low_duk_alloc(void *udata, duk_size_t size)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
-    auto data = low_alloc2(size);
+    auto data = low_alloc(size);
     if(!data)
     {
         ESP_LOGE(TAG, "returning NULL ptr");
@@ -71,7 +71,7 @@ static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
         return NULL;
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
-    auto data = low_realloc2(ptr, size);
+    auto data = low_realloc(ptr, size);
     if(!data)
     {
         ESP_LOGE(TAG, "returning NULL ptr");
@@ -447,8 +447,9 @@ duk_context *low_get_duk_context(low_main_t *low)
 //  low_reset
 // -----------------------------------------------------------------------------
 
+// Part of lowjs_esp32 source
 extern "C" void duk_copy_breakpoints(duk_context *from, duk_context *to);
-void alloc_reset_heap();
+extern "C" void alloc_use_fund();
 
 bool low_reset(low_main_t *low)
 {
@@ -558,12 +559,10 @@ bool low_reset(low_main_t *low)
     if(!new_ctx && low->duk_ctx)
     {
         fprintf(stderr, "Cannot create Duktape heap, trying after free\n");
-        alloc_reset_heap();
+        alloc_use_fund();
 
         duk_destroy_heap(low->duk_ctx);
         low->duk_ctx = NULL;
-
-        alloc_reset_heap();
 
         duk_context *new_ctx = duk_create_heap(
           low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
