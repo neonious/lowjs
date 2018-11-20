@@ -718,8 +718,7 @@ bool LowSocket::OnEvents(short events)
     {
         if(mDirect)
         {
-            if(((events & (POLLIN | POLLHUP | POLLERR)) ||
-                (mTLSContext && mSSL->in_left)) &&
+            if(((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) &&
                mDirectReadEnabled)
             {
                 if(!mReadData)
@@ -745,7 +744,7 @@ bool LowSocket::OnEvents(short events)
                         if(!mDirect->OnSocketData(mReadData, len))
                             break;
 
-                        if(!mTLSContext || !mSSL->in_left)
+                        if(!mTLSContext)
                         {
                             mDirectReadEnabled = true;
                             break;

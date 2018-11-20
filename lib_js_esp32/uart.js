@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Module for UART interface
  * @module uart

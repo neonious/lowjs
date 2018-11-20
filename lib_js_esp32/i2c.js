@@ -1,3 +1,5 @@
+'use strict';
+
 let native = require('native');
 
 class I2C {

@@ -243,10 +243,15 @@ function GPIOPin(index) {
         if (value < 0 || value > 1)
             throw new RangeError("can only set pin to a value between 0 and 1");
 
-        if (value > 0.0 && value < 1.0)  // PWM
+        if (value > 0.0 && value < 1.0) { // PWM
+            isPWM = true;
             setPWM(index, value);
-        else {
-            disablePWM(index);
+        } else {
+            if(isPWM) {
+                disablePWM(index);
+                // required on ESP32
+                native.gpioSetType(index, exports.OUTPUT);
+            }
 
             if (index < 32) {
                 if (value)

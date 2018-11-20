@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Module for SPI master, and after implemented, SPI slave interfaces
  * @module spi
