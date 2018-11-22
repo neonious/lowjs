@@ -96,6 +96,10 @@ class SPI {
         }
         if (!data) {
             callback(null);
+            if (this._pipe.length) {
+                let entry = this._pipe.shift();
+                this.transfer(entry[0], entry[1], entry[2]);
+            }
             return;
         }
 

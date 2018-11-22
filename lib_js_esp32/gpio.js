@@ -111,77 +111,98 @@ function handleGPIO(index, callback) {
 
 // ***** PWM HANDLING *****
 let pwmPins = [], pwmDuty = [];
+let pwmPinsLPC = [], pwmDutyLPC = [];
 let signalNanoSecs = 10000000; // 100 Hz
 
 function sendPWMSignal() {
-    if (isNeoniousOne) {
-        if (!signal)
-            signal = require('signal');
-        if (pwmPins.length == 0) {
-            signal.clear();
-            return;
-        }
+    if(!isNeoniousOne)
+        return;
 
-        let pins = [];
-        let eventNanoSecs = [];
+    if (!signal)
+        signal = require('signal');
+    if (pwmPinsLPC.length == 0) {
+        signal.clear();
+        return;
+    }
 
-        let pin = 1, setEvent = 1 << pwmPins.length;
-        for (let i = 0; i < pwmPins.length; i++) {
-            pins.push({
-                index: pwmPins[i],
-                setEvents: setEvent,
-                clearEvents: pin
-            });
-            eventNanoSecs.push((pwmDuty[i] * signalNanoSecs) | 0);
-            pin <<= 1;
-        }
-        eventNanoSecs.push(0);
-        eventNanoSecs.push(signalNanoSecs | 0);
+    let pins = [];
+    let eventNanoSecs = [];
 
-        signal.send(signal.RESTART, pins, eventNanoSecs);
-    } else
-        native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
+    let pin = 1, setEvent = 1 << pwmPinsLPC.length;
+    for (let i = 0; i < pwmPinsLPC.length; i++) {
+        pins.push({
+            index: pwmPinsLPC[i],
+            setEvents: setEvent,
+            clearEvents: pin
+        });
+        eventNanoSecs.push((pwmDutyLPC[i] * signalNanoSecs) | 0);
+        pin <<= 1;
+    }
+    eventNanoSecs.push(0);
+    eventNanoSecs.push(signalNanoSecs | 0);
+
+    signal.send(signal.RESTART, pins, eventNanoSecs);
 }
 
 function disablePWM(index) {
-    let val = pwmPins.indexOf(index);
-    if (val >= 0) {
-        if (isNeoniousOne) {
-            pwmPins.splice(val, 1);
-            pwmDuty.splice(val, 1);
-        } else
+    if(isNeoniousOne && index < 24) {
+        let val = pwmPinsLPC.indexOf(index);
+        if (val >= 0) {
+            pwmPinsLPC.splice(val, 1);
+            pwmDutyLPC.splice(val, 1);
+            sendPWMSignal();
+        }
+    } else {
+        let val = pwmPins.indexOf(index);
+        if (val >= 0) {
             pwmPins[val] = -1;
-        sendPWMSignal();
+            native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
+        }
     }
 }
 
 function setPWM(index, value) {
-    let val = pwmPins.indexOf(index);
-    if (val >= 0) {
-        if (pwmDuty[val] != value) {
-            pwmDuty[val] = value;
-            sendPWMSignal();
+    if(isNeoniousOne && index < 24) {
+        let val = pwmPinsLPC.indexOf(index);
+        if (val >= 0) {
+            if (pwmDutyLPC[val] != value) {
+                pwmDutyLPC[val] = value;
+                sendPWMSignal();
+            }
+            return;
         }
-        return;
-    }
 
-    if (!isNeoniousOne) {
+        if (pwmPinsLPC.length == 6)
+            throw new RangeError('more than 6 PWM pins are not supported on LPC822');
+
+        pwmPinsLPC.push(index);
+        pwmDutyLPC.push(value);
+        sendPWMSignal();
+    } else {
+        let val = pwmPins.indexOf(index);
+        if (val >= 0) {
+            if (pwmDuty[val] != value) {
+                pwmDuty[val] = value;
+                native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
+            }
+            return;
+        }
+
         let val = pwmPins.indexOf(-1);
         if (val >= 0) {
             pwmPins[val] = index;
             pwmDuty[val] = value;
-            sendPWMSignal();
+            native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
             return;
         }
 
         if (pwmPins.length == 8)
-            throw new RangeError('more than 8 PWM pins are not supported');
-    } else if (pwmPins.length == 6)
-            throw new RangeError('more than 6 PWM pins are not supported');
+            throw new RangeError('more than 8 PWM pins are not supported on ESP32');
 
-    pwmPins.push(index);
-    pwmDuty.push(value);
-    sendPWMSignal();
+        pwmPins.push(index);
+        pwmDuty.push(value);
+        native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
+    }
 }
 
 let valuesLo = 0, valuesHi = 0;
@@ -405,7 +426,9 @@ exports.setFrequency = (frequency) => {
     let nanoSecs = 1000000000 / frequency;
     if (signalNanoSecs != nanoSecs) {
         signalNanoSecs = nanoSecs;
+
         sendPWMSignal();
+        native.pwmConfig(signalNanoSecs, pwmPins, pwmDuty);
     }
 }
 
