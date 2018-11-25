@@ -212,6 +212,20 @@ exports.clearTimeout = clear;
 exports.clearInterval = clear;
 exports.clearImmediate = clear;
 
+// https://unpkg.com/es7-object-polyfill@0.0.7/build/es7-object-polyfill.browser.js
+// only important parts
+        var ownKeys      = Reflect.ownKeys
+        var reduce       = Function.bind.call(Function.call, Array.prototype.reduce);
+        var isEnumerable = Function.bind.call(Function.call, Object.prototype.propertyIsEnumerable);
+        var concat       = Function.bind.call(Function.call, Array.prototype.concat);
+
+        if (!Object.values) {
+             Object.values = function values(O) {
+                return reduce(ownKeys(O), (v, k) => concat(v, typeof k === 'string' && isEnumerable(O, k) ? [O[k]] : []), []) } }
+        if (!Object.entries) {
+             Object.entries = function entries(O) {
+                return reduce(ownKeys(O), (e, k) => concat(e, typeof k === 'string' && isEnumerable(O, k) ? [[k, O[k]]] : []), []) } }
+
 // https://raw.githubusercontent.com/lahmatiy/es6-promise-polyfill/master/promise.min.js
 // + function gets exports directly (look at end)
 (function (t) {
@@ -254,6 +268,30 @@ exports.clearImmediate = clear;
         keys: l, values: l, entries: B, forEach: u
     })); "undefined" == typeof WeakSet && (e.WeakSet = f({ "delete": d, add: t, clear: h, has: p }, !0))
 })(exports);
+
+Set.prototype[Symbol.iterator] = Set.prototype.values;
+WeakSet.prototype[Symbol.iterator] = WeakSet.prototype.values;
+Map.prototype[Symbol.iterator] = Map.prototype.entries;
+WeakMap.prototype[Symbol.iterator] = WeakMap.prototype.entries;
+Array.prototype[Symbol.iterator] = Array.prototype.values;
+
+Array.from = function from(o) {
+    var m = o[Symbol.iterator];
+    if(Array.isArray(o)) return o.slice(0);
+    if (!m) return [];
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while (!(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+}
 
 exports.process = new events.EventEmitter();
 native.processInfo(process, (signal) => {
