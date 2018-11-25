@@ -73,7 +73,6 @@ LowSocket::LowSocket(low_main_t *low,
 
     if(!InitSocket(remoteAddr))
     {
-        *(int *)123 = 123;
         if(mAcceptConnectCallID)
             low_loop_set_callback(mLow, this); // to output error
         else
@@ -458,7 +457,7 @@ void LowSocket::Shutdown(int callIndex)
         low_push_error(mLow, ENOTCONN, "shutdown");
         duk_call(mLow->duk_ctx, 1);
     }
-    else if(shutdown(FD(), SHUT_WR) < 0)
+    else if(Shutdown() < 0)
     {
         int err = errno;
         duk_dup(mLow->duk_ctx, callIndex);
@@ -470,6 +469,21 @@ void LowSocket::Shutdown(int callIndex)
         duk_push_null(mLow->duk_ctx);
     }
     duk_call(mLow->duk_ctx, 1);
+}
+
+// -----------------------------------------------------------------------------
+//  LowSocket::Shutdown
+// -----------------------------------------------------------------------------
+
+int LowSocket::Shutdown()
+{
+    if(mTLSContext)
+    {
+        if(mSSL)
+            return mbedtls_ssl_close_notify(mSSL); // todo: errnos are wrong
+    }
+    else
+        return shutdown(FD(), SHUT_WR);
 }
 
 // -----------------------------------------------------------------------------
@@ -729,6 +743,12 @@ bool LowSocket::OnEvents(short events)
                             mClosed = true;
                         if(!mDirect->OnSocketData(mReadData, len))
                             break;
+
+                        if(!mTLSContext)
+                        {
+                            mDirectReadEnabled = true;
+                            break;
+                        }
                     }
                 }
             }

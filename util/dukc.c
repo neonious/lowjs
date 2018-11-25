@@ -10,7 +10,8 @@
 
 #include "duktape.h"
 
-// Stubs, used by DukTape to call neonious one
+// Stubs, used by DukTape to call lowjs_esp32
+// Are unused in POSIX version of lowjs
 char user_lock_debugstream(char lock, char block)
 {
     return 0;
@@ -21,6 +22,7 @@ int neoniousGetStackFree()
     return 10000000;
 }
 void code_print_error() {}
+void code_gc() {}
 
 int pathStartLen;
 

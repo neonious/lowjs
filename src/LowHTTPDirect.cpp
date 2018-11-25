@@ -370,7 +370,7 @@ void LowHTTPDirect::Write(unsigned char *data,
                 if(!mShutdown && !mWriteChunkedEncoding &&
                    (mWriteLen < 0 || mWritePos != mWriteLen))
                 {
-                    shutdown(mSocket->FD(), SHUT_WR);
+                    mSocket->Shutdown();
                     mShutdown = true;
                 }
             }
@@ -630,7 +630,7 @@ bool LowHTTPDirect::OnLoop()
                 if(!mShutdown && !mWriteChunkedEncoding &&
                    (mWriteLen < 0 || mWritePos != mWriteLen))
                 {
-                    shutdown(mSocket->FD(), SHUT_WR);
+                    mSocket->Shutdown();
                     mShutdown = true;
                 }
             }

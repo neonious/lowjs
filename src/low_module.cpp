@@ -22,6 +22,7 @@ extern duk_function_list_entry g_low_native_methods[];
 extern duk_function_list_entry g_low_native_neon_methods[];
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
+
 // -----------------------------------------------------------------------------
 //  low_module_init
 // -----------------------------------------------------------------------------
@@ -243,9 +244,21 @@ bool get_data_block(const char *path,
                     int *len,
                     bool showErr,
                     bool escapeZero = false);
+
+duk_int_t duk_safe_call_compress_stack(duk_context *ctx,
+                                       duk_safe_call_function func,
+                                       void *udata,
+                                       duk_idx_t nargs,
+                                       duk_idx_t nrets);
+static duk_ret_t call_in_compress(duk_context *ctx, void *udata)
+{
+    duk_call(ctx, 5);
+    return 1;
+}
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-void low_module_run(duk_context *ctx, const char *path, int flags)
+  void
+  low_module_run(duk_context *ctx, const char *path, int flags)
 {
     unsigned char *data;
     int len;
@@ -296,7 +309,7 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
         }
         else
         {
-            if(path[0] == '/')
+            if(!isLib)
             {
                 sprintf(txt, "/fs/user%s", path);
                 if(!get_data_block(txt, &data, &len, true))
@@ -531,7 +544,14 @@ void low_module_run(duk_context *ctx, const char *path, int flags)
             if(path[len] == '/')
                 break;
         duk_push_lstring(ctx, path, len == -1 ? 0 : len); /* __dirname */
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+        if(duk_safe_call_compress_stack(ctx, call_in_compress, NULL, 6, 1) !=
+           DUK_EXEC_SUCCESS)
+            duk_throw(ctx);
+#else
         duk_call(ctx, 5);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         /* [ ... module result ] */
 

@@ -8,8 +8,8 @@
 #include "LowFD.h"
 #include "LowLoopCallback.h"
 
-#include <pthread.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #include "mbedtls/ssl.h"
 
@@ -26,31 +26,44 @@ const int LOWSOCKET_TRIGGER_WRITE = 2;
 struct low_main_t;
 
 class LowSocketDirect;
-class LowSocket : public LowFD, public LowLoopCallback
+class LowSocket
+    : public LowFD
+    , public LowLoopCallback
 {
-public:
+  public:
     LowSocket(low_main_t *low, int fd); // LOWSOCKET_TYPE_STDINOUT
-    LowSocket(low_main_t *low, int fd, struct sockaddr *remoteAddr,
-              int acceptCallID, LowSocketDirect *direct, int directType,
+    LowSocket(low_main_t *low,
+              int fd,
+              struct sockaddr *remoteAddr,
+              int acceptCallID,
+              LowSocketDirect *direct,
+              int directType,
               LowTLSContext *tlsContext,
               bool clearOnReset = true); // LOWSOCKET_TYPE_ACCEPTED
-    LowSocket(low_main_t *low, LowSocketDirect *direct, int directType,
+    LowSocket(low_main_t *low,
+              LowSocketDirect *direct,
+              int directType,
               LowTLSContext *tlsContext,
               bool clearOnReset = true); // LOWSOCKET_TYPE_CONNECTED
     virtual ~LowSocket();
 
-    bool Connect(struct sockaddr *remoteAddr, int remoteAddrLen, int callIndex,
-                 int &err, const char *&syscall);
+    bool Connect(struct sockaddr *remoteAddr,
+                 int remoteAddrLen,
+                 int callIndex,
+                 int &err,
+                 const char *&syscall);
 
     void Read(int pos, unsigned char *data, int len, int callIndex);
     void Write(int pos, unsigned char *data, int len, int callIndex);
-    void Shutdown(int callIndex);
+    void Shutdown(int callIndex); // JS version
+    int Shutdown();
     bool Close(int callIndex = -1);
 
     void KeepAlive(bool enable, int secs);
     void NoDelay(bool enable);
 
-    bool SetDirect(LowSocketDirect *direct, int type,
+    bool SetDirect(LowSocketDirect *direct,
+                   int type,
                    bool fromWebThread = false);
     LowSocketDirect *GetDirect(int &type);
     void TriggerDirect(int trigger);
@@ -64,7 +77,7 @@ public:
 
     bool IsConnected() { return mConnected; }
 
-protected:
+  protected:
     virtual bool OnEvents(short events);
     virtual bool OnLoop();
 
@@ -74,7 +87,7 @@ protected:
     int DoRead();
     int DoWrite();
 
-private:
+  private:
     low_main_t *mLow;
     LowSocketType mType;
     short mLastEvents;
@@ -85,7 +98,7 @@ private:
 
     int mAcceptConnectCallID, mAcceptConnectErrno, mCloseCallID;
     bool mAcceptConnectError, mAcceptConnectErrnoSSL, mConnected, mClosed,
-        mDestroyed;
+      mDestroyed;
     const char *mAcceptConnectSyscall;
 
     unsigned char *mReadData, *mWriteData;

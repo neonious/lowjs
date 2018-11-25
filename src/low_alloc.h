@@ -9,8 +9,8 @@
 #include <stddef.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-#include "esp_system.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_USE_SYSTEM_ALLOC
@@ -35,9 +35,6 @@ extern "C"
     void *low_realloc(void *ptr, size_t size);
     void low_free(void *ptr);
 
-    void *low_alloc2(size_t size);
-    void *low_realloc2(void *ptr, size_t size);
-
     char *low_strdup(const char *str);
 #ifdef __cplusplus
 }
@@ -55,10 +52,10 @@ enum class low_new_ident
 
 void *operator new(size_t size, low_new_ident ident) noexcept;
 
-template <typename T> class low_allocator : public std::allocator<T>
+template<typename T> class low_allocator : public std::allocator<T>
 {
-public:
-    template <class U> struct rebind
+  public:
+    template<class U> struct rebind
     {
         typedef low_allocator<U> other;
     };

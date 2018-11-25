@@ -27,27 +27,31 @@ duk_ret_t low_fs_open(duk_context *ctx)
     {
         // TODO: handle x, s
         const char *flags = duk_require_string(ctx, 1);
-        if(strcmp(flags, "a") == 0)
+        if(flags[0] == 'a')
             iflags = O_WRONLY | O_APPEND | O_CREAT;
-        else if(strcmp(flags, "a+") == 0)
-            iflags = O_RDWR | O_APPEND | O_CREAT;
-        else if(strcmp(flags, "r") == 0)
+        if(flags[0] == 'r')
             iflags = O_RDONLY;
-        else if(strcmp(flags, "r+") == 0)
-            iflags = O_RDWR;
-        else if(strcmp(flags, "w") == 0)
+        if(flags[0] == 'w')
             iflags = O_WRONLY | O_CREAT | O_TRUNC;
-        else if(strcmp(flags, "w+") == 0)
-            iflags = O_RDWR | O_CREAT | O_TRUNC;
-        else
-            duk_range_error(ctx, "flags not supported");
+
+        for(int i = 1; flags[i]; i++)
+        {
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(flags[0] == 'r' && flags[i] == 'c')
+                iflags |= O_COMPRESSED;
+            if(flags[0] == 'w' && flags[i] == 'c')
+                iflags |= O_COMPRESS;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            if(flags[i] == '+')
+                iflags = (iflags & ~(O_RDONLY | O_WRONLY)) | O_RDWR;
+        }
     }
     else
         iflags = duk_require_int(ctx, 1);
 #if LOW_ESP32_LWIP_SPECIALITIES
-    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC))
+    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
+                  O_COMPRESS | O_COMPRESSED))
         duk_range_error(ctx, "flags not supported");
-    iflags |= O_DONT_COMPRESS;
 #else
     if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
                   O_CLOEXEC))
@@ -77,27 +81,31 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
     {
         // TODO: handle x, s
         const char *flags = duk_require_string(ctx, 1);
-        if(strcmp(flags, "a") == 0)
+        if(flags[0] == 'a')
             iflags = O_WRONLY | O_APPEND | O_CREAT;
-        else if(strcmp(flags, "a+") == 0)
-            iflags = O_RDWR | O_APPEND | O_CREAT;
-        else if(strcmp(flags, "r") == 0)
+        if(flags[0] == 'r')
             iflags = O_RDONLY;
-        else if(strcmp(flags, "r+") == 0)
-            iflags = O_RDWR;
-        else if(strcmp(flags, "w") == 0)
+        if(flags[0] == 'w')
             iflags = O_WRONLY | O_CREAT | O_TRUNC;
-        else if(strcmp(flags, "w+") == 0)
-            iflags = O_RDWR | O_CREAT | O_TRUNC;
-        else
-            duk_range_error(ctx, "flags not supported");
+
+        for(int i = 1; flags[i]; i++)
+        {
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(flags[0] == 'r' && flags[i] == 'c')
+                iflags |= O_COMPRESSED;
+            if(flags[0] == 'w' && flags[i] == 'c')
+                iflags |= O_COMPRESS;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            if(flags[i] == '+')
+                iflags = (iflags & ~(O_RDONLY | O_WRONLY)) | O_RDWR;
+        }
     }
     else
         iflags = duk_require_int(ctx, 1);
 #if LOW_ESP32_LWIP_SPECIALITIES
-    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC))
+    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
+                  O_COMPRESS | O_COMPRESSED))
         duk_range_error(ctx, "flags not supported");
-    iflags |= O_DONT_COMPRESS;
 #else
     if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
                   O_CLOEXEC))
