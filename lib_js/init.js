@@ -117,7 +117,7 @@ class Timeout {
         native.clearChore(this._id);
         this._id = native.setChore(this._func, this._delay, this._oneshot);
     }
-}
+v}
 exports.setTimeout = function (func, delay) {
     var cb_func;
     var bind_args;
@@ -269,15 +269,32 @@ exports.clearImmediate = clear;
     })); "undefined" == typeof WeakSet && (e.WeakSet = f({ "delete": d, add: t, clear: h, has: p }, !0))
 })(exports);
 
+
 Set.prototype[Symbol.iterator] = Set.prototype.values;
 WeakSet.prototype[Symbol.iterator] = WeakSet.prototype.values;
 Map.prototype[Symbol.iterator] = Map.prototype.entries;
 WeakMap.prototype[Symbol.iterator] = WeakMap.prototype.entries;
-Array.prototype[Symbol.iterator] = Array.prototype.values;
+
+Array.prototype[Symbol.iterator] = Array.prototype.values = function values() {
+	let someArray = this;
+  let nextIndex = 0;
+  return {
+    next: () => {
+      if (nextIndex < someArray.length) {
+        return {
+          value: someArray[nextIndex++],
+          done: false
+        };
+      }
+      return {
+        done: true
+      };
+    }
+  };
+};
 
 Array.from = function from(o) {
     var m = o[Symbol.iterator];
-    if(Array.isArray(o)) return o.slice(0);
     if (!m) return [];
     var i = m.call(o), r, ar = [], e;
     try {
