@@ -4,12 +4,12 @@ let native = require('native');
 let config = native.lowsysConfig();
 
 module.exports = {
-    codeMAC = config.codeMAC,
-    partitions = {},
-    setSettings = native.setSettings,
-    himemWrite = native.himemWrite,
-    himemRead = native.himemRead,
-    sdcardFormat = native.sdcardFormat
+    codeMAC: config.codeMAC,
+    partitions: {},
+//    setSettings: native.setSettings,
+    himemWrite: native.himemWrite,
+    himemRead: native.himemRead,
+    sdcardMount: native.sdcardMount
 };
 
 Object.defineProperty(module.exports, 'status', {
@@ -18,12 +18,15 @@ Object.defineProperty(module.exports, 'status', {
         return native.getStatus();
     }
 });
+
+/*
 Object.defineProperty(module.exports, 'settings', {
     enumerable: true,
     get: function () {
         return native.getSettings();
     }
 });
+*/
 
 Object.defineProperty(module.exports.partitions, 'flash', {
     enumerable: true,
@@ -38,4 +41,4 @@ Object.defineProperty(module.exports.partitions, 'sdcard', {
     }
 });
 if(config.himemLength)
-    module.exports.partitions[sdcard] = {length: config.himemLength};
+    module.exports.partitions.himem = {size: config.himemLength};

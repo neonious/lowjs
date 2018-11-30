@@ -244,17 +244,6 @@ bool get_data_block(const char *path,
                     int *len,
                     bool showErr,
                     bool escapeZero = false);
-
-duk_int_t duk_safe_call_compress_stack(duk_context *ctx,
-                                       duk_safe_call_function func,
-                                       void *udata,
-                                       duk_idx_t nargs,
-                                       duk_idx_t nrets);
-static duk_ret_t call_in_compress(duk_context *ctx, void *udata)
-{
-    duk_call(ctx, 5);
-    return 1;
-}
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
   void
@@ -544,14 +533,7 @@ static duk_ret_t call_in_compress(duk_context *ctx, void *udata)
             if(path[len] == '/')
                 break;
         duk_push_lstring(ctx, path, len == -1 ? 0 : len); /* __dirname */
-
-#if LOW_ESP32_LWIP_SPECIALITIES
-        if(duk_safe_call_compress_stack(ctx, call_in_compress, NULL, 6, 1) !=
-           DUK_EXEC_SUCCESS)
-            duk_throw(ctx);
-#else
         duk_call(ctx, 5);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         /* [ ... module result ] */
 

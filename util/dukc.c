@@ -21,6 +21,8 @@ int neoniousGetStackFree()
 {
     return 10000000;
 }
+void duk_compress_stack(duk_context *ctx, duk_ret_t (*func)(duk_context *ctx, void *udata), void *udata)
+{ printf("should not be called!\n"); }
 void code_print_error() {}
 void code_gc() {}
 
