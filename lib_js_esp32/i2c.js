@@ -6,8 +6,8 @@ class I2C {
     constructor(options, optionsOld) {
         // options:
         // clockHz
-        // pinMISO
-        // pinMOSI
+        // pinSDA
+        // pinSCL
 
         if (optionsOld)             // backwards compat, will be removed
             options = optionsOld;   // end of 2019
@@ -24,14 +24,14 @@ class I2C {
 
     transfer(address, data, bytesRead, callback) {
         if (this._ref) {
-            this._pipe.push([address, data, callback]);
+            this._pipe.push([address, data, bytesRead, callback]);
             return;
         }
         if (!data) {
             callback(null);
             if (this._pipe.length) {
                 let entry = this._pipe.shift();
-                this.transfer(entry[0], entry[1], entry[2]);
+                this.transfer(entry[0], entry[1], entry[2], entry[3]);
             }
             return;
         }
@@ -51,7 +51,7 @@ class I2C {
 
             if (this._pipe.length) {
                 let entry = this._pipe.shift();
-                this.transfer(entry[0], entry[1], entry[2]);
+                this.transfer(entry[0], entry[1], entry[2], entry[3]);
             }
         });
     }
