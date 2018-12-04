@@ -8,8 +8,7 @@ module.exports = {
     partitions: {},
 //    setSettings: native.setSettings,
     himemWrite: native.himemWrite,
-    himemRead: native.himemRead,
-    sdcardMount: native.sdcardMount
+    himemRead: native.himemRead
 };
 
 Object.defineProperty(module.exports, 'status', {
