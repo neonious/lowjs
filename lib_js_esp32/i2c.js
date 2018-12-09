@@ -2,7 +2,22 @@
 
 let native = require('native');
 
+/**
+ * Module for I2C master, and after implemented, I2C slave interfaces
+ * @module i2c
+ */
+
 class I2C {
+    /**
+     * Creates a I2C master interface.
+     *
+     * Destroy explicitly with distroy() when the interface is no longer in use.
+     *
+     * @param {Object} options The options
+     * @param {Number} [options.clockHz=100000] speed of link in Hz
+     * @param {Number} options.pinSCL clock signal pin
+     * @param {Number} options.pinSDC data pin
+     */
     constructor(options, optionsOld) {
         // options:
         // clockHz
@@ -18,10 +33,30 @@ class I2C {
         this._pipe = [];
     }
 
+    /**
+     * Frees all resources of the interface, allowing the program to use the pins differently or
+     * construct a new interface with other parameters.
+     */
     destroy() {
         native.destroyPeripherial(this._index);
     }
 
+    /**
+     * Callback which is called when a transfer completed.
+     *
+     * @callback I2CTransferCallback
+     * @param {?Error} err optional error. If not null, the next parameters are not set
+     * @param {Buffer} [data] received from slave
+     */
+
+    /**
+     * Transfers data to and from the slave.
+     *
+     * @param {Number} address the address of the I2C slave
+     * @param {Buffer} data data to send to slave
+     * @param {Number} bytesRead how many bytes should be read after sending the data to the slave
+     * @param {I2CTransferCallback} [callback] called when the transfer is completed
+     */
     transfer(address, data, bytesRead, callback) {
         if (this._ref) {
             this._pipe.push([address, data, bytesRead, callback]);
@@ -55,6 +90,12 @@ class I2C {
             }
         });
     }
+
+    /**
+     * Calls the callback as soon as the last transfer is completed.
+     *
+     * @param {I2CTransferCallback} callback called when the last transfer is completed
+     */
     flush(callback) {
         if (this._ref)
             this._pipe.push([null, null, callback]);
@@ -62,13 +103,24 @@ class I2C {
             callback(null);
     }
 
+    /**
+     * Tells the interface to keep the program running when a transfer is taking place.
+     * This is the default.
+     *
+     * @returns {I2C} interface itself, to chain call other methods
+     */
     ref() {
         if (this._ref && !this._holdRef)
             native.runRef(1);
         this._holdRef = true;
         return this;
     }
-
+    /**
+     * Tells the interface to not keep the program running when a transfer is taking place,
+     * but there is nothing else to do.
+     *
+     * @returns {I2C} interface itself, to chain call other methods
+     */
     unref() {
         if (this._ref && this._holdRef)
             native.runRef(-1);
