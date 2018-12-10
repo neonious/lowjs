@@ -786,7 +786,7 @@ Buffer.prototype.toString = ((oldFunc) => {
             let txt = '';
             for (let i = 0; i < this.length; i++) {
                 let c = this[i];
-                txt += c < 10 ? '0' + c.toString(16) : c.toString(16);
+                txt += c < 16 ? '0' + c.toString(16) : c.toString(16);
             }
             return txt;
         } else if (encoding == 'base64') {

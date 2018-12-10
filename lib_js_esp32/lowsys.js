@@ -59,7 +59,7 @@ module.exports = {
  * @property {String} status.eth Status of Ethernet interface
  * @property {String} status.wifi Status of Wifi interface
  * @property {String} status.time Status of requesting time from time server
- * @property {String} status.sdcard Status of sd card
+ * @property {String} status.sdcard Status of SD card
  * @name status
  */
 
@@ -68,7 +68,7 @@ module.exports = {
  * @property {String} status.eth Status of Ethernet interface
  * @property {String} status.wifi Status of Wifi interface
  * @property {String} status.time Status of requesting time from time server
- * @property {String} status.sdcard Status of sd card
+ * @property {String} status.sdcard Status of SD card
  * @name status
  */
 Object.defineProperty(module.exports, 'status', {
@@ -91,8 +91,8 @@ Object.defineProperty(module.exports, 'settings', {
  * An object holding information about all available parititons
  * @property {Number} partitions.flash.used Bytes used of flash partition
  * @property {Number} partitions.flash.size Total size of flash partition in bytes
- * @property {Number} [partitions.sdcard.used] Bytes used of sd card partition
- * @property {Number} [partitions.sdcard.size] Total size of sd card partition in bytes
+ * @property {Number} [partitions.sdcard.used] Bytes used of SD card partition
+ * @property {Number} [partitions.sdcard.size] Total size of SD card partition in bytes
  * @property {Number} [partitions.himem.size] Bytes of RAM not used by low.js and available via himemRead/himemWrite
  * @name partitions
  */

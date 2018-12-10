@@ -11,7 +11,7 @@ let native = require('native');
 /**
  * A UART interface, implemented as Duplex stream.
  *
- * Check the Node.JS Duplex stream documentation on information how
+ * Check the Node.js Duplex stream documentation on information how
  * to read and write from the stream.
  * 
  * Call resume() if you are not interested in the received data so it does not
@@ -23,9 +23,7 @@ class UART extends stream.Duplex {
     /**
      * Creates a UART interface.
      *
-     * Trying to create more than 2 (neonious one) or 3 (ESP32-WROVER) results in an exception,
-     * as the hardware does not support more. Destroy them explicitly with distroy() when they
-     * are no longer in use.
+     * Destroy explicitly with distroy() when the interface is no longer in use.
      *
      * @param {Object} options The options
      * @param {Number} [options.baud=9600] speed of link in baud
