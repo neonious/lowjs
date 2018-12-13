@@ -6,15 +6,7 @@ const {
     ERR_UNKNOWN_SIGNAL
 } = require('internal/errors').codes;
 let signals = {}; // TODO
-/*
-const {
-  createPromise,
-  promiseResolve,
-  promiseReject,
-  arrow_message_private_symbol: kArrowMessagePrivateSymbolIndex,
-  decorated_private_symbol: kDecoratedPrivateSymbolIndex
-} = process.binding('util');
-*/
+
 const errmap = { 'get': function (err) { return null; } };
 
 const noCrypto = !process.versions.mbedtls;
@@ -264,23 +256,24 @@ function promisify(original) {
     const argumentNames = original[kCustomPromisifyArgsSymbol];
 
     function fn(...args) {
-        const promise = createPromise();
-        try {
-            original.call(this, ...args, (err, ...values) => {
-                if (err) {
-                    promiseReject(promise, err);
-                } else if (argumentNames !== undefined && values.length > 1) {
-                    const obj = {};
-                    for (var i = 0; i < argumentNames.length; i++)
-                        obj[argumentNames[i]] = values[i];
-                    promiseResolve(promise, obj);
-                } else {
-                    promiseResolve(promise, values[0]);
-                }
-            });
-        } catch (err) {
-            promiseReject(promise, err);
-        }
+        const promise = new Promise((promiseResolve, promiseReject) => {
+            try {
+                original.call(this, ...args, (err, ...values) => {
+                    if (err) {
+                        promiseReject(err);
+                    } else if (argumentNames !== undefined && values.length > 1) {
+                        const obj = {};
+                        for (var i = 0; i < argumentNames.length; i++)
+                            obj[argumentNames[i]] = values[i];
+                        promiseResolve(obj);
+                    } else {
+                        promiseResolve(values[0]);
+                    }
+                });
+            } catch (err) {
+                promiseReject(err);
+            }
+        });
         return promise;
     }
 
