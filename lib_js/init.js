@@ -1,6 +1,10 @@
 // init.js
 // runs before main module, exports = global scope
 
+// To not run in a limitation of DukTape's Reflect.construct
+// See test/bugs/native_Reflect_construct.js for more information
+delete Reflect.construct;
+
 let jsProps = Object.getOwnPropertyNames(global);
 
 let native = require('native');
