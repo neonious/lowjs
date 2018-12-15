@@ -216,6 +216,16 @@ let globalAgent = new Agent();
 
 const discard2Headers = { 'age': 1, 'authorization': 1, 'content-length': 1, 'content-type': 1, 'etag': 1, 'expires': 1, 'from': 1, 'host': 1, 'if-modified-since': 1, 'if-unmodified-since': 1, 'last-modified': 1, 'location': 1, 'max-forwards': 1, 'proxy-authorization': 1, 'referer': 1, 'retry-after': 1, 'user-agent': 1 };
 
+const tokenRegExp = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
+/**
+ * Verifies that the given val is a valid HTTP token
+ * per the rules defined in RFC 7230
+ * See https://tools.ietf.org/html/rfc7230#section-3.2.6
+ */
+function checkIsHttpToken(val) {
+  return tokenRegExp.test(val);
+}
+
 class ClientRequest extends stream.Writable {
     constructor(options, cb) {
         super({
