@@ -31,7 +31,8 @@ duk_ret_t low_fs_rename(duk_context *ctx)
     if(!fl)
         duk_generic_error(ctx, "out of memory");
 
-    fl->Rename(old_name, new_name, 2);
+    fl->Rename(old_name, new_name);
+    fl->Run(2);
     return 0;
 }
 
@@ -48,7 +49,8 @@ duk_ret_t low_fs_unlink(duk_context *ctx)
     if(!fl)
         duk_generic_error(ctx, "out of memory");
 
-    fl->Unlink(file_name, 1);
+    fl->Unlink(file_name);
+    fl->Run(1);
     return 0;
 }
 
@@ -65,9 +67,134 @@ duk_ret_t low_fs_stat(duk_context *ctx)
     if(!fl)
         duk_generic_error(ctx, "out of memory");
 
-    fl->Stat(file_name, 1);
+    fl->Stat(file_name);
+    fl->Run(1);
     return 0;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_access
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_access(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    int mode, callIndex;
+    if(duk_is_undefined(ctx, 2))
+    {
+        mode = F_OK;
+        callIndex = 1;
+    }
+    else
+    {
+        mode = duk_require_int(ctx, 1);
+        callIndex = 2;
+    }
+
+    fl->Access(file_name, mode);
+    fl->Run(callIndex);
+    return 0;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_readdir
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_readdir(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    bool withFileTypes = false;
+    int callIndex;
+
+    if(duk_is_undefined(ctx, 2))
+        callIndex = 1;
+    else if(duk_is_object(ctx, 1))
+    {
+        withFileTypes = duk_get_prop_string(ctx, 1, "withFileTypes") && duk_require_boolean(ctx, -1);
+        callIndex = 2;
+    }
+    else
+        callIndex = 2;
+
+    fl->ReadDir(file_name, withFileTypes);
+    fl->Run(callIndex);
+    return 0;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_mkdir
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_mkdir(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    bool recursive = false;
+    int mode = 0777;
+    int callIndex;
+
+    if(duk_is_undefined(ctx, 2))
+        callIndex = 1;
+    else if(duk_is_object(ctx, 1))
+    {
+        recursive = duk_get_prop_string(ctx, 1, "recursive") && duk_require_boolean(ctx, -1);
+        if(duk_get_prop_string(ctx, 1, "mode"))
+            mode = duk_require_int(ctx, -1);
+        callIndex = 2;
+    }
+    else
+        callIndex = 2;
+
+    fl->MkDir(file_name, recursive, mode);
+    fl->Run(callIndex);
+    return 0;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_rmdir
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_rmdir(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    int callIndex;
+    if(duk_is_undefined(ctx, 2))
+        callIndex = 1;
+    else
+        callIndex = 2;
+
+    fl->RmDir(file_name);
+    fl->Run(callIndex);
+    return 0;
+}
+
 
 // -----------------------------------------------------------------------------
 //  low_fs_rename_sync
@@ -79,56 +206,12 @@ duk_ret_t low_fs_rename_sync(duk_context *ctx)
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-    int len = 32 + strlen(old_name) + strlen(low->cwd);
-    char *old_name2 = (char *)low_alloc(len);
-    if(!old_name2)
-    {
-        low_push_error(low, ENOMEM, "rename");
-        duk_throw(low->duk_ctx);
-    }
-
-    if(!low_fs_resolve(old_name2, len, low->cwd, old_name))
-    {
-        free(old_name2);
-        duk_generic_error(low->duk_ctx, "fs resolve error");
-    }
-
-    len = 32 + strlen(old_name) + strlen(low->cwd);
-    char *new_name2 = (char *)low_alloc(len);
-    if(!new_name2)
-    {
-        free(old_name2);
-        low_push_error(low, ENOMEM, "rename");
-        duk_throw(low->duk_ctx);
-    }
-
-    if(!low_fs_resolve(new_name2, len, low->cwd, new_name))
-    {
-        free(old_name2);
-        free(new_name2);
-        duk_generic_error(low->duk_ctx, "fs resolve error");
-    }
-
-    if(rename(old_name2, new_name2) != 0)
-    {
-        free(old_name2);
-        free(new_name2);
-
-        low_push_error(low, errno, "rename");
-        duk_throw(low->duk_ctx);
-    }
-    free(old_name2);
-    free(new_name2);
-#else
-    if(rename(old_name, new_name) != 0)
-    {
-        low_push_error(low, errno, "rename");
-        duk_throw(low->duk_ctx);
-    }
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-
+    fl->Rename(old_name, new_name);
+    fl->Run();
     return 0;
 }
 
@@ -141,37 +224,12 @@ duk_ret_t low_fs_unlink_sync(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-    int len = 32 + strlen(file_name) + strlen(low->cwd);
-    char *name = (char *)low_alloc(len);
-    if(!name)
-    {
-        low_push_error(low, ENOMEM, "unlink");
-        duk_throw(low->duk_ctx);
-    }
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
 
-    if(!low_fs_resolve(name, len, low->cwd, file_name))
-    {
-        free(name);
-        duk_generic_error(low->duk_ctx, "fs resolve error");
-    }
-
-    if(unlink(name) != 0)
-    {
-        free(name);
-
-        low_push_error(low, errno, "unlink");
-        duk_throw(low->duk_ctx);
-    }
-    free(name);
-#else
-    if(unlink(file_name) != 0)
-    {
-        low_push_error(low, errno, "unlink");
-        duk_throw(low->duk_ctx);
-    }
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-
+    fl->Unlink(file_name);
+    fl->Run();
     return 0;
 }
 
@@ -185,55 +243,113 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    struct stat st;
-#if LOW_ESP32_LWIP_SPECIALITIES
-    int len = 32 + strlen(file_name) + strlen(low->cwd);
-    char *name = (char *)low_alloc(len);
-    if(!name)
-    {
-        low_push_error(low, ENOMEM, "sync");
-        duk_throw(low->duk_ctx);
-    }
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
 
-    if(!low_fs_resolve(name, len, low->cwd, file_name))
-    {
-        free(name);
-        duk_generic_error(low->duk_ctx, "fs resolve error");
-    }
-
-    if(stat(name, &st) != 0)
-    {
-        free(name);
-
-        low_push_error(low, errno, "stat");
-        duk_throw(low->duk_ctx);
-    }
-    free(name);
-#else
-    if(stat(file_name, &st) != 0)
-    {
-        low_push_error(low, errno, "stat");
-        duk_throw(low->duk_ctx);
-    }
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-
-    duk_push_object(low->duk_ctx);
-#define applyStat(name) {#name, (double)st.st_##name}
-    duk_number_list_entry numberList[] = {applyStat(dev),
-                                          applyStat(ino),
-                                          applyStat(mode),
-                                          applyStat(nlink),
-                                          applyStat(uid),
-                                          applyStat(gid),
-                                          applyStat(rdev),
-                                          applyStat(blksize),
-                                          applyStat(blocks),
-                                          applyStat(size),
-                                          {"atimeMs", st.st_atime * 1000.0},
-                                          {"mtimeMs", st.st_mtime * 1000.0},
-                                          {"ctimeMs", st.st_ctime * 1000.0},
-                                          {NULL, 0.0}};
-    duk_put_number_list(low->duk_ctx, -1, numberList);
-
+    fl->Stat(file_name);
+    fl->Run();
     return 1;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_access_sync
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_access_sync(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    int mode;
+    if(duk_is_undefined(ctx, 2))
+        mode = F_OK;
+    else
+        mode = duk_require_int(ctx, 1);
+
+    fl->Access(file_name, mode);
+    fl->Run();
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_readdir_sync
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_readdir_sync(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    bool withFileTypes;
+    int callIndex;
+
+    if(!duk_is_undefined(ctx, 2))
+        withFileTypes = false;
+    else if(duk_is_object(ctx, 1))
+        withFileTypes = duk_get_prop_string(ctx, 1, "withFileTypes") && duk_require_boolean(ctx, -1);
+
+    fl->ReadDir(file_name, withFileTypes);
+    fl->Run();
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_mkdir_sync
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_mkdir_sync(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    bool recursive = false;
+    int mode = 0777;
+
+    if(duk_is_undefined(ctx, 2))
+        ;
+    else if(duk_is_object(ctx, 1))
+    {
+        recursive = duk_get_prop_string(ctx, 1, "recursive") && duk_require_boolean(ctx, -1);
+        if(duk_get_prop_string(ctx, 1, "mode"))
+            mode = duk_require_int(ctx, -1);
+    }
+
+    fl->MkDir(file_name, recursive, mode);
+    fl->Run();
+    return 0;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_fs_rmdir_sync
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_fs_rmdir_sync(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    const char *file_name = duk_require_string(ctx, 0);
+
+    LowFSMisc *fl = new(low_new) LowFSMisc(low);
+    if(!fl)
+        duk_generic_error(ctx, "out of memory");
+
+    fl->RmDir(file_name);
+    fl->Run();
+    return 0;
 }

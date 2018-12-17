@@ -19,6 +19,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 
 // -----------------------------------------------------------------------------
@@ -27,8 +29,9 @@
 
 LowFSMisc::LowFSMisc(low_main_t *low) :
     LowDataCallback(low), LowLoopCallback(low), mLow(low), mCallID(0),
-    mOldName(NULL), mNewName(NULL)
+    mOldName(NULL), mNewName(NULL), mFileEntries(NULL)
 {
+    pthread_mutex_init(&mMutex, NULL);
 }
 
 
@@ -44,11 +47,19 @@ LowFSMisc::~LowFSMisc()
         low_free(mOldName);
     if(mNewName)
         low_free(mNewName);
+    while(mFileEntries)
+    {
+        char *entry = *(char **)mFileEntries;
+        free(mFileEntries);
+        mFileEntries = entry;
+    }
+
     if(mCallID)
     {
         low_remove_stash(mLow, mCallID);
         mLow->run_ref--;
     }
+    pthread_mutex_destroy(&mMutex);
 }
 
 
@@ -56,7 +67,7 @@ LowFSMisc::~LowFSMisc()
 //  LowFSMisc::Rename
 // -----------------------------------------------------------------------------
 
-void LowFSMisc::Rename(const char *old_name, const char *new_name, int callID)
+void LowFSMisc::Rename(const char *old_name, const char *new_name)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
     int len = 32 + strlen(old_name) + strlen(mLow->cwd);
@@ -88,18 +99,13 @@ void LowFSMisc::Rename(const char *old_name, const char *new_name, int callID)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName || !mNewName)
     {
-        duk_dup(mLow->duk_ctx, callID);
         low_push_error(mLow, ENOMEM, "rename");
-        duk_call(mLow->duk_ctx, 1);
+        duk_throw(mLow->duk_ctx);
 
         return;
     }
 
-    mCallID = low_add_stash(mLow, callID);
-    mLow->run_ref++;
-
     mPhase = LOWFSMISC_PHASE_RENAME;
-    low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_MODIFY);
 }
 
 
@@ -107,7 +113,7 @@ void LowFSMisc::Rename(const char *old_name, const char *new_name, int callID)
 //  LowFSMisc::Unlink
 // -----------------------------------------------------------------------------
 
-void LowFSMisc::Unlink(const char *file_name, int callID)
+void LowFSMisc::Unlink(const char *file_name)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
@@ -126,18 +132,13 @@ void LowFSMisc::Unlink(const char *file_name, int callID)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        duk_dup(mLow->duk_ctx, callID);
         low_push_error(mLow, ENOMEM, "rename");
-        duk_call(mLow->duk_ctx, 1);
+        duk_throw(mLow->duk_ctx);
 
         return;
     }
 
-    mCallID = low_add_stash(mLow, callID);
-    mLow->run_ref++;
-
     mPhase = LOWFSMISC_PHASE_UNLINK;
-    low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_MODIFY);
 }
 
 
@@ -145,7 +146,7 @@ void LowFSMisc::Unlink(const char *file_name, int callID)
 //  LowFSMisc::Stat
 // -----------------------------------------------------------------------------
 
-void LowFSMisc::Stat(const char *file_name, int callID)
+void LowFSMisc::Stat(const char *file_name)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
@@ -164,20 +165,210 @@ void LowFSMisc::Stat(const char *file_name, int callID)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        duk_dup(mLow->duk_ctx, callID);
         low_push_error(mLow, ENOMEM, "rename");
-        duk_call(mLow->duk_ctx, 1);
+        duk_throw(mLow->duk_ctx);
 
         return;
     }
 
-    mCallID = low_add_stash(mLow, callID);
-    mLow->run_ref++;
-
     mPhase = LOWFSMISC_PHASE_STAT;
-    low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_READ);
 }
 
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::Access
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::Access(const char *file_name, int mode)
+{
+#if LOW_ESP32_LWIP_SPECIALITIES
+    int len = 32 + strlen(file_name) + strlen(mLow->cwd);
+
+    mOldName = (char *)low_alloc(len);
+    if(mOldName)
+        if(!low_fs_resolve(mOldName, len, mLow->cwd, file_name))
+        {
+            low_free(mOldName);
+            mOldName = NULL;
+
+            duk_generic_error(mLow->duk_ctx, "fs resolve error");
+        }
+#else
+    mOldName = low_strdup(file_name);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    if(!mOldName)
+    {
+        low_push_error(mLow, ENOMEM, "mkdir");
+        duk_throw(mLow->duk_ctx);
+
+        return;
+    }
+
+    mPhase = LOWFSMISC_PHASE_ACCESS;
+    mMode = mode;
+}
+
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::ReadDir
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::ReadDir(const char *file_name, bool withFileTypes)
+{
+#if LOW_ESP32_LWIP_SPECIALITIES
+    int len = 32 + strlen(file_name) + strlen(mLow->cwd);
+
+    mOldName = (char *)low_alloc(len);
+    if(mOldName)
+        if(!low_fs_resolve(mOldName, len, mLow->cwd, file_name))
+        {
+            low_free(mOldName);
+            mOldName = NULL;
+
+            duk_generic_error(mLow->duk_ctx, "fs resolve error");
+        }
+#else
+    mOldName = low_strdup(file_name);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    if(!mOldName)
+    {
+        low_push_error(mLow, ENOMEM, "mkdir");
+        duk_throw(mLow->duk_ctx);
+
+        return;
+    }
+
+    mPhase = LOWFSMISC_PHASE_READDIR;
+    mWithFileTypes = withFileTypes;
+}
+
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::MkDir
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::MkDir(const char *file_name, bool recursive, int mode)
+{
+#if LOW_ESP32_LWIP_SPECIALITIES
+    int len = 32 + strlen(file_name) + strlen(mLow->cwd);
+
+    mOldName = (char *)low_alloc(len);
+    if(mOldName)
+        if(!low_fs_resolve(mOldName, len, mLow->cwd, file_name))
+        {
+            low_free(mOldName);
+            mOldName = NULL;
+
+            duk_generic_error(mLow->duk_ctx, "fs resolve error");
+        }
+#else
+    mOldName = low_strdup(file_name);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    if(!mOldName)
+    {
+        low_push_error(mLow, ENOMEM, "mkdir");
+        duk_throw(mLow->duk_ctx);
+
+        return;
+    }
+
+    mPhase = LOWFSMISC_PHASE_MKDIR;
+    mRecursive = recursive;
+    mMode = mode;
+}
+
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::RmDir
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::RmDir(const char *file_name)
+{
+#if LOW_ESP32_LWIP_SPECIALITIES
+    int len = 32 + strlen(file_name) + strlen(mLow->cwd);
+
+    mOldName = (char *)low_alloc(len);
+    if(mOldName)
+        if(!low_fs_resolve(mOldName, len, mLow->cwd, file_name))
+        {
+            low_free(mOldName);
+            mOldName = NULL;
+
+            duk_generic_error(mLow->duk_ctx, "fs resolve error");
+        }
+#else
+    mOldName = low_strdup(file_name);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    if(!mOldName)
+    {
+        low_push_error(mLow, ENOMEM, "rmdir");
+        duk_throw(mLow->duk_ctx);
+
+        return;
+    }
+
+    mPhase = LOWFSMISC_PHASE_RMDIR;
+}
+
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::Run
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::Run(int callIndex)
+{
+    if(callIndex)
+    {
+        mCallID = low_add_stash(mLow, callIndex);
+        mLow->run_ref++;
+    }
+    else
+        pthread_mutex_lock(&mMutex);
+
+    low_data_set_callback(mLow, this, LOW_DATA_THREAD_PRIORITY_MODIFY);
+
+    if(!callIndex)
+    {
+        pthread_mutex_lock(&mMutex);
+        OnLoop();
+        pthread_mutex_unlock(&mMutex);
+    }
+}
+
+// -----------------------------------------------------------------------------
+//  LowFSMisc::ReadDir
+// -----------------------------------------------------------------------------
+
+void LowFSMisc::ReadDir()
+{
+    DIR *dir = opendir(mOldName);
+    if(!dir)
+    {
+        mError = errno;
+        return;
+    }
+
+    struct dirent dirData, *ent;
+    while(true)
+    {
+        if(readdir_r(dir, &dirData, &ent) != 0 || !ent)
+            break;
+
+        int len = strlen(ent->d_name);
+        char *entry = (char *)low_alloc(sizeof(char *) + len + 1);
+        if(!entry)
+        {
+            closedir(dir);
+            errno = ENOMEM;
+            return;
+        }
+
+        *(char **)entry = mFileEntries;
+        memcpy(entry + sizeof(char *), ent->d_name, len + 1);
+        mFileEntries = entry;
+    }
+    closedir(dir);
+}
 
 // -----------------------------------------------------------------------------
 //  LowFSMisc::OnData
@@ -185,6 +376,7 @@ void LowFSMisc::Stat(const char *file_name, int callID)
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 int data_unlink(char *filename);
+int data_rmdir(char *filename);
 int data_rename(char *file_old, char *file_new, bool copy, bool overwrite);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -202,13 +394,8 @@ bool LowFSMisc::OnData()
                 mError = errno;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-            low_free(mOldName);
-            mOldName = NULL;
-
             low_free(mNewName);
             mNewName = NULL;
-
-            low_loop_set_callback(mLow, this);
             break;
 
         case LOWFSMISC_PHASE_UNLINK:
@@ -220,24 +407,62 @@ bool LowFSMisc::OnData()
             if(unlink(mOldName) != 0)
                 mError = errno;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            break;
 
-            low_free(mOldName);
-            mOldName = NULL;
+        case LOWFSMISC_PHASE_RMDIR:
+            mError = 0;
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(data_rmdir(mOldName) != 0)
+                mError = errno;
+#else
+            if(rmdir(mOldName) != 0)
+                mError = errno;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            break;
 
-            low_loop_set_callback(mLow, this);
+        case LOWFSMISC_PHASE_READDIR:
+            mError = 0;
+            ReadDir();
+            break;
+
+        case LOWFSMISC_PHASE_MKDIR:
+            mError = 0;
+            if(mRecursive)
+            {
+                for(int i = 0; mOldName[i]; i++)
+                {
+                    if(mOldName[i] == '/')
+                    {
+                        mOldName[i] = '\0';
+                        mkdir(mOldName, mMode);
+                        mOldName[i] = '/';
+                    }
+                }
+            }
+            if(mkdir(mOldName, mMode) != 0)
+                mError = errno;
             break;
 
         case LOWFSMISC_PHASE_STAT:
             mError = 0;
             if(stat(mOldName, &mStat) != 0)
                 mError = errno;
+            break;
 
-            low_free(mOldName);
-            mOldName = NULL;
-
-            low_loop_set_callback(mLow, this);
+        case LOWFSMISC_PHASE_ACCESS:
+            mError = 0;
+            if(access(mOldName, mMode) != 0)
+                mError = errno;
             break;
     }
+
+    low_free(mOldName);
+    mOldName = NULL;
+
+    if(mCallID)
+        low_loop_set_callback(mLow, this);
+    else
+        pthread_mutex_unlock(&mMutex);
     return true;
 }
 
@@ -247,11 +472,15 @@ bool LowFSMisc::OnData()
 
 bool LowFSMisc::OnLoop()
 {
-    int callID = mCallID;
-    mCallID = 0;
-    mLow->run_ref--;
+    bool isAsync = mCallID != 0;
+    if(isAsync)
+    {
+        int callID = mCallID;
+        mCallID = 0;
+        mLow->run_ref--;
 
-    low_push_stash(mLow, callID, true);
+        low_push_stash(mLow, callID, true);
+    }
     if(mError)
     {
         if(mPhase == LOWFSMISC_PHASE_RENAME)
@@ -260,10 +489,14 @@ bool LowFSMisc::OnLoop()
             low_push_error(mLow, mError, "unlink");
         else
             low_push_error(mLow, mError, "stat");
+
+        if(!isAsync)
+            duk_throw(mLow->duk_ctx);
     }
     else if(mPhase == LOWFSMISC_PHASE_STAT)
     {
-        duk_push_null(mLow->duk_ctx);
+        if(isAsync)
+            duk_push_null(mLow->duk_ctx);
         duk_push_object(mLow->duk_ctx);
 
 #define applyStat(name) {#name, (double)mStat.st_##name}
@@ -284,11 +517,34 @@ bool LowFSMisc::OnLoop()
           {NULL, 0.0}};
 
         duk_put_number_list(mLow->duk_ctx, -1, numberList);
-        duk_call(mLow->duk_ctx, 2);
+        if(isAsync)
+            duk_call(mLow->duk_ctx, 2);
+        return false;
     }
-    else
+    else if(mPhase == LOWFSMISC_PHASE_READDIR)
+    {
+        if(isAsync)
+            duk_push_null(mLow->duk_ctx);
+        duk_push_array(mLow->duk_ctx);
+
+        int i = 0;
+        while(mFileEntries)
+        {
+            char *entry = *(char **)mFileEntries;
+
+            duk_push_string(mLow->duk_ctx, mFileEntries + sizeof(char *));
+            duk_put_prop_index(mLow->duk_ctx, -2, i++);
+            mFileEntries = entry;
+        }
+
+        if(isAsync)
+            duk_call(mLow->duk_ctx, 2);
+        return false;
+    }
+    else if(isAsync)
         duk_push_null(mLow->duk_ctx);
-    duk_call(mLow->duk_ctx, 1);
+    if(isAsync)
+        duk_call(mLow->duk_ctx, 1);
 
     return false;
 }

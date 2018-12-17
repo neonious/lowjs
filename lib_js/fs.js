@@ -3,8 +3,34 @@
 let native = require('native');
 let stream = require('stream');
 
-exports.open = native.open;
-exports.close = native.close;
+module.exports = {
+    open: native.open,
+    openSync: native.openSync,
+
+    closeSync: native.closeSync,
+    close: native.close,
+
+    unlink: native.unlink,
+    unlinkSync: native.unlinkSync,
+
+    rename: native.rename,
+    renameSync: native.renameSync,
+
+    rename: native.rename,
+    renameSync: native.renameSync,
+
+    access: native.access,
+    accessSync: native.accessSync,
+
+    readdir: native.readdir,
+    readdirSync: native.readdirSync,
+
+    mkdir: native.mkdir,
+    mkdirSync: native.mkdirSync,
+
+    rmdir: native.rmdir,
+    rmdirSync: native.rmdirSync
+};
 
 exports.read = (fd, buffer, offset, length, position, callback) => {
     let cb;
@@ -88,9 +114,6 @@ exports.Stats = Stats;
 exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(stat)));
 exports.stat = (path, cb) => native.stat(path, (err, stat) => cb(err, new Stats(stat)));
 exports.statSync = (path, cb) => new Stats(native.statSync(path));
-
-exports.openSync = native.openSync;
-exports.closeSync = native.closeSync;
 
 exports.readSync = (fd, buffer, offset, length, position) => {
     let resErr, resBytesRead;
@@ -254,11 +277,6 @@ exports.writeFile = (path, data, options, callback) => {
     });
 };
 
-exports.rename = native.rename;
-exports.unlink = native.unlink;
-exports.renameSync = native.renameSync;
-exports.unlinkSync = native.unlinkSync;
-
 exports.writeFileSync = (path, data, options) => {
     if (typeof options === 'string')
         options = { 'encoding': options };
@@ -272,6 +290,28 @@ exports.writeFileSync = (path, data, options) => {
     }
     exports.close(fd);
 };
+
+exports.appendFile = (path, data, options, callback) => {
+    if (typeof options === 'string')
+        options = { 'encoding': options, 'flag': 'a' };
+    else if(!callback) {
+        callback = options;
+        options = { 'flag': 'a' };
+    } else if(!options.flag)
+        options.flag = 'a';
+
+    exports.writeFile(path, data, options, callback);
+}
+exports.appendFileSync = (path, data, options) => {
+    if (typeof options === 'string')
+        options = { 'encoding': options, 'flag': 'a' };
+    else if(!options)
+        options = { 'flag': 'a' };
+    else if(!options.flag)
+        options.flag = 'a';
+
+    return exports.writeFileSync(path, data, options);
+}
 
 class ReadStream extends stream.Readable {
     constructor(path, options) {
@@ -512,3 +552,37 @@ exports.WriteStream = WriteStream;
 exports.createWriteStream = (path, options) => {
     return new WriteStream(path, options);
 }
+
+exports.constants = {
+    S_IFIFO: 4096,
+    S_IFCHR: 8192,
+    S_IFDIR: 16384,
+    S_IFBLK: 24576,
+    S_IFREG: 32768,
+    S_IFLNK: 40960,
+    S_IFSOCK: 49152,
+    S_IFMT: 61440,
+    F_OK: 0,
+    R_OK: 4,
+    W_OK: 2,
+    X_OK: 1,
+    COPYFILE_EXCL: 0,
+    COPYFILE_FICLONE: 0,
+    COPYFILE_FICLONE_FORCE: 0,
+    O_RDONLY: 0x0000,
+    O_WRONLY: 0x0001,
+    O_RDWR: 0x0002,
+    O_CREAT: 0x0200,
+    O_EXCL: 0x0800,
+    O_NOCTTY: 0x20000,
+    O_TRUNC: 0x0400,
+    O_APPEND: 0x0008,
+    O_DIRECTORY: 0x100000,
+    O_NOATIME: 0,           // not defined under Mac OS X
+    O_NOFOLLOW: 0x0100,
+    O_SYNC: 0x0080,
+    O_DSYNC: 0x400000,
+    O_SYMLINK: 0x200000,
+    O_DIRECT: 0x100000,
+    O_NONBLOCK: 0x4000
+};
