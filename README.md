@@ -56,7 +56,7 @@ Please see the [lowjs test documentation](https://github.com/neonious/lowjs/blob
 
 We appreciate every person or company who is willing to contribute to low.js and its related products. We will gladly accept any code contribution which helps the cause after an appropriate review. Bug reports and suggestions are also welcome!
 
-low.js, with exception of the adaption for ESP32, is placed under the MIT license, allowing you to use low.js commercially and even modify it. The adaption of low.js for ESP32 is not Open Source. low.js is maintained by neonious GmbH, the makers of the neonious one microcontroller board.
+low.js, with exception of the adaption for ESP32, is placed under the MIT license, allowing you to use low.js commercially and even modify it. The adaption of low.js for ESP32 is not Open Source, but may be used freely with the lowsync flasher. low.js is maintained by neonious GmbH, the makers of the neonious one microcontroller board.
 
 
 ### Contact us
