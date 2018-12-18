@@ -375,8 +375,8 @@ void LowFSMisc::ReadDir()
 // -----------------------------------------------------------------------------
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-int data_unlink(char *filename);
-int data_rmdir(char *filename);
+int data_unlink(char *filename, bool recursive, int isDir);
+int data_mkdir(char *filename, bool recursive);
 int data_rename(char *file_old, char *file_new, bool copy, bool overwrite);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -401,7 +401,7 @@ bool LowFSMisc::OnData()
         case LOWFSMISC_PHASE_UNLINK:
             mError = 0;
 #if LOW_ESP32_LWIP_SPECIALITIES
-            if(data_unlink(mOldName) != 0)
+            if(data_unlink(mOldName, false, 0) != 0)
                 mError = errno;
 #else
             if(unlink(mOldName) != 0)
@@ -412,7 +412,7 @@ bool LowFSMisc::OnData()
         case LOWFSMISC_PHASE_RMDIR:
             mError = 0;
 #if LOW_ESP32_LWIP_SPECIALITIES
-            if(data_rmdir(mOldName) != 0)
+            if(data_unlink(mOldName, false, 1) != 0)
                 mError = errno;
 #else
             if(rmdir(mOldName) != 0)
@@ -427,6 +427,10 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_MKDIR:
             mError = 0;
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(data_mkdir(mOldName, mRecursive) != 0)
+                mError = errno;
+#else
             if(mRecursive)
             {
                 for(int i = 0; mOldName[i]; i++)
@@ -441,6 +445,7 @@ bool LowFSMisc::OnData()
             }
             if(mkdir(mOldName, mMode) != 0)
                 mError = errno;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             break;
 
         case LOWFSMISC_PHASE_STAT:
@@ -487,6 +492,16 @@ bool LowFSMisc::OnLoop()
             low_push_error(mLow, mError, "rename");
         else if(mPhase == LOWFSMISC_PHASE_UNLINK)
             low_push_error(mLow, mError, "unlink");
+        else if(mPhase == LOWFSMISC_PHASE_STAT)
+            low_push_error(mLow, mError, "stat");
+        else if(mPhase == LOWFSMISC_PHASE_ACCESS)
+            low_push_error(mLow, mError, "access");
+        else if(mPhase == LOWFSMISC_PHASE_READDIR)
+            low_push_error(mLow, mError, "readdir");
+        else if(mPhase == LOWFSMISC_PHASE_MKDIR)
+            low_push_error(mLow, mError, "mkdir");
+        else if(mPhase == LOWFSMISC_PHASE_RMDIR)
+            low_push_error(mLow, mError, "rmdir");
         else
             low_push_error(mLow, mError, "stat");
 

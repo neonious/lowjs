@@ -31,6 +31,7 @@ module.exports = {
     rmdir: native.rmdir,
     rmdirSync: native.rmdirSync
 };
+exports = module.exports;
 
 exports.read = (fd, buffer, offset, length, position, callback) => {
     let cb;
