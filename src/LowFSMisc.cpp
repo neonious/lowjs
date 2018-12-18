@@ -339,6 +339,7 @@ void LowFSMisc::Run(int callIndex)
 //  LowFSMisc::ReadDir
 // -----------------------------------------------------------------------------
 
+#if !LOW_ESP32_LWIP_SPECIALITIES
 void LowFSMisc::ReadDir()
 {
     DIR *dir = opendir(mOldName);
@@ -369,6 +370,7 @@ void LowFSMisc::ReadDir()
     }
     closedir(dir);
 }
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 // -----------------------------------------------------------------------------
 //  LowFSMisc::OnData
