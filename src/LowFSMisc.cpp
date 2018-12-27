@@ -354,6 +354,9 @@ void LowFSMisc::ReadDir()
     {
         if(readdir_r(dir, &dirData, &ent) != 0 || !ent)
             break;
+        if(ent->d_name[0] == '.' &&
+            (ent->d_name[1] == '\0' || (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
+            continue;
 
         int len = strlen(ent->d_name);
         char *entry = (char *)low_alloc(sizeof(char *) + len + 1);
