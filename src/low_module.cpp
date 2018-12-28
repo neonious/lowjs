@@ -255,11 +255,11 @@ bool get_data_block(const char *path,
 
     bool isLib = memcmp(path, "lib:", 4) == 0;
 
-    len = strlen(path);
-    for(len--; len >= 0; len--)
+    int fullLen = strlen(path);
+    for(len = fullLen; len >= 0; len--)
         if(path[len] == '.')
             break;
-    if(path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] == 'J') &&
+    if(fullLen - len == 5 && path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] == 'J') &&
        (path[len + 2] == 's' || path[len + 2] == 'S') &&
        (path[len + 3] == 'o' || path[len + 3] == 'O') &&
        (path[len + 4] == 'n' || path[len + 4] == 'N'))
@@ -281,7 +281,10 @@ bool get_data_block(const char *path,
         flags |= LOW_MODULE_FLAG_DUK_FORMAT;
     }
     else if(path[0] == '/')
+    {
+
         sprintf(txt, "/fs/user/.build%s", path);
+    }
     else
     {
         low_free(txt);
