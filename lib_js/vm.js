@@ -22,21 +22,13 @@ class Script {
             sandbox._vmIsRunning++;
         else {
             sandbox._vmIsRunning = 1;
-            for (let i = 0; i < native.jsProps.length; i++) {
-                let name = native.jsProps[i];
-                Object.defineProperty(sandbox, name,
-                    Object.getOwnPropertyDescriptor(global, name));
-            }
+            Object.setPrototypeOf(sandbox, global);
         }
 
         let res = native.runInContext(this._func, sandbox, options ? options.timeout : undefined, options ? !!options.breakOnSigint : undefined);
         if (!--sandbox._vmIsRunning) {
             delete sandbox._vmIsRunning;
-            for (let i = 0; i < native.jsProps.length; i++) {
-                try {   // we cannot remove unconfigurable elements... this is the best we can do
-                    delete sandbox[native.jsProps[i]];
-                } catch (e) { }
-            }
+            Object.setPrototypeOf(sandbox, null);
         }
 
         return res;

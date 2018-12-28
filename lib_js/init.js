@@ -5,15 +5,9 @@
 // See test/bugs/native_Reflect_construct.js for more information
 delete Reflect.construct;
 
-let jsProps = Object.getOwnPropertyNames(global);
-
 let native = require('native');
 let events = require('events');
-
-var index = jsProps.indexOf('global');
-if (index > -1)
-    jsProps.splice(index, 1);
-native.jsProps = jsProps;
+var loadedBla = false;
 
 const {
     ERR_INVALID_ARG_TYPE,
@@ -662,17 +656,20 @@ Promise.reject = function(reason){
     }, true);
   }
 
-
   /**
    * ES6 collection constructor
    * @return {Function} a collection class
    */
   function createCollection(proto, objectOnly){
     function Collection(a){
-      if (!this || (this.constructor !== Collection
-        && this.constructor !== Map && this.constructor !== WeakMap
-        && this.constructor !== Set && this.constructor !== WeakSet))
+      // Only test by name works 100% in vm
+      // Test all 5 variants b/c required when core-js is used
+      let name = this && this.constructor ? this.constructor.name : null;
+      if (name !== "Collection"
+       && name !== "Set" && name !== "WeakSet"
+       && name !== "Map" && name !== "WeakMap")
             return new Collection(a);
+
       this._keys = [];
       this._values = [];
       this._itp = []; // iteration pointers
@@ -1798,3 +1795,4 @@ exports.regeneratorRuntime = (function (exports) {
   // the regeneratorRuntime variable at the top of this file.
   typeof module === "object" ? module.exports : {}
 ));
+loadedBla = true;
