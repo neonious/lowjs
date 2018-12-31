@@ -8,22 +8,23 @@
 #include "duktape.h"
 
 duk_ret_t low_fs_open(duk_context *ctx);
+
 duk_ret_t low_fs_open_sync(duk_context *ctx);
 
 duk_ret_t low_fs_close(duk_context *ctx);
+
 duk_ret_t low_fs_close_sync(duk_context *ctx);
 
 duk_ret_t low_fs_read(duk_context *ctx);
+
 duk_ret_t low_fs_write(duk_context *ctx);
+
 duk_ret_t low_fs_fstat(duk_context *ctx);
 
 duk_ret_t low_fs_waitdone(duk_context *ctx);
+
 duk_ret_t low_fs_file_pos(duk_context *ctx);
 
-bool low_fs_resolve(char *res,
-                    int res_len,
-                    const char *base,
-                    const char *add,
-                    const char *add_node_modules_at = NULL);
+bool low_fs_resolve(char *res, int res_len, const char *base, const char *add, const char *add_node_modules_at = NULL);
 
 #endif /* __LOW_FS_H__ */

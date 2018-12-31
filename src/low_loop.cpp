@@ -21,19 +21,21 @@ void user_cpu_load(bool active);
 
 bool low_loop_run(low_main_t *low)
 {
-    while(!low->duk_flag_stop && (low->run_ref || low->loop_callback_first))
+    while (!low->duk_flag_stop && (low->run_ref || low->loop_callback_first))
     {
         int millisecs = -1;
-        if(low->chore_times.size())
+        if (low->chore_times.size())
         {
             int tick_count = low_tick_count();
 
             auto iter = low->chore_times.lower_bound(low->last_chore_time);
-            if(iter == low->chore_times.end())
+            if (iter == low->chore_times.end())
+            {
                 iter = low->chore_times.begin();
+            }
 
             millisecs = iter->first - tick_count;
-            if(millisecs <= 0)
+            if (millisecs <= 0)
             {
                 low->last_chore_time = iter->first;
 
@@ -42,29 +44,32 @@ bool low_loop_run(low_main_t *low)
 
                 auto iterData = low->chores.find(index);
                 bool erase = iterData->second.oneshot;
-                if(erase)
+                if (erase)
                 {
-                    if(iterData->second.ref)
+                    if (iterData->second.ref)
+                    {
                         low->run_ref--;
+                    }
                     low->chores.erase(iterData);
                 }
                 else
                 {
                     iterData->second.stamp += iterData->second.interval;
-                    if(iterData->second.stamp - tick_count < 0)
+                    if (iterData->second.stamp - tick_count < 0)
+                    {
                         iterData->second.stamp = tick_count;
+                    }
 
-                    low->chore_times.insert(
-                      pair<int, int>(iterData->second.stamp, index));
+                    low->chore_times.insert(pair<int, int>(iterData->second.stamp, index));
                 }
 
                 int args[2] = {index, erase};
-                if(duk_safe_call(
-                     low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) !=
-                   DUK_EXEC_SUCCESS)
+                if (duk_safe_call(low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) != DUK_EXEC_SUCCESS)
                 {
-                    if(!low->duk_flag_stop) // flag stop also produces error
+                    if (!low->duk_flag_stop)
+                    { // flag stop also produces error
                         low_duk_print_error(low->duk_ctx);
+                    }
                     duk_pop(low->duk_ctx);
 
                     return low->duk_flag_stop;
@@ -75,14 +80,14 @@ bool low_loop_run(low_main_t *low)
         }
 
         pthread_mutex_lock(&low->loop_thread_mutex);
-        if(!low->loop_callback_first)
+        if (!low->loop_callback_first)
         {
             duk_debugger_cooperate(low->duk_ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(false);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            if(millisecs >= 0)
+            if (millisecs >= 0)
             {
                 /*
                 // TODO under os x
@@ -105,54 +110,58 @@ bool low_loop_run(low_main_t *low)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 ts.tv_sec += secs;
                 ts.tv_nsec += (millisecs - secs * 1000) * 1000000;
-                if(ts.tv_nsec >= 1000000000)
+                if (ts.tv_nsec >= 1000000000)
                 {
                     ts.tv_sec++;
                     ts.tv_nsec -= 1000000000;
                 }
 
-                pthread_cond_timedwait(
-                  &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
+                pthread_cond_timedwait(&low->loop_thread_cond, &low->loop_thread_mutex, &ts);
             }
             else
-                pthread_cond_wait(&low->loop_thread_cond,
-                                  &low->loop_thread_mutex);
+            {
+                pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
+            }
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         }
-        if(low->loop_callback_first)
+        if (low->loop_callback_first)
         {
-            while(true)
+            while (true)
             {
                 LowLoopCallback *callback = low->loop_callback_first;
 
                 low->loop_callback_first = callback->mNext;
-                if(!low->loop_callback_first)
+                if (!low->loop_callback_first)
+                {
                     low->loop_callback_last = NULL;
+                }
                 callback->mNext = NULL;
 
                 pthread_mutex_unlock(&low->loop_thread_mutex);
-                if(duk_safe_call(low->duk_ctx,
-                                 low_loop_call_callback_safe,
-                                 callback,
-                                 0,
-                                 1) != DUK_EXEC_SUCCESS)
+                if (duk_safe_call(low->duk_ctx, low_loop_call_callback_safe, callback, 0, 1) != DUK_EXEC_SUCCESS)
                 {
-                    if(!low->duk_flag_stop) // flag stop also produces error
+                    if (!low->duk_flag_stop)
+                    { // flag stop also produces error
                         low_duk_print_error(low->duk_ctx);
+                    }
                     duk_pop(low->duk_ctx);
 
                     return low->duk_flag_stop;
                 }
                 duk_pop(low->duk_ctx);
-                if(!low->loop_callback_first)
+                if (!low->loop_callback_first)
+                {
                     break;
+                }
                 pthread_mutex_lock(&low->loop_thread_mutex);
             }
         }
         else
+        {
             pthread_mutex_unlock(&low->loop_thread_mutex);
+        }
     }
     return true;
 }
@@ -163,7 +172,7 @@ bool low_loop_run(low_main_t *low)
 
 duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
 {
-    int *args = (int *)udata;
+    int *args = (int *) udata;
 
     low_push_stash(duk_get_low_context(ctx), args[0], args[1]);
     duk_call(ctx, 0);
@@ -176,9 +185,11 @@ duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
 
 duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata)
 {
-    LowLoopCallback *callback = (LowLoopCallback *)udata;
-    if(!callback->OnLoop())
+    LowLoopCallback *callback = (LowLoopCallback *) udata;
+    if (!callback->OnLoop())
+    {
         delete callback;
+    }
     return 0;
 }
 
@@ -192,8 +203,10 @@ duk_ret_t low_loop_set_chore(duk_context *ctx)
     int index = low_add_stash(low, 0);
 
     int delay = duk_require_int(ctx, 1);
-    if(delay < 0)
+    if (delay < 0)
+    {
         delay = 0;
+    }
 
     low_chore_t &chore = low->chores[index];
     chore.interval = delay;
@@ -217,16 +230,22 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
     int index = duk_require_int(ctx, 0);
 
     auto iter = low->chores.find(index);
-    if(iter == low->chores.end())
+    if (iter == low->chores.end())
+    {
         return 0;
+    }
 
     auto iter2 = low->chore_times.find(iter->second.stamp);
-    while(iter2->second != index)
+    while (iter2->second != index)
+    {
         iter2++;
+    }
     low->chore_times.erase(iter2);
 
-    if(iter->second.ref)
+    if (iter->second.ref)
+    {
         low->run_ref--;
+    }
     low->chores.erase(iter);
     low_remove_stash(low, index);
 
@@ -244,15 +263,21 @@ duk_ret_t low_loop_chore_ref(duk_context *ctx)
     bool ref = duk_require_boolean(ctx, 1);
 
     auto iter = low->chores.find(index);
-    if(iter == low->chores.end())
-        return 0;
-
-    if(iter->second.ref != ref)
+    if (iter == low->chores.end())
     {
-        if(ref)
+        return 0;
+    }
+
+    if (iter->second.ref != ref)
+    {
+        if (ref)
+        {
             low->run_ref++;
+        }
         else
+        {
             low->run_ref--;
+        }
         iter->second.ref = ref;
     }
 
@@ -277,16 +302,20 @@ duk_ret_t low_loop_run_ref(duk_context *ctx)
 void low_loop_set_callback(low_main_t *low, LowLoopCallback *callback)
 {
     pthread_mutex_lock(&low->loop_thread_mutex);
-    if(callback->mNext || low->loop_callback_last == callback)
+    if (callback->mNext || low->loop_callback_last == callback)
     {
         pthread_mutex_unlock(&low->loop_thread_mutex);
         return;
     }
 
-    if(low->loop_callback_last)
+    if (low->loop_callback_last)
+    {
         low->loop_callback_last->mNext = callback;
+    }
     else
+    {
         low->loop_callback_first = callback;
+    }
     low->loop_callback_last = callback;
 
     pthread_cond_signal(&low->loop_thread_cond);
@@ -300,27 +329,33 @@ void low_loop_set_callback(low_main_t *low, LowLoopCallback *callback)
 void low_loop_clear_callback(low_main_t *low, LowLoopCallback *callback)
 {
     pthread_mutex_lock(&low->loop_thread_mutex);
-    if(callback->mNext || low->loop_callback_last == callback)
+    if (callback->mNext || low->loop_callback_last == callback)
     {
         LowLoopCallback *elem = low->loop_callback_first;
-        if(elem == callback)
+        if (elem == callback)
         {
             low->loop_callback_first = elem->mNext;
-            if(!low->loop_callback_first)
+            if (!low->loop_callback_first)
+            {
                 low->loop_callback_last = NULL;
+            }
         }
         else
         {
-            while(elem->mNext != callback)
+            while (elem->mNext != callback)
+            {
                 elem = elem->mNext;
+            }
 
-            if(low->loop_callback_last == callback)
+            if (low->loop_callback_last == callback)
             {
                 low->loop_callback_last = elem;
                 elem->mNext = NULL;
             }
             else
+            {
                 elem->mNext = callback->mNext;
+            }
         }
         callback->mNext = NULL;
     }

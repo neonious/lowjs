@@ -1,4 +1,3 @@
-
 // -----------------------------------------------------------------------------
 //  LowTLSContext.h
 // -----------------------------------------------------------------------------
@@ -20,37 +19,37 @@ using namespace std;
 
 class LowTLSContext
 {
-  public:
-    LowTLSContext(low_main_t *low,
-                  const char *cert = NULL,
-                  int certLen = 0,
-                  const char *key = NULL,
-                  int keyLen = 0,
-                  const char *ca = NULL,
-                  int caLen = 0,
-                  bool isServer = false);
-    ~LowTLSContext();
+public:
+  LowTLSContext(low_main_t *low, const char *cert = NULL, int certLen = 0, const char *key = NULL, int keyLen = 0,
+                const char *ca = NULL, int caLen = 0, bool isServer = false);
 
-    bool IsOK() { return mIsOK; }
+  ~LowTLSContext();
 
-    void SetIndex(int index) { mIndex = index; }
-    void AddRef();
-    void DecRef();
+  bool IsOK()
+  { return mIsOK; }
 
-    mbedtls_ssl_config &GetSSLConfig() { return conf; }
+  void SetIndex(int index)
+  { mIndex = index; }
 
-  private:
-    low_main_t *mLow;
-    int mRef;
-    int mIndex;
+  void AddRef();
 
-    mbedtls_entropy_context entropy;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ssl_config conf;
-    mbedtls_x509_crt srvcert;
-    mbedtls_pk_context pkey;
+  void DecRef();
 
-    bool mIsOK, mHasCert, mHasCA;
+  mbedtls_ssl_config &GetSSLConfig()
+  { return conf; }
+
+private:
+  low_main_t *mLow;
+  int mRef;
+  int mIndex;
+
+  mbedtls_entropy_context entropy;
+  mbedtls_ctr_drbg_context ctr_drbg;
+  mbedtls_ssl_config conf;
+  mbedtls_x509_crt srvcert;
+  mbedtls_pk_context pkey;
+
+  bool mIsOK, mHasCert, mHasCA;
 };
 
 #endif /* __LOWTLSCONTEXT_H__ */

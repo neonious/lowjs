@@ -20,9 +20,11 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 #else
+
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
+
 #endif /* __APPLE__ */
 
 // used in low_hrtime() below
@@ -56,7 +58,7 @@ static duk_ret_t low_process_cwd(duk_context *ctx)
     duk_push_string(ctx, duk_get_low_context(ctx)->cwd);
 #else
     char path[1024];
-    if(!getcwd(path, sizeof(path)))
+    if (!getcwd(path, sizeof(path)))
     {
         low_push_error(duk_get_low_context(ctx), errno, "getcwd");
         duk_throw(ctx);
@@ -89,7 +91,7 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
     low_free(low->cwd);
     low->cwd = cwd;
 #else
-    if(chdir(path) < 0)
+    if (chdir(path) < 0)
     {
         low_push_error(duk_get_low_context(ctx), errno, "getcwd");
         duk_throw(ctx);
@@ -133,14 +135,14 @@ duk_ret_t low_process_info(duk_context *ctx)
 
     duk_push_object(ctx);
 #if !LOW_ESP32_LWIP_SPECIALITIES
-    for(int i = 0; environ && environ[i]; i++)
+    for (int i = 0; environ && environ[i]; i++)
     {
         int j;
-        for(j = 0; environ[i][j] && environ[i][j] != '='; j++)
+        for (j = 0; environ[i][j] && environ[i][j] != '='; j++)
         {
         }
 
-        if(environ[i][j])
+        if (environ[i][j])
         {
             duk_push_string(ctx, &environ[i][j + 1]);
             environ[i][j] = '\0';
@@ -260,14 +262,16 @@ duk_ret_t low_hrtime(duk_context *ctx)
     clock_get_time(cclock, &ts);
 #else
     struct timespec ts;
-    if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+    {
         low_error_errno();
+    }
 #endif /* __APPLE__ */
 
-    t = (((uint64_t)ts.tv_sec) * NANOS_PER_SEC + ts.tv_nsec);
+    t = (((uint64_t) ts.tv_sec) * NANOS_PER_SEC + ts.tv_nsec);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    uint32_t *fields = (uint32_t *)duk_require_buffer_data(ctx, 0, nullptr);
+    uint32_t *fields = (uint32_t *) duk_require_buffer_data(ctx, 0, nullptr);
     fields[0] = (t / NANOS_PER_SEC) >> 32;
     fields[1] = (t / NANOS_PER_SEC) & 0xffffffff;
     fields[2] = t % NANOS_PER_SEC;

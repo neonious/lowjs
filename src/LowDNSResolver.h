@@ -13,94 +13,105 @@ struct low_main_t;
 
 class LowDNSResolver
 {
-    friend class LowDNSResolver_Query;
-    friend class LowDNSResolver_GetHostByAddr;
+  friend class LowDNSResolver_Query;
 
-  public:
-    LowDNSResolver(low_main_t *low);
-    virtual ~LowDNSResolver();
+  friend class LowDNSResolver_GetHostByAddr;
 
-    bool Init();
-    void Cancel();
+public:
+  LowDNSResolver(low_main_t *low);
 
-    struct ares_addr_port_node *GetServers(int &err);
-    int SetServers(struct ares_addr_port_node *list);
+  virtual ~LowDNSResolver();
 
-    ares_channel &Channel() { return mChannel; }
-    bool IsActive() { return mActiveQueries != 0; }
+  bool Init();
 
-    static int AresErr(int err);
+  void Cancel();
 
-  private:
-    low_main_t *mLow;
+  struct ares_addr_port_node *GetServers(int &err);
 
-    ares_channel mChannel;
-    int mIndex, mActiveQueries;
+  int SetServers(struct ares_addr_port_node *list);
+
+  ares_channel &Channel()
+  { return mChannel; }
+
+  bool IsActive()
+  { return mActiveQueries != 0; }
+
+  static int AresErr(int err);
+
+private:
+  low_main_t *mLow;
+
+  ares_channel mChannel;
+  int mIndex, mActiveQueries;
 };
 
 class LowDNSResolver_Query : public LowLoopCallback
 {
-  public:
-    LowDNSResolver_Query(LowDNSResolver *resolver);
-    virtual ~LowDNSResolver_Query();
+public:
+  LowDNSResolver_Query(LowDNSResolver *resolver);
 
-    void Resolve(const char *hostname, const char *type, bool ttl, int refIndex, int callIndex);
+  virtual ~LowDNSResolver_Query();
 
-  protected:
-    virtual bool OnLoop();
+  void Resolve(const char *hostname, const char *type, bool ttl, int refIndex, int callIndex);
 
-  private:
-    void Callback(int status, int timeouts, unsigned char *abuf, int alen);
-    static void CallbackStatic(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
-    {
-        ((LowDNSResolver_Query *)arg)->Callback(status, timeouts, abuf, alen);
-    }
+protected:
+  virtual bool OnLoop();
 
-  private:
-    LowDNSResolver *mResolver;
-    low_main_t *mLow;
-    ares_channel mChannel;
+private:
+  void Callback(int status, int timeouts, unsigned char *abuf, int alen);
 
-    bool mTTL;
-    int mDNSType;
+  static void CallbackStatic(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
+  {
+      ((LowDNSResolver_Query *) arg)->Callback(status, timeouts, abuf, alen);
+  }
 
-    int mRefID, mCallID, mError;
-    const char *mSyscall;
+private:
+  LowDNSResolver *mResolver;
+  low_main_t *mLow;
+  ares_channel mChannel;
 
-    unsigned char *mData;
-    int mLen;
+  bool mTTL;
+  int mDNSType;
 
-    void *mDataFree, *mAresFree;
-    struct hostent *mHostFree;
+  int mRefID, mCallID, mError;
+  const char *mSyscall;
+
+  unsigned char *mData;
+  int mLen;
+
+  void *mDataFree, *mAresFree;
+  struct hostent *mHostFree;
 };
 
 class LowDNSResolver_GetHostByAddr : public LowLoopCallback
 {
-  public:
-    LowDNSResolver_GetHostByAddr(LowDNSResolver *resolver);
-    virtual ~LowDNSResolver_GetHostByAddr();
+public:
+  LowDNSResolver_GetHostByAddr(LowDNSResolver *resolver);
 
-    int Resolve(const char *hostname, int refIndex, int callIndex);
+  virtual ~LowDNSResolver_GetHostByAddr();
 
-  protected:
-    virtual bool OnLoop();
+  int Resolve(const char *hostname, int refIndex, int callIndex);
 
-  private:
-    void Callback(int status, int timeouts, struct hostent *hostent);
-    static void CallbackStatic(void *arg, int status, int timeouts, struct hostent *hostent)
-    {
-        ((LowDNSResolver_GetHostByAddr *)arg)->Callback(status, timeouts, hostent);
-    }
+protected:
+  virtual bool OnLoop();
 
-  private:
-    LowDNSResolver *mResolver;
-    low_main_t *mLow;
-    ares_channel mChannel;
+private:
+  void Callback(int status, int timeouts, struct hostent *hostent);
 
-    int mRefID, mCallID, mError;
-    const char *mSyscall;
+  static void CallbackStatic(void *arg, int status, int timeouts, struct hostent *hostent)
+  {
+      ((LowDNSResolver_GetHostByAddr *) arg)->Callback(status, timeouts, hostent);
+  }
 
-    char **mResult;
+private:
+  LowDNSResolver *mResolver;
+  low_main_t *mLow;
+  ares_channel mChannel;
+
+  int mRefID, mCallID, mError;
+  const char *mSyscall;
+
+  char **mResult;
 };
 
 #endif /* __LOWDNSRESOLVER_H__ */

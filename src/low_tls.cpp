@@ -24,10 +24,10 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     duk_size_t cert_len, key_len, ca_len;
 
     duk_get_prop_string(ctx, 0, "cert");
-    if(duk_is_string(ctx, -1))
+    if (duk_is_string(ctx, -1))
     {
         my_cert = low_strdup(duk_get_string(ctx, -1));
-        if(!my_cert)
+        if (!my_cert)
         {
             low_push_error(low, ENOMEM, "malloc");
             duk_throw(ctx);
@@ -36,11 +36,11 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     }
     else
     {
-        cert = (unsigned char *)duk_get_buffer_data(ctx, -1, &cert_len);
-        if(cert)
+        cert = (unsigned char *) duk_get_buffer_data(ctx, -1, &cert_len);
+        if (cert)
         {
-            my_cert = (char *)low_alloc(cert_len + 1);
-            if(!my_cert)
+            my_cert = (char *) low_alloc(cert_len + 1);
+            if (!my_cert)
             {
                 low_push_error(low, ENOMEM, "malloc");
                 duk_throw(ctx);
@@ -50,10 +50,10 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
         }
     }
     duk_get_prop_string(ctx, 0, "key");
-    if(duk_is_string(ctx, -1))
+    if (duk_is_string(ctx, -1))
     {
         my_key = low_strdup(duk_get_string(ctx, -1));
-        if(!my_key)
+        if (!my_key)
         {
             low_free(my_cert);
             low_push_error(low, ENOMEM, "malloc");
@@ -63,11 +63,11 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     }
     else
     {
-        key = (unsigned char *)duk_get_buffer_data(ctx, -1, &key_len);
-        if(key)
+        key = (unsigned char *) duk_get_buffer_data(ctx, -1, &key_len);
+        if (key)
         {
-            my_key = (char *)low_alloc(key_len + 1);
-            if(!my_key)
+            my_key = (char *) low_alloc(key_len + 1);
+            if (!my_key)
             {
                 low_free(my_cert);
                 low_push_error(low, ENOMEM, "malloc");
@@ -78,11 +78,11 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
         }
     }
     duk_get_prop_string(ctx, 0, "ca");
-    ca = (unsigned char *)duk_get_buffer_data(ctx, -1, &ca_len);
-    if(duk_is_string(ctx, -1))
+    ca = (unsigned char *) duk_get_buffer_data(ctx, -1, &ca_len);
+    if (duk_is_string(ctx, -1))
     {
         my_ca = low_strdup(duk_get_string(ctx, -1));
-        if(!my_ca)
+        if (!my_ca)
         {
             low_free(my_cert);
             low_free(my_key);
@@ -93,11 +93,11 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     }
     else
     {
-        ca = (unsigned char *)duk_get_buffer_data(ctx, -1, &ca_len);
-        if(ca)
+        ca = (unsigned char *) duk_get_buffer_data(ctx, -1, &ca_len);
+        if (ca)
         {
-            my_ca = (char *)low_alloc(ca_len + 1);
-            if(!my_ca)
+            my_ca = (char *) low_alloc(ca_len + 1);
+            if (!my_ca)
             {
                 low_free(my_cert);
                 low_free(my_key);
@@ -109,27 +109,30 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
         }
     }
 
-    LowTLSContext *context = new(low_new) LowTLSContext(
-      low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, true);
+    LowTLSContext *context = new(low_new) LowTLSContext(low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, true);
     low_free(my_cert);
     low_free(my_key);
     low_free(my_ca);
 
-    if(!context->IsOK())
+    if (!context->IsOK())
     {
         delete context;
         duk_generic_error(ctx, "SSL context error");
     }
 
     int index;
-    for(index = 0; index < low->tlsContexts.size(); index++)
-        if(!low->tlsContexts[index])
+    for (index = 0; index < low->tlsContexts.size(); index++)
+    {
+        if (!low->tlsContexts[index])
         {
             low->tlsContexts[index] = context;
             break;
         }
-    if(index == low->tlsContexts.size())
+    }
+    if (index == low->tlsContexts.size())
+    {
         low->tlsContexts.push_back(context);
+    }
     context->SetIndex(index);
 
     duk_push_object(low->duk_ctx);
@@ -152,8 +155,10 @@ duk_ret_t low_tls_context_finalizer(duk_context *ctx)
 
     duk_get_prop_string(ctx, 0, "_index");
     int index = duk_require_int(ctx, -1);
-    if(index < 0 || index >= low->tlsContexts.size())
+    if (index < 0 || index >= low->tlsContexts.size())
+    {
         duk_reference_error(ctx, "tls context not found");
+    }
 
     low->tlsContexts[index]->DecRef();
     return 0;

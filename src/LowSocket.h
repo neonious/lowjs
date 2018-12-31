@@ -15,9 +15,7 @@
 
 enum LowSocketType
 {
-    LOWSOCKET_TYPE_STDINOUT,
-    LOWSOCKET_TYPE_ACCEPTED,
-    LOWSOCKET_TYPE_CONNECTED
+  LOWSOCKET_TYPE_STDINOUT, LOWSOCKET_TYPE_ACCEPTED, LOWSOCKET_TYPE_CONNECTED
 };
 
 const int LOWSOCKET_TRIGGER_READ = 1;
@@ -26,93 +24,88 @@ const int LOWSOCKET_TRIGGER_WRITE = 2;
 struct low_main_t;
 
 class LowSocketDirect;
-class LowSocket
-    : public LowFD
-    , public LowLoopCallback
+
+class LowSocket : public LowFD, public LowLoopCallback
 {
-  public:
-    LowSocket(low_main_t *low, int fd); // LOWSOCKET_TYPE_STDINOUT
-    LowSocket(low_main_t *low,
-              int fd,
-              struct sockaddr *remoteAddr,
-              int acceptCallID,
-              LowSocketDirect *direct,
-              int directType,
-              LowTLSContext *tlsContext,
-              bool clearOnReset = true); // LOWSOCKET_TYPE_ACCEPTED
-    LowSocket(low_main_t *low,
-              LowSocketDirect *direct,
-              int directType,
-              LowTLSContext *tlsContext,
-              bool clearOnReset = true); // LOWSOCKET_TYPE_CONNECTED
-    virtual ~LowSocket();
+public:
+  LowSocket(low_main_t *low, int fd); // LOWSOCKET_TYPE_STDINOUT
+  LowSocket(low_main_t *low, int fd, struct sockaddr *remoteAddr, int acceptCallID, LowSocketDirect *direct,
+            int directType, LowTLSContext *tlsContext, bool clearOnReset = true); // LOWSOCKET_TYPE_ACCEPTED
+  LowSocket(low_main_t *low, LowSocketDirect *direct, int directType, LowTLSContext *tlsContext,
+            bool clearOnReset = true); // LOWSOCKET_TYPE_CONNECTED
+  virtual ~LowSocket();
 
-    bool Connect(struct sockaddr *remoteAddr,
-                 int remoteAddrLen,
-                 int callIndex,
-                 int &err,
-                 const char *&syscall);
+  bool Connect(struct sockaddr *remoteAddr, int remoteAddrLen, int callIndex, int &err, const char *&syscall);
 
-    void Read(int pos, unsigned char *data, int len, int callIndex);
-    void Write(int pos, unsigned char *data, int len, int callIndex);
-    void Shutdown(int callIndex); // JS version
-    int Shutdown();
-    bool Close(int callIndex = -1);
+  void Read(int pos, unsigned char *data, int len, int callIndex);
 
-    void KeepAlive(bool enable, int secs);
-    void NoDelay(bool enable);
+  void Write(int pos, unsigned char *data, int len, int callIndex);
 
-    bool SetDirect(LowSocketDirect *direct,
-                   int type,
-                   bool fromWebThread = false);
-    LowSocketDirect *GetDirect(int &type);
-    void TriggerDirect(int trigger);
+  void Shutdown(int callIndex); // JS version
+  int Shutdown();
 
-    // for direct
-    int write(const unsigned char *data, int len);
-    int writev(const struct iovec *iov, int iovcnt);
+  bool Close(int callIndex = -1);
 
-    void SetError(bool write, int error, bool ssl);
-    void PushError(int call);
+  void KeepAlive(bool enable, int secs);
 
-    bool IsConnected() { return mConnected; }
+  void NoDelay(bool enable);
 
-  protected:
-    virtual bool OnEvents(short events);
-    virtual bool OnLoop();
+  bool SetDirect(LowSocketDirect *direct, int type, bool fromWebThread = false);
 
-    bool InitSocket(struct sockaddr *remoteAddr);
-    bool CallAcceptConnect(int callIndex, bool onStash);
+  LowSocketDirect *GetDirect(int &type);
 
-    int DoRead();
-    int DoWrite();
+  void TriggerDirect(int trigger);
 
-  private:
-    low_main_t *mLow;
-    LowSocketType mType;
-    short mLastEvents;
+  // for direct
+  int write(const unsigned char *data, int len);
 
-    int mNodeFamily;
-    char mRemoteHost[INET6_ADDRSTRLEN];
-    int mRemotePort;
+  int writev(const struct iovec *iov, int iovcnt);
 
-    int mAcceptConnectCallID, mAcceptConnectErrno, mCloseCallID;
-    bool mAcceptConnectError, mAcceptConnectErrnoSSL, mConnected, mClosed,
-      mDestroyed;
-    const char *mAcceptConnectSyscall;
+  void SetError(bool write, int error, bool ssl);
 
-    unsigned char *mReadData, *mWriteData;
-    int mReadLen, mReadCallID, mReadPos, mReadErrno;
-    int mWriteLen, mWriteCallID, mWritePos, mWriteErrno;
-    bool mReadErrnoSSL, mWriteErrnoSSL;
+  void PushError(int call);
 
-    LowSocketDirect *mDirect;
-    int mDirectType;
-    bool mDirectReadEnabled, mDirectWriteEnabled;
+  bool IsConnected()
+  { return mConnected; }
 
-    LowTLSContext *mTLSContext;
-    mbedtls_ssl_context *mSSL;
-    bool mSSLWantRead, mSSLWantWrite;
+protected:
+  virtual bool OnEvents(short events);
+
+  virtual bool OnLoop();
+
+  bool InitSocket(struct sockaddr *remoteAddr);
+
+  bool CallAcceptConnect(int callIndex, bool onStash);
+
+  int DoRead();
+
+  int DoWrite();
+
+private:
+  low_main_t *mLow;
+  LowSocketType mType;
+  short mLastEvents;
+
+  int mNodeFamily;
+  char mRemoteHost[INET6_ADDRSTRLEN];
+  int mRemotePort;
+
+  int mAcceptConnectCallID, mAcceptConnectErrno, mCloseCallID;
+  bool mAcceptConnectError, mAcceptConnectErrnoSSL, mConnected, mClosed, mDestroyed;
+  const char *mAcceptConnectSyscall;
+
+  unsigned char *mReadData, *mWriteData;
+  int mReadLen, mReadCallID, mReadPos, mReadErrno;
+  int mWriteLen, mWriteCallID, mWritePos, mWriteErrno;
+  bool mReadErrnoSSL, mWriteErrnoSSL;
+
+  LowSocketDirect *mDirect;
+  int mDirectType;
+  bool mDirectReadEnabled, mDirectWriteEnabled;
+
+  LowTLSContext *mTLSContext;
+  mbedtls_ssl_context *mSSL;
+  bool mSSLWantRead, mSSLWantWrite;
 };
 
 #endif /* __LOWSOCKET_H__ */

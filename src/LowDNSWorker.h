@@ -15,26 +15,29 @@ struct low_main_t;
 class LowDNSWorker : public LowLoopCallback, public LowDataCallback
 {
 public:
-    LowDNSWorker(low_main_t *low);
-    virtual ~LowDNSWorker();
+  LowDNSWorker(low_main_t *low);
 
-    bool Lookup(const char *host, int family, int hints, int callIndex);
-    bool LookupService(const char *ip, int port, int callIndex);
+  virtual ~LowDNSWorker();
+
+  bool Lookup(const char *host, int family, int hints, int callIndex);
+
+  bool LookupService(const char *ip, int port, int callIndex);
 
 protected:
-    virtual bool OnLoop();
-    virtual bool OnData();
+  virtual bool OnLoop();
+
+  virtual bool OnData();
 
 private:
-    low_main_t *mLow;
+  low_main_t *mLow;
 
-    char mIP[INET_ADDRSTRLEN];
-    char mHost[64], mService[64];
-    int mFamily, mHints, mPort, mCallID;
-    bool mLookupService;
-    int mError;
+  char mIP[INET_ADDRSTRLEN];
+  char mHost[64], mService[64];
+  int mFamily, mHints, mPort, mCallID;
+  bool mLookupService;
+  int mError;
 
-    struct addrinfo *mResult;
+  struct addrinfo *mResult;
 };
 
 #endif /* __LOWDNSWORKER_H__ */

@@ -27,13 +27,18 @@
 //  LowServerSocket::LowServerSocket
 // -----------------------------------------------------------------------------
 
-LowServerSocket::LowServerSocket(low_main_t *low, bool isHTTP,
-                                 LowTLSContext *secureContext)
-    : LowFD(low, LOWFD_TYPE_SERVER), mLow(low), mIsHTTP(isHTTP),
-      mAcceptCallID(0), mSecureContext(secureContext)
+LowServerSocket::LowServerSocket(low_main_t *low, bool isHTTP, LowTLSContext *secureContext) : LowFD(low,
+                                                                                                     LOWFD_TYPE_SERVER),
+                                                                                               mLow(low),
+                                                                                               mIsHTTP(isHTTP),
+                                                                                               mAcceptCallID(0),
+                                                                                               mSecureContext(
+                                                                                                   secureContext)
 {
     if (mSecureContext)
+    {
         mSecureContext->AddRef();
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -45,20 +50,25 @@ LowServerSocket::~LowServerSocket()
     low_web_clear_poll(mLow, this);
 
     if (FD() >= 0)
+    {
         close(FD());
+    }
 
     if (mAcceptCallID)
+    {
         low_remove_stash(mLow, mAcceptCallID);
+    }
     if (mSecureContext)
+    {
         mSecureContext->DecRef();
+    }
 }
 
 // -----------------------------------------------------------------------------
 //  LowServerSocket::Listen
 // -----------------------------------------------------------------------------
 
-bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
-                             int &err, const char *&syscall)
+bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex, int &err, const char *&syscall)
 {
     if (FD() >= 0)
     {
@@ -76,8 +86,7 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
     }
 
     u_long mode = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *)&mode, sizeof(mode)) <
-        0)
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &mode, sizeof(mode)) < 0)
     {
         err = errno;
         syscall = "setsockopt";
@@ -112,8 +121,11 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
     }
 
     // Get port, if we called bind with 0
-    if ((addr->sa_family == AF_INET && !((struct sockaddr_in *)addr)->sin_port) || (addr->sa_family == AF_INET6 && !((struct sockaddr_in6 *)addr)->sin6_port))
-        getsockname(fd, addr, (socklen_t *)&addrLen);
+    if ((addr->sa_family == AF_INET && !((struct sockaddr_in *) addr)->sin_port) ||
+        (addr->sa_family == AF_INET6 && !((struct sockaddr_in6 *) addr)->sin6_port))
+    {
+        getsockname(fd, addr, (socklen_t * ) & addrLen);
+    }
 
     SetFD(fd);
     AdvertiseFD();
@@ -136,8 +148,7 @@ void LowServerSocket::Read(int pos, unsigned char *data, int len, int callIndex)
 //  LowServerSocket::Write
 // -----------------------------------------------------------------------------
 
-void LowServerSocket::Write(int pos, unsigned char *data, int len,
-                            int callIndex)
+void LowServerSocket::Write(int pos, unsigned char *data, int len, int callIndex)
 {
     duk_reference_error(mLow->duk_ctx, "write not supported on server");
 }
@@ -146,7 +157,8 @@ void LowServerSocket::Write(int pos, unsigned char *data, int len,
 //  LowServerSocket::Close
 // -----------------------------------------------------------------------------
 
-bool LowServerSocket::Close(int callIndex) { return false; }
+bool LowServerSocket::Close(int callIndex)
+{ return false; }
 
 // -----------------------------------------------------------------------------
 //  LowServerSocket::OnEvents
@@ -157,7 +169,7 @@ bool LowServerSocket::OnEvents(short events)
     LowHTTPDirect *direct = NULL;
     if (mIsHTTP)
     {
-        direct = new (low_new) LowHTTPDirect(mLow, true);
+        direct = new(low_new) LowHTTPDirect(mLow, true);
         if (!direct)
         {
             // error
@@ -173,24 +185,28 @@ bool LowServerSocket::OnEvents(short events)
         sockaddr_in6 remoteAddr;
         socklen_t remoteAddrLen = sizeof(remoteAddr);
 
-        fd = accept(FD(), (sockaddr *)&remoteAddr, &remoteAddrLen);
+        fd = accept(FD(), (sockaddr * ) & remoteAddr, &remoteAddrLen);
         if (fd >= 0)
-            socket = new (low_new)
-                LowSocket(mLow, fd, (sockaddr *)&remoteAddr, mAcceptCallID,
-                          direct, 0, mSecureContext);
+        {
+            socket = new(low_new)
+                LowSocket(mLow, fd, (sockaddr * ) & remoteAddr, mAcceptCallID, direct, 0, mSecureContext);
+        }
     }
     else
     {
         fd = accept(FD(), NULL, NULL); // no address if UNIX
         if (fd >= 0)
-            socket = new (low_new) LowSocket(mLow, fd, NULL, mAcceptCallID,
-                                             direct, 0, mSecureContext);
+        {
+            socket = new(low_new) LowSocket(mLow, fd, NULL, mAcceptCallID, direct, 0, mSecureContext);
+        }
     }
     if (!socket)
     {
         // error
         if (fd >= 0)
+        {
             close(fd);
+        }
         delete direct;
     }
 

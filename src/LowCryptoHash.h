@@ -13,28 +13,29 @@ using namespace std;
 
 class LowCryptoHash
 {
-  public:
-    LowCryptoHash(low_main_t *low,
-                  const mbedtls_md_info_t *info,
-                  unsigned char *key,
-                  int key_len);
-    ~LowCryptoHash();
+public:
+  LowCryptoHash(low_main_t *low, const mbedtls_md_info_t *info, unsigned char *key, int key_len);
 
-    void SetIndex(int index) { mIndex = index; }
+  ~LowCryptoHash();
 
-    void Update(unsigned char *data, int len);
-    void Digest(unsigned char *data, int len);
+  void SetIndex(int index)
+  { mIndex = index; }
 
-    int OutputSize() { return mOutputSize; }
+  void Update(unsigned char *data, int len);
 
-  private:
-    low_main_t *mLow;
-    int mIndex;
+  void Digest(unsigned char *data, int len);
 
-    mbedtls_md_context_t mContext;
+  int OutputSize()
+  { return mOutputSize; }
 
-    bool mHMAC;
-    int mOutputSize;
+private:
+  low_main_t *mLow;
+  int mIndex;
+
+  mbedtls_md_context_t mContext;
+
+  bool mHMAC;
+  int mOutputSize;
 };
 
 #endif /* __LOWCRYPTOHASH_H__ */

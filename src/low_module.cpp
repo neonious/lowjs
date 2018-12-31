@@ -58,11 +58,11 @@ void low_module_init(duk_context *ctx)
 
 static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
 {
-    low_main_t *low = *(low_main_t **)udata;
-    char *name = (char *)(((void **)udata)[1]);
-    void (*setup_safe_cb)(low_main_t * main, void *data) =
-      (void (*)(low_main_t * main, void *data))(((void **)udata)[2]);
-    void *setup_safe_cb_data = ((void **)udata)[3];
+    low_main_t *low = *(low_main_t **) udata;
+    char *name = (char *) (((void **) udata)[1]);
+    void (*setup_safe_cb)(low_main_t *main, void *data) =
+    (void (*)(low_main_t *main, void *data)) (((void **) udata)[2]);
+    void *setup_safe_cb_data = ((void **) udata)[3];
 
     duk_push_object(ctx); // our new module!
 
@@ -85,10 +85,8 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     duk_put_prop_string(ctx, -2, "children");
 
     duk_push_object(ctx);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "childrenMap");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "childrenMap");
 
     // [... module]
 
@@ -96,10 +94,8 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     duk_push_c_function(ctx, low_module_require, 1);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "require"); // this is used in call stack
@@ -120,10 +116,8 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     duk_push_c_function(ctx, low_module_resolve, 2);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "resolve"); // this is used in call stack
@@ -153,19 +147,16 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     return 0;
 }
 
-bool low_module_make_native(low_main_t *low,
-                            const char *name,
-                            void (*setup_safe_cb)(low_main_t *main, void *data),
+bool low_module_make_native(low_main_t *low, const char *name, void (*setup_safe_cb)(low_main_t *main, void *data),
                             void *setup_safe_cb_data)
 {
-    void *data[4] = {
-      (void *)low, (void *)name, (void *)setup_safe_cb, setup_safe_cb_data};
-    if(duk_safe_call(
-         low->duk_ctx, low_module_make_native_safe, (void *)data, 0, 1) !=
-       DUK_EXEC_SUCCESS)
+    void *data[4] = {(void *) low, (void *) name, (void *) setup_safe_cb, setup_safe_cb_data};
+    if (duk_safe_call(low->duk_ctx, low_module_make_native_safe, (void *) data, 0, 1) != DUK_EXEC_SUCCESS)
     {
-        if(!low->duk_flag_stop) // flag stop also produces error
+        if (!low->duk_flag_stop)
+        { // flag stop also produces error
             low_duk_print_error(low->duk_ctx);
+        }
         duk_pop(low->duk_ctx);
 
         return low->duk_flag_stop;
@@ -183,16 +174,16 @@ bool neonious_start_result(const char *code);
 
 static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
 {
-    char *path = (char *)udata;
-    if(path)
+    char *path = (char *) udata;
+    if (path)
     {
-        char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
-        if(!low_module_resolve_c(ctx, path, ".", res_id))
+        char *res_id = (char *) duk_push_fixed_buffer(ctx, 1024);
+        if (!low_module_resolve_c(ctx, path, ".", res_id))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
             if(!neonious_start_result("FILE_NOT_FOUND"))
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-                duk_type_error(ctx, "cannot resolve module '%s'", path);
+            duk_type_error(ctx, "cannot resolve module '%s'", path);
             return 1;
         }
 
@@ -202,7 +193,9 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
         low_module_run(ctx, res_id, LOW_MODULE_FLAG_MAIN);
     }
     else
+    {
         low_module_run(ctx, "lib:main", LOW_MODULE_FLAG_MAIN);
+    }
 
     return 0;
 }
@@ -214,18 +207,18 @@ bool low_module_main(low_main_t *low, const char *path)
        DUK_EXEC_SUCCESS)
 #else
     char path2[PATH_MAX];
-    if(path)
+    if (path)
+    {
         realpath(path, path2);
+    }
 
-    if(duk_safe_call(low->duk_ctx,
-                     low_module_main_safe,
-                     (void *)(path ? path2 : NULL),
-                     0,
-                     1) != DUK_EXEC_SUCCESS)
+    if (duk_safe_call(low->duk_ctx, low_module_main_safe, (void *) (path ? path2 : NULL), 0, 1) != DUK_EXEC_SUCCESS)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     {
-        if(!low->duk_flag_stop) // flag stop also produces error
+        if (!low->duk_flag_stop)
+        { // flag stop also produces error
             low_duk_print_error(low->duk_ctx);
+        }
         duk_pop(low->duk_ctx);
 
         return low->duk_flag_stop;
@@ -246,8 +239,7 @@ bool get_data_block(const char *path,
                     bool escapeZero = false);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-  void
-  low_module_run(duk_context *ctx, const char *path, int flags)
+void low_module_run(duk_context *ctx, const char *path, int flags)
 {
     unsigned char *data;
     int len;
@@ -256,14 +248,19 @@ bool get_data_block(const char *path,
     bool isLib = memcmp(path, "lib:", 4) == 0;
 
     int fullLen = strlen(path);
-    for(len = fullLen; len >= 0; len--)
-        if(path[len] == '.')
+    for (len = fullLen; len >= 0; len--)
+    {
+        if (path[len] == '.')
+        {
             break;
-    if(fullLen - len == 5 && path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] == 'J') &&
-       (path[len + 2] == 's' || path[len + 2] == 'S') &&
-       (path[len + 3] == 'o' || path[len + 3] == 'O') &&
-       (path[len + 4] == 'n' || path[len + 4] == 'N'))
+        }
+    }
+    if (fullLen - len == 5 && path[len] == '.' && (path[len + 1] == 'j' || path[len + 1] == 'J') &&
+        (path[len + 2] == 's' || path[len + 2] == 'S') && (path[len + 3] == 'o' || path[len + 3] == 'O') &&
+        (path[len + 4] == 'n' || path[len + 4] == 'N'))
+    {
         flags |= LOW_MODULE_FLAG_JSON;
+    }
 
 #if LOW_ESP32_LWIP_SPECIALITIES
     char *txt;
@@ -331,14 +328,18 @@ bool get_data_block(const char *path,
     }
 #else
     int fd;
-    if(isLib)
+    if (isLib)
     {
-        if(len > 1000)
+        if (len > 1000)
+        {
             goto cantLoad;
+        }
 
-        char *txt = (char *)low_alloc(1024);
-        if(!txt)
+        char *txt = (char *) low_alloc(1024);
+        if (!txt)
+        {
             goto cantLoad;
+        }
 
         sprintf(txt, "%s%s.low", g_low_system.lib_path, path + 4);
         flags |= LOW_MODULE_FLAG_DUK_FORMAT;
@@ -347,24 +348,28 @@ bool get_data_block(const char *path,
         low_free(txt);
     }
     else
+    {
         fd = open(path, O_RDONLY);
-    if(fd < 0)
+    }
+    if (fd < 0)
+    {
         duk_type_error(ctx, "cannot find module '%s'", path);
+    }
 
-    if(fstat(fd, &st) < 0)
+    if (fstat(fd, &st) < 0)
     {
         close(fd);
         goto cantLoad;
     }
     len = st.st_size; // TODO: use buffer object so we no longer have a memory
-                      // leak!
-    data = (unsigned char *)low_alloc(len);
-    if(!data)
+    // leak!
+    data = (unsigned char *) low_alloc(len);
+    if (!data)
     {
         close(fd);
         goto cantLoad;
     }
-    if(read(fd, data, len) != len)
+    if (read(fd, data, len) != len)
     {
         low_free(data);
         close(fd);
@@ -375,12 +380,12 @@ bool get_data_block(const char *path,
 
     duk_push_object(ctx); // our new module!
 
-    if(flags & LOW_MODULE_FLAG_MAIN)
+    if (flags & LOW_MODULE_FLAG_MAIN)
     {
         duk_dup(ctx, -1);
         duk_put_prop_string(ctx, -2, "main");
     }
-    else if(!(flags & LOW_MODULE_FLAG_GLOBAL))
+    else if (!(flags & LOW_MODULE_FLAG_GLOBAL))
     {
         duk_get_prop_string(ctx, -2, "main");
         duk_put_prop_string(ctx, -2, "main");
@@ -394,12 +399,16 @@ bool get_data_block(const char *path,
     duk_put_prop_string(ctx, -3, "filename");
     duk_put_prop_string(ctx, -2, "id");
 
-    if(!(flags & LOW_MODULE_FLAG_JSON))
+    if (!(flags & LOW_MODULE_FLAG_JSON))
     {
-        if(flags & LOW_MODULE_FLAG_GLOBAL)
+        if (flags & LOW_MODULE_FLAG_GLOBAL)
+        {
             duk_push_global_object(ctx);
+        }
         else
+        {
             duk_push_object(ctx);
+        }
         duk_put_prop_string(ctx, -2, "exports");
     }
 
@@ -413,10 +422,8 @@ bool get_data_block(const char *path,
     duk_put_prop_string(ctx, -2, "children");
 
     duk_push_object(ctx);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "childrenMap");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "childrenMap");
 
     // [... module]
 
@@ -424,10 +431,8 @@ bool get_data_block(const char *path,
     duk_push_c_function(ctx, low_module_require, 1);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "require"); // this is used in call stack
@@ -448,10 +453,8 @@ bool get_data_block(const char *path,
     duk_push_c_function(ctx, low_module_resolve, 1);
 
     duk_dup(ctx, -3);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "resolve"); // this is used in call stack
@@ -462,26 +465,27 @@ bool get_data_block(const char *path,
     duk_get_prop_string(ctx, -2, "main");
     duk_put_prop_string(ctx, -2, "main");
 
-    if(!isLib && !(flags & LOW_MODULE_FLAG_JSON)) // security problem
+    if (!isLib && !(flags & LOW_MODULE_FLAG_JSON))
+    { // security problem
         duk_put_prop_string(ctx, -2, "require");
+    }
 
     // [... module [require]]
 
-    if(!(flags & LOW_MODULE_FLAG_GLOBAL))
+    if (!(flags & LOW_MODULE_FLAG_GLOBAL))
     {
         // Cache module
         duk_push_heap_stash(ctx);
 
-        duk_get_prop_string(
-          ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
+        duk_get_prop_string(ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
         duk_dup(ctx, !isLib && !(flags & LOW_MODULE_FLAG_JSON) ? -3 : -4);
         duk_put_prop_string(ctx, -2, path);
         duk_pop_2(ctx);
     }
 
-    if(flags & LOW_MODULE_FLAG_JSON)
+    if (flags & LOW_MODULE_FLAG_JSON)
     {
-        duk_push_lstring(ctx, (char *)data, len);
+        duk_push_lstring(ctx, (char *) data, len);
         low_free(data);
         duk_json_decode(ctx, -1);
 
@@ -491,11 +495,9 @@ bool get_data_block(const char *path,
     }
     else
     {
-        if(flags & LOW_MODULE_FLAG_DUK_FORMAT)
+        if (flags & LOW_MODULE_FLAG_DUK_FORMAT)
         {
-            memcpy(duk_push_fixed_buffer(ctx, len),
-                   data,
-                   len); // TODO: remove copy
+            memcpy(duk_push_fixed_buffer(ctx, len), data, len); // TODO: remove copy
             low_free(data);
             duk_load_function(ctx);
         }
@@ -503,12 +505,9 @@ bool get_data_block(const char *path,
         {
             // TODO: remove concat
             bool shebang = len >= 2 && data[0] == '#' && data[1] == '!';
-            duk_push_string(
-              ctx,
-              shebang
-                ? "function(exports,require,module,__filename,__dirname){//"
-                : "function(exports,require,module,__filename,__dirname){");
-            duk_push_lstring(ctx, (char *)data, len);
+            duk_push_string(ctx, shebang ? "function(exports,require,module,__filename,__dirname){//"
+                                         : "function(exports,require,module,__filename,__dirname){");
+            duk_push_lstring(ctx, (char *) data, len);
             low_free(data);
             duk_push_string(ctx, "\n}"); /* Newline allows module last line to
                                             contain a // comment. */
@@ -522,19 +521,25 @@ bool get_data_block(const char *path,
 
         /* call the function wrapper */
         duk_get_prop_string(ctx, isLib ? -3 : -2, "exports"); /* exports */
-        if(isLib)
+        if (isLib)
         {
             duk_dup(ctx, -3); /* require */
             duk_remove(ctx, -4);
         }
         else
-            duk_get_prop_string(ctx, -3, "require"); /* require */
+        {
+            duk_get_prop_string(ctx, -3, "require");
+        } /* require */
         duk_dup(ctx, -4);                            /* module */
 
         duk_push_string(ctx, path); /* __filename */
-        for(len = strlen(path) - 1; len > 0; len--)
-            if(path[len] == '/')
+        for (len = strlen(path) - 1; len > 0; len--)
+        {
+            if (path[len] == '/')
+            {
                 break;
+            }
+        }
         duk_push_lstring(ctx, path, len == -1 ? 0 : len); /* __dirname */
         duk_call(ctx, 5);
 
@@ -559,51 +564,53 @@ cantLoad:
 
 duk_ret_t low_module_require(duk_context *ctx)
 {
-    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
+    char *res_id = (char *) duk_push_fixed_buffer(ctx, 1024);
 
     const char *id = duk_require_string(ctx, 0);
 
     // Get parent ID
     duk_push_current_function(ctx);
-    duk_get_prop_string(ctx,
-                        -1,
-                        "\xff"
-                        "module");
+    duk_get_prop_string(ctx, -1, "\xff"
+                                 "module");
     duk_remove(ctx, -2);
 
     const char *parent_id;
     int popCount = 0;
-    while(true)
+    while (true)
     {
         duk_get_prop_string(ctx, -1, "filename");
         parent_id = duk_get_string(ctx, -1);
         duk_pop(ctx);
 
-        if(parent_id)
+        if (parent_id)
+        {
             break;
+        }
 
         // If a module does not have a filename (vm.createContext), then try
         // parent
         popCount++;
-        if(!duk_get_prop_string(ctx, -1, "parent"))
+        if (!duk_get_prop_string(ctx, -1, "parent"))
+        {
             break;
+        }
     }
-    while(popCount--)
+    while (popCount--)
+    {
         duk_pop(ctx);
+    }
 
     // We always resolve with our own function
-    if(!low_module_resolve_c(ctx, id, parent_id, res_id))
+    if (!low_module_resolve_c(ctx, id, parent_id, res_id))
     {
-        duk_type_error(
-          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
+        duk_type_error(ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
     }
 
     // Try to find in cache
     duk_push_heap_stash(ctx);
-    duk_get_prop_string(
-      ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
-    if(duk_get_prop_string(ctx, -1, res_id))
+    duk_get_prop_string(ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
+    if (duk_get_prop_string(ctx, -1, res_id))
     {
         duk_remove(ctx, -2);
         duk_remove(ctx, -2);
@@ -619,14 +626,14 @@ duk_ret_t low_module_require(duk_context *ctx)
 
     // [ id parent module ]
 
-    if(memcmp(parent_id, "lib:", 4) != 0) // security check
+    if (memcmp(parent_id, "lib:", 4) != 0) // security check
     {
-        duk_get_prop_string(ctx,
-                            -2,
-                            "\xff"
-                            "childrenMap");
-        if(duk_get_prop_string(ctx, -1, res_id))
+        duk_get_prop_string(ctx, -2, "\xff"
+                                     "childrenMap");
+        if (duk_get_prop_string(ctx, -1, res_id))
+        {
             duk_pop_2(ctx);
+        }
         else
         {
             duk_push_boolean(ctx, true);
@@ -652,47 +659,50 @@ duk_ret_t low_module_require(duk_context *ctx)
 
 duk_ret_t low_module_resolve(duk_context *ctx)
 {
-    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
+    char *res_id = (char *) duk_push_fixed_buffer(ctx, 1024);
 
     const char *id = duk_require_string(ctx, 0);
 
     // Get parent ID
     duk_push_current_function(ctx);
-    duk_get_prop_string(ctx,
-                        -1,
-                        "\xff"
-                        "module");
+    duk_get_prop_string(ctx, -1, "\xff"
+                                 "module");
     duk_remove(ctx, -2);
 
     const char *parent_id;
     int popCount = 1;
-    while(true)
+    while (true)
     {
         duk_get_prop_string(ctx, -1, "filename");
         parent_id = duk_get_string(ctx, -1);
         duk_pop(ctx);
 
-        if(parent_id)
+        if (parent_id)
+        {
             break;
+        }
 
         // If a module does not have a filename (vm.createContext), then try
         // parent
         popCount++;
-        if(!duk_get_prop_string(ctx, -1, "parent"))
+        if (!duk_get_prop_string(ctx, -1, "parent"))
+        {
             break;
+        }
     }
-    while(popCount--)
+    while (popCount--)
+    {
         duk_pop(ctx);
+    }
 
-    if(low_module_resolve_c(ctx, id, parent_id, res_id))
+    if (low_module_resolve_c(ctx, id, parent_id, res_id))
     {
         duk_push_string(ctx, res_id);
         return 1;
     }
     else
     {
-        duk_type_error(
-          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
+        duk_type_error(ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
     }
 }
@@ -730,10 +740,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "children");
 
     duk_push_object(ctx);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "childrenMap");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "childrenMap");
 
     // [... module]
 
@@ -741,10 +749,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_push_c_function(ctx, low_module_require, 1);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "require"); // this is used in call stack
@@ -765,10 +771,8 @@ duk_ret_t low_module_make(duk_context *ctx)
     duk_push_c_function(ctx, low_module_resolve, 2);
 
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
+    duk_put_prop_string(ctx, -2, "\xff"
+                                 "module");
 
     duk_push_string(ctx, "name");
     duk_push_string(ctx, "resolve"); // this is used in call stack
@@ -795,17 +799,13 @@ duk_ret_t low_module_make(duk_context *ctx)
 //                         result must be min 1024 bytes
 // -----------------------------------------------------------------------------
 
-bool low_module_resolve_c(duk_context *ctx,
-                          const char *module_id,
-                          const char *parent_id,
-                          char *res_id)
+bool low_module_resolve_c(duk_context *ctx, const char *module_id, const char *parent_id, char *res_id)
 {
     struct stat st;
 
     // lib: may get native
-    if(strcmp(module_id, "native") == 0 && parent_id &&
-       (memcmp(parent_id, "lib:", 4) == 0 ||
-        memcmp(parent_id, "module:", 7) == 0))
+    if (strcmp(module_id, "native") == 0 && parent_id &&
+        (memcmp(parent_id, "lib:", 4) == 0 || memcmp(parent_id, "module:", 7) == 0))
     {
         strcpy(res_id, "lib:native");
         return true;
@@ -813,20 +813,21 @@ bool low_module_resolve_c(duk_context *ctx,
 
     bool is_not_absolute_path = false;
     int i;
-    for(i = 0; module_id[i]; i++)
-        if(module_id[i] == '.')
+    for (i = 0; module_id[i]; i++)
+    {
+        if (module_id[i] == '.')
         {
             is_not_absolute_path = true;
             break;
         }
-    if(!is_not_absolute_path && i < 1000 && strcmp(module_id, "init") != 0 &&
-       strcmp(module_id, "main") != 0)
+    }
+    if (!is_not_absolute_path && i < 1000 && strcmp(module_id, "init") != 0 && strcmp(module_id, "main") != 0)
     {
         sprintf(res_id, "lib:%s", module_id);
 
         duk_push_heap_stash(ctx);
         duk_get_prop_string(ctx, -1, "lib_modules");
-        if(duk_get_prop_string(ctx, -1, res_id))
+        if (duk_get_prop_string(ctx, -1, res_id))
         {
             duk_pop_3(ctx);
             return true;
@@ -835,38 +836,44 @@ bool low_module_resolve_c(duk_context *ctx,
 
         // system module
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
-        if(stat(res_id, &st) == 0)
+        if (stat(res_id, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);
             return true;
         }
     }
 
-    if(!parent_id || memcmp(parent_id, "lib:", 4) == 0)
+    if (!parent_id || memcmp(parent_id, "lib:", 4) == 0)
+    {
         return false;
+    }
 
     const char *parent_end = NULL;
-    while(true)
+    while (true)
     {
-        if(!parent_end)
+        if (!parent_end)
         {
             // For next start
             parent_end = parent_id + strlen(parent_id);
-            if(!((module_id[0] == '.' && module_id[1] == '/') ||
-                 (module_id[0] == '/') ||
-                 (module_id[0] == '.' && module_id[1] == '.' &&
-                  module_id[2] == '/')))
+            if (!((module_id[0] == '.' && module_id[1] == '/') || (module_id[0] == '/') ||
+                  (module_id[0] == '.' && module_id[1] == '.' && module_id[2] == '/')))
+            {
                 continue;
+            }
 
             low_fs_resolve(res_id, 1024, parent_id, module_id);
         }
         else
         {
             // Go through node_modules
-            while(parent_id != parent_end && parent_end[-1] != '/')
+            while (parent_id != parent_end && parent_end[-1] != '/')
+            {
                 parent_end--;
-            if(parent_id == parent_end)
+            }
+            if (parent_id == parent_end)
+            {
                 return false;
+            }
 
             low_fs_resolve(res_id, 1024, parent_id, module_id, parent_end);
             parent_end--;
@@ -878,15 +885,17 @@ bool low_module_resolve_c(duk_context *ctx,
 #endif                            /* LOW_ESP32_LWIP_SPECIALITIES */
 
         bool isFolder = path[-1] == '/';
-        if(isFolder)
+        if (isFolder)
+        {
             path--;
+        }
 
-        if(!isFolder)
+        if (!isFolder)
         {
             // LOAD_AS_FILE
 
             path[0] = 0;
-            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+            if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES
                 memmove(res_id, start, path + 1 - start);
@@ -894,10 +903,12 @@ bool low_module_resolve_c(duk_context *ctx,
                 return true;
             }
 
-            if(path + 3 - res_id >= 1024)
+            if (path + 3 - res_id >= 1024)
+            {
                 return false;
+            }
             strcpy(path, ".js");
-            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+            if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES
                 memmove(res_id, start, path + 4 - start);
@@ -905,10 +916,12 @@ bool low_module_resolve_c(duk_context *ctx,
                 return true;
             }
 
-            if(path + 5 - res_id >= 1024)
+            if (path + 5 - res_id >= 1024)
+            {
                 return false;
+            }
             strcpy(path, ".json");
-            if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+            if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES
                 memmove(res_id, start, path + 6 - start);
@@ -919,20 +932,24 @@ bool low_module_resolve_c(duk_context *ctx,
 
         // LOAD_AS_DIRECTORY
 
-        if(path + 13 - res_id >= 1024)
+        if (path + 13 - res_id >= 1024)
+        {
             return false;
+        }
         strcpy(path, "/package.json");
 
-        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+        if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
             int len = st.st_size;
             void *data = duk_push_buffer(ctx, len, false);
 
             int fd = open(res_id, O_RDONLY);
-            if(fd < 0)
+            if (fd < 0)
+            {
                 return false;
+            }
 
-            if(read(fd, data, len) != len)
+            if (read(fd, data, len) != len)
             {
                 close(fd);
                 duk_pop(ctx);
@@ -944,12 +961,12 @@ bool low_module_resolve_c(duk_context *ctx,
             duk_buffer_to_string(ctx, -1);
             duk_json_decode(ctx, -1);
 
-            if(duk_get_prop_string(ctx, -1, "main"))
+            if (duk_get_prop_string(ctx, -1, "main"))
             {
                 const char *str = duk_get_string(ctx, -1);
                 len = strlen(str);
 
-                char *res_id2 = (char *)duk_push_buffer(ctx, 1024, false);
+                char *res_id2 = (char *) duk_push_buffer(ctx, 1024, false);
                 low_fs_resolve(res_id2, 1024, res_id, str);
 
                 char *path = res_id2 + strlen(res_id2);
@@ -960,51 +977,61 @@ bool low_module_resolve_c(duk_context *ctx,
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
                 bool isFolder = path[-1] == '/';
-                if(isFolder)
+                if (isFolder)
+                {
                     path--;
+                }
 
                 path[0] = 0;
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if (stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 1 - start);
                     duk_pop_3(ctx);
                     return true;
                 }
 
-                if(path + 3 - res_id2 >= 1024)
+                if (path + 3 - res_id2 >= 1024)
+                {
                     return false;
+                }
                 strcpy(path, ".js");
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if (stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 4 - start);
                     duk_pop_3(ctx);
                     return true;
                 }
 
-                if(path + 5 - res_id2 >= 1024)
+                if (path + 5 - res_id2 >= 1024)
+                {
                     return false;
+                }
                 strcpy(path, ".json");
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if (stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 6 - start);
                     duk_pop_3(ctx);
                     return true;
                 }
 
-                if(path + 9 - res_id2 >= 1024)
+                if (path + 9 - res_id2 >= 1024)
+                {
                     return false;
+                }
                 strcpy(path, "/index.js");
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if (stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 10 - start);
                     duk_pop_3(ctx);
                     return true;
                 }
 
-                if(path + 11 - res_id2 >= 1024)
+                if (path + 11 - res_id2 >= 1024)
+                {
                     return false;
+                }
                 strcpy(path, "/index.json");
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if (stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
                     memmove(res_id, start, path + 12 - start);
                     duk_pop_3(ctx);
@@ -1014,13 +1041,17 @@ bool low_module_resolve_c(duk_context *ctx,
                 duk_pop_3(ctx);
             }
             else
+            {
                 duk_pop_2(ctx);
+            }
         }
 
-        if(path + 9 - res_id >= 1024)
+        if (path + 9 - res_id >= 1024)
+        {
             return false;
+        }
         strcpy(path, "/index.js");
-        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+        if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
             memmove(res_id, start, path + 10 - start);
@@ -1028,10 +1059,12 @@ bool low_module_resolve_c(duk_context *ctx,
             return true;
         }
 
-        if(path + 11 - res_id >= 1024)
+        if (path + 11 - res_id >= 1024)
+        {
             return false;
+        }
         strcpy(path, "/index.json");
-        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+        if (stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
             memmove(res_id, start, path + 12 - start);

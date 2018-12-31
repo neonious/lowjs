@@ -14,12 +14,13 @@
 //  LowHTTPDirect::LowHTTPDirect
 // -----------------------------------------------------------------------------
 
-LowHTTPDirect::LowHTTPDirect(low_main_t *low, bool isServer) :
-    LowLoopCallback(low), mLow(low), mIsServer(isServer), mRequestCallID(0),
-    mReadCallID(0), mWriteCallID(0), mBytesRead(0), mBytesWritten(0),
-    mParamFirst(NULL), mParamLast(NULL), mWriteBufferCount(0), mShutdown(false),
-    mClosed(false), mEraseNextN(false), mReadData(NULL), mRemainingRead(NULL),
-    mReadError(false), mWriteError(false), mHTTPError(false)
+LowHTTPDirect::LowHTTPDirect(low_main_t *low, bool isServer) : LowLoopCallback(low), mLow(low), mIsServer(isServer),
+                                                               mRequestCallID(0), mReadCallID(0), mWriteCallID(0),
+                                                               mBytesRead(0), mBytesWritten(0), mParamFirst(NULL),
+                                                               mParamLast(NULL), mWriteBufferCount(0), mShutdown(false),
+                                                               mClosed(false), mEraseNextN(false), mReadData(NULL),
+                                                               mRemainingRead(NULL), mReadError(false),
+                                                               mWriteError(false), mHTTPError(false)
 {
     pthread_mutex_init(&mMutex, NULL);
     Init();
@@ -31,27 +32,37 @@ LowHTTPDirect::LowHTTPDirect(low_main_t *low, bool isServer) :
 
 LowHTTPDirect::~LowHTTPDirect()
 {
-    if(mSocket)
+    if (mSocket)
+    {
         mSocket->SetDirect(NULL, 0);
+    }
 
-    if(mRequestCallID)
+    if (mRequestCallID)
+    {
         low_remove_stash(mLow, mRequestCallID);
-    if(mReadCallID)
+    }
+    if (mReadCallID)
+    {
         low_remove_stash(mLow, mReadCallID);
-    if(mWriteCallID)
+    }
+    if (mWriteCallID)
+    {
         low_remove_stash(mLow, mWriteCallID);
+    }
 
-    while(mParamFirst)
+    while (mParamFirst)
     {
         LowHTTPDirect_ParamData *param = mParamFirst;
         mParamFirst = mParamFirst->next;
         low_free(param);
     }
 
-    for(int i = 0; i < mWriteBufferCount; i++)
+    for (int i = 0; i < mWriteBufferCount; i++)
     {
-        if(mWriteBufferStashID[i])
+        if (mWriteBufferStashID[i])
+        {
             low_remove_stash(mLow, mWriteBufferStashID[i]);
+        }
     }
 
     pthread_mutex_destroy(&mMutex);
@@ -81,7 +92,7 @@ void LowHTTPDirect::Init()
     mChunkedEncoding = false;
     mNoBodyDefault = false;
 
-    while(mParamFirst)
+    while (mParamFirst)
     {
         LowHTTPDirect_ParamData *param = mParamFirst;
         mParamFirst = mParamFirst->next;
@@ -92,12 +103,12 @@ void LowHTTPDirect::Init()
     mWriting = false;
     mWriteDone = false;
 
-    if(mReadCallID)
+    if (mReadCallID)
     {
         low_remove_stash(mLow, mReadCallID);
         mReadCallID = 0;
     }
-    if(mWriteCallID)
+    if (mWriteCallID)
     {
         low_remove_stash(mLow, mWriteCallID);
         mWriteCallID = 0;
@@ -110,18 +121,20 @@ void LowHTTPDirect::Init()
 
 void LowHTTPDirect::Detach(bool pushRemainingRead)
 {
-    if(pushRemainingRead)
+    if (pushRemainingRead)
     {
         low_web_clear_poll(mLow, mSocket);
-        if(mRemainingRead)
-            memcpy(duk_push_fixed_buffer(mLow->duk_ctx, mRemainingReadLen),
-                   mRemainingRead,
-                   mRemainingReadLen);
+        if (mRemainingRead)
+        {
+            memcpy(duk_push_fixed_buffer(mLow->duk_ctx, mRemainingReadLen), mRemainingRead, mRemainingReadLen);
+        }
         else
+        {
             duk_push_fixed_buffer(mLow->duk_ctx, 0);
+        }
     }
 
-    if(mSocket)
+    if (mSocket)
     {
         mSocket->SetDirect(NULL, 0);
         mSocket = NULL;
@@ -137,8 +150,10 @@ void LowHTTPDirect::Detach(bool pushRemainingRead)
 void LowHTTPDirect::SetRequestCallID(int callID)
 {
     mRequestCallID = callID;
-    if(mParamFirst || mClosed)
+    if (mParamFirst || mClosed)
+    {
         low_loop_set_callback(mLow, this);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -147,7 +162,7 @@ void LowHTTPDirect::SetRequestCallID(int callID)
 
 void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
 {
-    if(!mIsRequest || mReadData || !mSocket)
+    if (!mIsRequest || mReadData || !mSocket)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "read");
@@ -160,31 +175,35 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
     mReadLen = len;
     mReadData = data;
 
-    if(mRemainingRead && !mClosed)
+    if (mRemainingRead && !mClosed)
     {
         pthread_mutex_unlock(&mMutex);
 
         unsigned char *data = mRemainingRead;
         mRemainingRead = NULL;
-        if(SocketData(data, mRemainingReadLen, true))
+        if (SocketData(data, mRemainingReadLen, true))
+        {
             mSocket->TriggerDirect(LOWSOCKET_TRIGGER_READ);
+        }
     }
     else
+    {
         pthread_mutex_unlock(&mMutex);
+    }
 
-    if(mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed ||
-       mReadError || mHTTPError)
+    if (mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed || mReadError || mHTTPError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        if(mReadError || mHTTPError)
+        if (mReadError || mHTTPError)
         {
             low_push_stash(mLow, mRequestCallID, false);
-            if(mReadError)
+            if (mReadError)
+            {
                 mSocket->PushError(0);
+            }
             else
             {
-                duk_push_error_object(
-                  mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
+                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
                 duk_push_string(mLow->duk_ctx, "ERR_HTTP_PARSER");
                 duk_put_prop_string(mLow->duk_ctx, -2, "code");
             }
@@ -206,22 +225,24 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
 
             duk_push_int(mLow->duk_ctx, read);
 
-            if(!mReadPos)
+            if (!mReadPos)
             {
                 duk_push_array(mLow->duk_ctx);
                 int arr_ind = 0;
 
-                while(mParamFirst)
+                while (mParamFirst)
                 {
                     pthread_mutex_lock(&mMutex);
                     LowHTTPDirect_ParamData *param = mParamFirst;
                     mParamFirst = mParamFirst->next;
-                    if(!mParamFirst)
+                    if (!mParamFirst)
+                    {
                         mParamLast = NULL;
+                    }
                     pthread_mutex_unlock(&mMutex);
 
                     int pos = 0;
-                    while(param->data[pos])
+                    while (param->data[pos])
                     {
                         int len = param->data[pos];
                         char next = param->data[pos + 1 + len];
@@ -237,37 +258,40 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                     low_free(param);
                 }
 
-                if(mIsServer)
+                if (mIsServer)
+                {
                     duk_call(mLow->duk_ctx, 4);
+                }
                 else
                 {
                     Detach();
 
-                    duk_push_boolean(mLow->duk_ctx,
-                                     !mClosed && mWriteDone &&
-                                       !mWriteBufferCount);
+                    duk_push_boolean(mLow->duk_ctx, !mClosed && mWriteDone && !mWriteBufferCount);
                     duk_call(mLow->duk_ctx, 5);
                 }
             }
             else
+            {
                 duk_call(mLow->duk_ctx, 3);
+            }
         }
     }
     else
+    {
         mReadCallID = low_add_stash(mLow, callIndex);
+    }
 }
 
 // -----------------------------------------------------------------------------
 //  LowHTTPDirect::WriteHeaders
 // -----------------------------------------------------------------------------
 
-void LowHTTPDirect::WriteHeaders(const char *txt,
-                                 int index,
-                                 int len,
-                                 bool isChunked)
+void LowHTTPDirect::WriteHeaders(const char *txt, int index, int len, bool isChunked)
 {
-    if((mIsServer && !mIsRequest) || mWriting)
+    if ((mIsServer && !mIsRequest) || mWriting)
+    {
         return;
+    }
 
     pthread_mutex_lock(&mMutex);
     mWriting = true;
@@ -275,11 +299,12 @@ void LowHTTPDirect::WriteHeaders(const char *txt,
     mWriteLen = len;
     mWriteChunkedEncoding = isChunked;
 
-    mWriteBuffers[0].iov_base = (unsigned char *)txt;
+    mWriteBuffers[0].iov_base = (unsigned char *) txt;
     mWriteBuffers[0].iov_len = strlen(txt);
-    if(isChunked)
-        mWriteBuffers[0].iov_len -=
-          2; // get rid of last \r\n, will be added with chunks
+    if (isChunked)
+    {
+        mWriteBuffers[0].iov_len -= 2;
+    } // get rid of last \r\n, will be added with chunks
     mWriteBufferStashID[0] = low_add_stash(mLow, index);
     mWriteBufferCount = 1;
 
@@ -291,13 +316,9 @@ void LowHTTPDirect::WriteHeaders(const char *txt,
 //  LowHTTPDirect::Write
 // -----------------------------------------------------------------------------
 
-void LowHTTPDirect::Write(unsigned char *data,
-                          int len,
-                          int bufferIndex,
-                          int callIndex)
+void LowHTTPDirect::Write(unsigned char *data, int len, int bufferIndex, int callIndex)
 {
-    if((mIsServer && !mIsRequest) || !mWriting || mWriteBufferCount > 1 ||
-       mWriteCallID || mWriteDone || !mSocket)
+    if ((mIsServer && !mIsRequest) || !mWriting || mWriteBufferCount > 1 || mWriteCallID || mWriteDone || !mSocket)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "write");
@@ -306,15 +327,14 @@ void LowHTTPDirect::Write(unsigned char *data,
     }
 
     pthread_mutex_lock(&mMutex);
-    if(len == 0)
+    if (len == 0)
     {
         mWriteDone = true;
-        if(mWriteChunkedEncoding)
+        if (mWriteChunkedEncoding)
         {
             sprintf(mWriteChunkedHeaderLine, "\r\n0\r\n\r\n");
             mWriteBuffers[mWriteBufferCount].iov_base = mWriteChunkedHeaderLine;
-            mWriteBuffers[mWriteBufferCount].iov_len =
-              strlen(mWriteChunkedHeaderLine);
+            mWriteBuffers[mWriteBufferCount].iov_len = strlen(mWriteChunkedHeaderLine);
             mWriteBufferStashID[mWriteBufferCount] = 0;
             mWriteBufferCount++;
         }
@@ -323,30 +343,28 @@ void LowHTTPDirect::Write(unsigned char *data,
     {
         mWritePos += len;
 
-        if(mWriteChunkedEncoding)
+        if (mWriteChunkedEncoding)
         {
             sprintf(mWriteChunkedHeaderLine, "\r\n%x\r\n", len);
             mWriteBuffers[mWriteBufferCount].iov_base = mWriteChunkedHeaderLine;
-            mWriteBuffers[mWriteBufferCount].iov_len =
-              strlen(mWriteChunkedHeaderLine);
+            mWriteBuffers[mWriteBufferCount].iov_len = strlen(mWriteChunkedHeaderLine);
             mWriteBufferStashID[mWriteBufferCount] = 0;
             mWriteBufferCount++;
         }
 
         mWriteBuffers[mWriteBufferCount].iov_base = data;
         mWriteBuffers[mWriteBufferCount].iov_len = len;
-        mWriteBufferStashID[mWriteBufferCount] =
-          low_add_stash(mLow, bufferIndex);
+        mWriteBufferStashID[mWriteBufferCount] = low_add_stash(mLow, bufferIndex);
         mWriteBufferCount++;
     }
 
     DoWrite();
     pthread_mutex_unlock(&mMutex);
 
-    if(!mWriteBufferCount || mWriteError)
+    if (!mWriteBufferCount || mWriteError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        if(mWriteError)
+        if (mWriteError)
         {
             mSocket->PushError(1);
             mWriteError = false;
@@ -362,24 +380,25 @@ void LowHTTPDirect::Write(unsigned char *data,
             duk_call(mLow->duk_ctx, 2);
         }
 
-        if(!mWriteBufferCount &&
-           mWriteDone) // we need to recheck b/c of duk_call
+        if (!mWriteBufferCount && mWriteDone) // we need to recheck b/c of duk_call
         {
-            if(!mIsServer)
+            if (!mIsServer)
             {
-                if(!mShutdown && !mWriteChunkedEncoding &&
-                   (mWriteLen < 0 || mWritePos != mWriteLen))
+                if (!mShutdown && !mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
                 {
                     mSocket->Shutdown();
                     mShutdown = true;
                 }
             }
-            else if((!mWriteChunkedEncoding &&
-                     (mWriteLen < 0 || mWritePos != mWriteLen)) ||
-                    mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+            else if ((!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen)) ||
+                     mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+            {
                 mSocket->Close();
+            }
             else
+            {
                 Init();
+            }
         }
     }
     else
@@ -395,18 +414,20 @@ void LowHTTPDirect::Write(unsigned char *data,
 
 void LowHTTPDirect::DoWrite()
 {
-    while(mWriteBufferCount)
+    while (mWriteBufferCount)
     {
         int size = mSocket->writev(mWriteBuffers, mWriteBufferCount);
-        if(size < 0)
+        if (size < 0)
         {
-            if(errno != EAGAIN)
+            if (errno != EAGAIN)
+            {
                 mWriteError = true;
+            }
             return;
         }
         mBytesWritten += size;
 
-        while(mWriteBufferCount && size >= mWriteBuffers[0].iov_len)
+        while (mWriteBufferCount && size >= mWriteBuffers[0].iov_len)
         {
             size -= mWriteBuffers[0].iov_len;
             low_remove_stash(mLow, mWriteBufferStashID[0]);
@@ -422,10 +443,9 @@ void LowHTTPDirect::DoWrite()
             mWriteBufferStashID[2] = 0;
             mWriteBufferCount--;
         }
-        if(size)
+        if (size)
         {
-            mWriteBuffers[0].iov_base =
-              ((unsigned char *)mWriteBuffers[0].iov_base) + size;
+            mWriteBuffers[0].iov_base = ((unsigned char *) mWriteBuffers[0].iov_base) + size;
             mWriteBuffers[0].iov_len -= size;
         }
     }
@@ -437,34 +457,40 @@ void LowHTTPDirect::DoWrite()
 
 bool LowHTTPDirect::OnLoop()
 {
-    if(!mSocket)
-        return false;
-    if(!mRequestCallID)
-        return true;
-
-    if(!mIsRequest)
+    if (!mSocket)
     {
-        if(mClosed || mReadError || mHTTPError)
+        return false;
+    }
+    if (!mRequestCallID)
+    {
+        return true;
+    }
+
+    if (!mIsRequest)
+    {
+        if (mClosed || mReadError || mHTTPError)
         {
             low_push_stash(mLow, mRequestCallID, false);
-            if(mReadError)
-                mSocket->PushError(0);
-            else if(mHTTPError)
+            if (mReadError)
             {
-                duk_push_error_object(
-                  mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
+                mSocket->PushError(0);
+            }
+            else if (mHTTPError)
+            {
+                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
                 duk_push_string(mLow->duk_ctx, "ERR_HTTP_PARSER");
                 duk_put_prop_string(mLow->duk_ctx, -2, "code");
             }
             else
+            {
                 low_push_error(mLow, ECONNRESET, "read");
+            }
             mReadError = mHTTPError = false;
 
             Detach();
             duk_call(mLow->duk_ctx, 1);
         }
-        if(mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER &&
-           mAtTrailer)
+        if (mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER && mAtTrailer)
         {
             low_push_stash(mLow, mRequestCallID, false);
             duk_push_null(mLow->duk_ctx);
@@ -472,20 +498,21 @@ bool LowHTTPDirect::OnLoop()
             duk_push_array(mLow->duk_ctx);
             int arr_ind = 0;
 
-            while(mParamFirst &&
-                  mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER)
+            while (mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER)
             {
                 pthread_mutex_lock(&mMutex);
                 LowHTTPDirect_ParamData *param = mParamFirst;
                 mParamFirst = mParamFirst->next;
-                if(!mParamFirst)
+                if (!mParamFirst)
+                {
                     mParamLast = NULL;
+                }
                 pthread_mutex_unlock(&mMutex);
 
                 int pos = 0;
-                while(param->data[pos])
+                while (param->data[pos])
                 {
-                    int len = (unsigned int)(unsigned char)param->data[pos];
+                    int len = (unsigned int) (unsigned char) param->data[pos];
                     char next = param->data[pos + 1 + len];
                     param->data[pos + 1 + len] = 0;
 
@@ -510,8 +537,7 @@ bool LowHTTPDirect::OnLoop()
         }
     }
 
-    if(mReadCallID &&
-       (mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed))
+    if (mReadCallID && (mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed))
     {
         pthread_mutex_lock(&mMutex);
 
@@ -519,15 +545,16 @@ bool LowHTTPDirect::OnLoop()
         mReadCallID = 0;
         low_push_stash(mLow, callID, true);
 
-        if(mReadError || mHTTPError)
+        if (mReadError || mHTTPError)
         {
             low_push_stash(mLow, mRequestCallID, false);
-            if(mReadError)
+            if (mReadError)
+            {
                 mSocket->PushError(0);
+            }
             else
             {
-                duk_push_error_object(
-                  mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
+                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
                 duk_push_string(mLow->duk_ctx, "ERR_HTTP_PARSER");
                 duk_put_prop_string(mLow->duk_ctx, -2, "code");
             }
@@ -551,22 +578,24 @@ bool LowHTTPDirect::OnLoop()
             pthread_mutex_unlock(&mLow->ref_mutex);
             duk_push_int(mLow->duk_ctx, read);
 
-            if(!mReadPos)
+            if (!mReadPos)
             {
                 duk_push_array(mLow->duk_ctx);
                 int arr_ind = 0;
 
-                while(mParamFirst)
+                while (mParamFirst)
                 {
                     pthread_mutex_lock(&mMutex);
                     LowHTTPDirect_ParamData *param = mParamFirst;
                     mParamFirst = mParamFirst->next;
-                    if(!mParamFirst)
+                    if (!mParamFirst)
+                    {
                         mParamLast = NULL;
+                    }
                     pthread_mutex_unlock(&mMutex);
 
                     int pos = 0;
-                    while(param->data[pos])
+                    while (param->data[pos])
                     {
                         int len = param->data[pos];
                         char next = param->data[pos + 1 + len];
@@ -582,31 +611,33 @@ bool LowHTTPDirect::OnLoop()
                     low_free(param);
                 }
 
-                if(mIsServer)
+                if (mIsServer)
+                {
                     duk_call(mLow->duk_ctx, 4);
+                }
                 else
                 {
                     Detach();
 
-                    duk_push_boolean(mLow->duk_ctx,
-                                     !mClosed && mWriteDone &&
-                                       !mWriteBufferCount);
+                    duk_push_boolean(mLow->duk_ctx, !mClosed && mWriteDone && !mWriteBufferCount);
                     duk_call(mLow->duk_ctx, 5);
                 }
             }
             else
+            {
                 duk_call(mLow->duk_ctx, 3);
+            }
         }
     }
-    if(!mWriteBufferCount || mWriteError)
+    if (!mWriteBufferCount || mWriteError)
     {
-        if(mWriteCallID)
+        if (mWriteCallID)
         {
             int callID = mWriteCallID;
             mWriteCallID = 0;
             low_push_stash(mLow, callID, true);
 
-            if(mWriteError)
+            if (mWriteError)
             {
                 mSocket->PushError(1);
                 mWriteError = false;
@@ -622,24 +653,25 @@ bool LowHTTPDirect::OnLoop()
                 duk_call(mLow->duk_ctx, 2);
             }
         }
-        if(!mWriteBufferCount &&
-           mWriteDone) // we need to recheck b/c of duk_call
+        if (!mWriteBufferCount && mWriteDone) // we need to recheck b/c of duk_call
         {
-            if(!mIsServer)
+            if (!mIsServer)
             {
-                if(!mShutdown && !mWriteChunkedEncoding &&
-                   (mWriteLen < 0 || mWritePos != mWriteLen))
+                if (!mShutdown && !mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
                 {
                     mSocket->Shutdown();
                     mShutdown = true;
                 }
             }
-            else if((!mWriteChunkedEncoding &&
-                     (mWriteLen < 0 || mWritePos != mWriteLen)) ||
-                    mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+            else if ((!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen)) ||
+                     mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+            {
                 mSocket->Close();
+            }
             else
+            {
                 Init();
+            }
         }
     }
 
@@ -661,61 +693,65 @@ bool LowHTTPDirect::OnSocketData(unsigned char *data, int len)
 // -----------------------------------------------------------------------------
 
 #if !LOW_HAS_STRCASESTR
+
 char *strcasestr(const char *s, const char *find);
+
 #endif /* !LOW_HAS_STRCASESTR */
 
 bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
 {
     bool setCallback = false;
 
-    if(len == 0 || mClosed)
+    if (len == 0 || mClosed)
+    {
         goto done;
-    if(len < 0)
+    }
+    if (len < 0)
     {
         mReadError = true;
         goto done;
     }
 
-    while(len--)
+    while (len--)
     {
         unsigned char c = *data++;
-        if(mEraseNextN && c == '\n')
+        if (mEraseNextN && c == '\n')
         {
             mEraseNextN = false;
             continue;
         }
         mEraseNextN = mPhase != LOWHTTPDIRECT_PHASE_BODY && c == '\r';
 
-        if(mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+        if (mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+        {
             goto err;
+        }
 
         LowHTTPDirect_ParamData *param = mParamLast;
-        if(mPhase != LOWHTTPDIRECT_PHASE_BODY &&
-           mPhase != LOWHTTPDIRECT_PHASE_CHUNK_HEADER &&
-           (!param || mParamPos + 2 >= sizeof(param->data)))
+        if (mPhase != LOWHTTPDIRECT_PHASE_BODY && mPhase != LOWHTTPDIRECT_PHASE_CHUNK_HEADER &&
+            (!param || mParamPos + 2 >= sizeof(param->data)))
         {
-            LowHTTPDirect_ParamData *newParam =
-              (LowHTTPDirect_ParamData *)low_alloc(
-                sizeof(LowHTTPDirect_ParamData));
-            if(!newParam)
+            LowHTTPDirect_ParamData *newParam = (LowHTTPDirect_ParamData *) low_alloc(sizeof(LowHTTPDirect_ParamData));
+            if (!newParam)
             {
                 mSocket->SetError(false, ENOMEM, false);
                 goto done;
             }
             newParam->next = NULL;
-            newParam->type = mAtTrailer ? LOWHTTPDIRECT_PARAMDATA_TRAILER
-                                        : LOWHTTPDIRECT_PARAMDATA_HEADER;
+            newParam->type = mAtTrailer ? LOWHTTPDIRECT_PARAMDATA_TRAILER : LOWHTTPDIRECT_PARAMDATA_HEADER;
             pthread_mutex_lock(&mMutex);
-            if(param)
+            if (param)
             {
-                if(mParamStart == 1)
+                if (mParamStart == 1)
+                {
                     goto err;
+                }
 
                 param->next = newParam;
-                if(mParamStart != mParamPos)
-                    memcpy(newParam->data + 1,
-                           param->data + mParamStart,
-                           mParamPos - mParamStart);
+                if (mParamStart != mParamPos)
+                {
+                    memcpy(newParam->data + 1, param->data + mParamStart, mParamPos - mParamStart);
+                }
                 param->data[mParamStart - 1] = '\0';
                 mParamPos -= mParamStart - 1;
                 mParamPosNonSpace -= mParamStart - 1;
@@ -732,22 +768,26 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
         }
 
         bool isSpace = c == ' ' || c == '\t';
-        if(mPhase == LOWHTTPDIRECT_PHASE_CHUNK_HEADER)
+        if (mPhase == LOWHTTPDIRECT_PHASE_CHUNK_HEADER)
         {
-            if(mParamStart == sizeof(mChunkedHeaderLine))
-                goto err;
-
-            if(c == '\r' || c == '\n')
+            if (mParamStart == sizeof(mChunkedHeaderLine))
             {
-                if(mParamStart)
+                goto err;
+            }
+
+            if (c == '\r' || c == '\n')
+            {
+                if (mParamStart)
                 {
                     mChunkedHeaderLine[mParamStart++] = '\0';
 
                     int i;
-                    if(sscanf(mChunkedHeaderLine, "%x", &i) == 1)
+                    if (sscanf(mChunkedHeaderLine, "%x", &i) == 1)
                     {
-                        if(i == 0)
+                        if (i == 0)
+                        {
                             mPhase = LOWHTTPDIRECT_PHASE_HEADER_KEY;
+                        }
                         else
                         {
                             mContentLen += i;
@@ -755,31 +795,39 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                         }
                     }
                     else
+                    {
                         goto err;
+                    }
                 }
             }
             else
+            {
                 mChunkedHeaderLine[mParamStart++] = c;
+            }
         }
-        else if(mPhase == LOWHTTPDIRECT_PHASE_BODY)
+        else if (mPhase == LOWHTTPDIRECT_PHASE_BODY)
         {
             len++;
             data--; // we need more than 1 char
 
             int size = len;
-            if(mContentLen >= 0 && size > mContentLen - mDataLen)
+            if (mContentLen >= 0 && size > mContentLen - mDataLen)
+            {
                 size = mContentLen - mDataLen;
+            }
 
             pthread_mutex_lock(&mMutex);
-            if(!mReadData || mReadPos == mReadLen)
+            if (!mReadData || mReadPos == mReadLen)
             {
                 mRemainingReadLen = len;
                 mRemainingRead = data;
                 pthread_mutex_unlock(&mMutex);
                 break;
             }
-            if(size > mReadLen - mReadPos)
+            if (size > mReadLen - mReadPos)
+            {
                 size = mReadLen - mReadPos;
+            }
 
             memcpy(mReadData + mReadPos, data, size);
             mReadPos += size;
@@ -789,180 +837,194 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
             data += size;
             len -= size;
 
-            if(mContentLen >= 0 && mDataLen == mContentLen)
+            if (mContentLen >= 0 && mDataLen == mContentLen)
             {
-                if(mChunkedEncoding)
+                if (mChunkedEncoding)
                 {
                     mPhase = LOWHTTPDIRECT_PHASE_CHUNK_HEADER;
                     mParamStart = 0;
                 }
                 else
+                {
                     mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                }
             }
             setCallback = true;
         }
-        else if(mParamStart == mParamPos &&
-                (isSpace || ((c == '\r' || c == '\n') &&
-                             mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1)))
+        else if (mParamStart == mParamPos &&
+                 (isSpace || ((c == '\r' || c == '\n') && mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1)))
+        {
             continue;
+        }
         else
         {
-            if(mEraseNextN)
+            if (mEraseNextN)
+            {
                 c = '\n';
+            }
 
             bool done = false;
-            if(mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1 && isSpace)
+            if (mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1 && isSpace)
             {
                 mPhase = LOWHTTPDIRECT_PHASE_FIRSTLINE2;
-                if(!mIsServer)
+                if (!mIsServer)
                 {
-                    if(mParamPosNonSpace - mParamStart < 5 // x/1.0
-                       || param->data[mParamPosNonSpace - 4] != '/' ||
-                       param->data[mParamPosNonSpace - 2] != '.')
+                    if (mParamPosNonSpace - mParamStart < 5 // x/1.0
+                        || param->data[mParamPosNonSpace - 4] != '/' || param->data[mParamPosNonSpace - 2] != '.')
+                    {
                         goto err;
+                    }
 
                     param->data[mParamStart - 1] = 3;
-                    param->data[mParamStart] =
-                      param->data[mParamPosNonSpace - 3];
+                    param->data[mParamStart] = param->data[mParamPosNonSpace - 3];
                     param->data[mParamStart + 1] = '.';
-                    param->data[mParamStart + 2] =
-                      param->data[mParamPosNonSpace - 1];
-                    mParamPos = mParamStart = mParamPosNonSpace =
-                      mParamStart + 4;
+                    param->data[mParamStart + 2] = param->data[mParamPosNonSpace - 1];
+                    mParamPos = mParamStart = mParamPosNonSpace = mParamStart + 4;
 
                     continue;
                 }
                 else
                 {
                     param->data[mParamPosNonSpace] = '\0';
-                    mNoBodyDefault =
-                      strcmp(param->data + mParamStart, "OPTIONS") == 0 ||
-                      strcmp(param->data + mParamStart, "GET") == 0 ||
-                      strcmp(param->data + mParamStart, "HEAD") == 0 ||
-                      strcmp(param->data + mParamStart, "UNLOCK") == 0 ||
-                      strcmp(param->data + mParamStart, "MKCOL") == 0 ||
-                      strcmp(param->data + mParamStart, "COPY") == 0 ||
-                      strcmp(param->data + mParamStart, "MOVE") == 0 ||
-                      strcmp(param->data + mParamStart, "DELETE") == 0 ||
-                      strcmp(param->data + mParamStart, "CONNECT") == 0;
+                    mNoBodyDefault = strcmp(param->data + mParamStart, "OPTIONS") == 0 ||
+                                     strcmp(param->data + mParamStart, "GET") == 0 ||
+                                     strcmp(param->data + mParamStart, "HEAD") == 0 ||
+                                     strcmp(param->data + mParamStart, "UNLOCK") == 0 ||
+                                     strcmp(param->data + mParamStart, "MKCOL") == 0 ||
+                                     strcmp(param->data + mParamStart, "COPY") == 0 ||
+                                     strcmp(param->data + mParamStart, "MOVE") == 0 ||
+                                     strcmp(param->data + mParamStart, "DELETE") == 0 ||
+                                     strcmp(param->data + mParamStart, "CONNECT") == 0;
                     done = true;
                 }
             }
-            else if(mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE2 && isSpace)
+            else if (mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE2 && isSpace)
             {
                 mPhase = LOWHTTPDIRECT_PHASE_FIRSTLINE3;
                 done = true;
             }
-            else if(mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE3 && c == '\n')
+            else if (mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE3 && c == '\n')
             {
                 mPhase = LOWHTTPDIRECT_PHASE_HEADER_KEY;
-                if(mIsServer)
+                if (mIsServer)
                 {
-                    if(mParamPosNonSpace - mParamStart < 5 // x/1.0
-                       || param->data[mParamPosNonSpace - 4] != '/' ||
-                       param->data[mParamPosNonSpace - 2] != '.')
+                    if (mParamPosNonSpace - mParamStart < 5 // x/1.0
+                        || param->data[mParamPosNonSpace - 4] != '/' || param->data[mParamPosNonSpace - 2] != '.')
+                    {
                         goto err;
+                    }
 
                     param->data[mParamStart - 1] = 3;
-                    param->data[mParamStart] =
-                      param->data[mParamPosNonSpace - 3];
+                    param->data[mParamStart] = param->data[mParamPosNonSpace - 3];
                     param->data[mParamStart + 1] = '.';
-                    param->data[mParamStart + 2] =
-                      param->data[mParamPosNonSpace - 1];
-                    mParamPos = mParamStart = mParamPosNonSpace =
-                      mParamStart + 4;
+                    param->data[mParamStart + 2] = param->data[mParamPosNonSpace - 1];
+                    mParamPos = mParamStart = mParamPosNonSpace = mParamStart + 4;
 
                     continue;
                 }
                 else
+                {
                     done = true;
+                }
             }
-            else if(mPhase == LOWHTTPDIRECT_PHASE_HEADER_VALUE && c == '\n')
+            else if (mPhase == LOWHTTPDIRECT_PHASE_HEADER_VALUE && c == '\n')
             {
-                if(mIsContentLengthHeader)
+                if (mIsContentLengthHeader)
                 {
                     param->data[mParamPosNonSpace] = '\0';
                     mContentLen = atoi(param->data + mParamStart);
                 }
-                else if(mIsTransferEncodingHeader)
+                else if (mIsTransferEncodingHeader)
                 {
                     param->data[mParamPosNonSpace] = '\0';
-                    mChunkedEncoding =
-                      strcasestr(param->data + mParamStart, "chunked") != NULL;
+                    mChunkedEncoding = strcasestr(param->data + mParamStart, "chunked") != NULL;
                 }
 
                 mPhase = LOWHTTPDIRECT_PHASE_HEADER_KEY;
                 done = true;
             }
-            else if(mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY && c == ':')
+            else if (mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY && c == ':')
             {
                 param->data[mParamPosNonSpace] = '\0';
-                mIsContentLengthHeader =
-                  strcmp(param->data + mParamStart, "content-length") == 0;
+                mIsContentLengthHeader = strcmp(param->data + mParamStart, "content-length") == 0;
                 mIsTransferEncodingHeader =
-                  !mIsContentLengthHeader &&
-                  strcmp(param->data + mParamStart, "transfer-encoding") == 0;
+                    !mIsContentLengthHeader && strcmp(param->data + mParamStart, "transfer-encoding") == 0;
 
                 mPhase = LOWHTTPDIRECT_PHASE_HEADER_VALUE;
                 done = true;
             }
-            else if(mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY && c == '\n')
+            else if (mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY && c == '\n')
             {
-                if(mParamStart == mParamPos)
+                if (mParamStart == mParamPos)
                 {
                     param->data[mParamStart - 1] = '\0';
 
-                    if(mAtTrailer)
+                    if (mAtTrailer)
+                    {
                         mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                    }
                     else
                     {
                         mAtTrailer = true;
-                        if(mContentLen == -1 && !mChunkedEncoding &&
-                           mNoBodyDefault)
+                        if (mContentLen == -1 && !mChunkedEncoding && mNoBodyDefault)
+                        {
                             mContentLen = 0;
-                        if(mChunkedEncoding)
+                        }
+                        if (mChunkedEncoding)
                         {
                             mPhase = LOWHTTPDIRECT_PHASE_CHUNK_HEADER;
                             mParamStart = 0;
                             mContentLen = 0;
                         }
-                        else if(mContentLen != 0)
+                        else if (mContentLen != 0)
+                        {
                             mPhase = LOWHTTPDIRECT_PHASE_BODY;
+                        }
                         else
+                        {
                             mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                        }
                     }
                     setCallback = true;
                 }
                 else
                 {
                     // Header without value
-                    param->data[mParamStart - 1] =
-                      mParamPosNonSpace - mParamStart;
+                    param->data[mParamStart - 1] = mParamPosNonSpace - mParamStart;
                     param->data[mParamPosNonSpace] = 0;
                     mParamPos = mParamStart = mParamPosNonSpace + 2;
                 }
                 continue;
             }
-            if(done)
+            if (done)
             {
-                if(mParamPosNonSpace - mParamStart > 255)
+                if (mParamPosNonSpace - mParamStart > 255)
+                {
                     mParamPosNonSpace = mParamStart + 255;
+                }
                 param->data[mParamStart - 1] = mParamPosNonSpace - mParamStart;
-                mParamPos = mParamStart = mParamPosNonSpace =
-                  mParamPosNonSpace + 1;
+                mParamPos = mParamStart = mParamPosNonSpace = mParamPosNonSpace + 1;
             }
             else
             {
-                if(mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY)
+                if (mPhase == LOWHTTPDIRECT_PHASE_HEADER_KEY)
+                {
                     param->data[mParamPos++] = tolower(c);
-                else if(mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1 ||
-                        (mIsServer && mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE3))
+                }
+                else if (mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE1 ||
+                         (mIsServer && mPhase == LOWHTTPDIRECT_PHASE_FIRSTLINE3))
+                {
                     param->data[mParamPos++] = toupper(c);
+                }
                 else
+                {
                     param->data[mParamPos++] = c;
+                }
 
-                if(!isSpace)
+                if (!isSpace)
+                {
                     mParamPosNonSpace = mParamPos;
+                }
             }
         }
     }
@@ -970,16 +1032,20 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
     pthread_mutex_lock(&mLow->ref_mutex);
     mBytesRead += len;
     pthread_mutex_unlock(&mLow->ref_mutex);
-    if(mRequestCallID && setCallback && !inLoop)
+    if (mRequestCallID && setCallback && !inLoop)
+    {
         low_loop_set_callback(mLow, this);
+    }
     return !mRemainingRead;
 
 err:
     mHTTPError = true;
 done:
     mClosed = true;
-    if(mRequestCallID)
+    if (mRequestCallID)
+    {
         low_loop_set_callback(mLow, this);
+    }
 
     return false;
 }
@@ -992,8 +1058,10 @@ bool LowHTTPDirect::OnSocketWrite()
 {
     pthread_mutex_lock(&mMutex);
     DoWrite();
-    if(mWriteCallID && (!mWriteBufferCount || mWriteError))
+    if (mWriteCallID && (!mWriteBufferCount || mWriteError))
+    {
         low_loop_set_callback(mLow, this);
+    }
     bool res = mWriteBufferCount != 0;
     pthread_mutex_unlock(&mMutex);
 

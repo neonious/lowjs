@@ -8,7 +8,9 @@
 #include "duktape.h"
 
 duk_ret_t low_process_info(duk_context *ctx);
+
 duk_ret_t low_tty_info(duk_context *ctx);
+
 duk_ret_t low_hrtime(duk_context *ctx);
 
 #endif /* __LOW_PROCESS_H__ */
