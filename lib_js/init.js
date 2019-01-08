@@ -780,7 +780,7 @@ Promise.reject = function(reason){
   function sharedIterator(itp, array, array2) {
     var p = [0], done = false;
     itp.push(p);
-    return {
+    var iter = {
       next: function() {
         var v, k = p[0];
         if (!done && k < array.length) {
@@ -793,6 +793,10 @@ Promise.reject = function(reason){
         return { done: done, value: v };
       }
     };
+    iter[Symbol.iterator] = function() {
+    	return sharedIterator(itp, array, array2);
+    };
+    return iter;
   }
 
   function sharedSize() {
@@ -807,7 +811,6 @@ Promise.reject = function(reason){
       callback.call(context, r.value[1], r.value[0], this);
     }
   }
-
 })(exports);
 
 Set.prototype[Symbol.iterator] = Set.prototype.values;
