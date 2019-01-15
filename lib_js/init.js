@@ -818,6 +818,25 @@ WeakSet.prototype[Symbol.iterator] = WeakSet.prototype.values;
 Map.prototype[Symbol.iterator] = Map.prototype.entries;
 WeakMap.prototype[Symbol.iterator] = WeakMap.prototype.entries;
 
+Object.prototype.toString = (function(toString) {
+        return function() {
+                if(this instanceof Promise)
+                        return '[object Promise]';
+                else if(this instanceof WeakSet)
+                        return '[object WeakSet]';
+                else if(this instanceof WeakMap)
+                        return '[object WeakMap]';
+                else if(this instanceof Set)
+                        return '[object Set]';
+                else if(this instanceof Map)
+                        return '[object Map]';
+                else if(this instanceof Collection)
+                        return '[object Collection]';
+                else
+                        return toString.call(this);
+        }
+})(Object.prototype.toString);
+
 Array.prototype[Symbol.iterator] = Array.prototype.values = function values() {
 	let someArray = this;
   let nextIndex = 0;
