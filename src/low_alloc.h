@@ -30,12 +30,17 @@ extern "C"
 extern "C"
 {
 #endif /* __cplusplus */
-    void *low_alloc(size_t size);
-    void *low_calloc(size_t num, size_t size);
-    void *low_realloc(void *ptr, size_t size);
-    void low_free(void *ptr);
 
-    char *low_strdup(const char *str);
+void *low_alloc(size_t size);
+
+void *low_calloc(size_t num, size_t size);
+
+void *low_realloc(void *ptr, size_t size);
+
+void low_free(void *ptr);
+
+char *low_strdup(const char *str);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

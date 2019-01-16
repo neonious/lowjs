@@ -25,14 +25,18 @@ void *operator new(size_t size, low_new_ident ident) noexcept
 char *low_strdup(const char *str)
 {
     int len = str ? strlen(str) : 0;
-    char *dup = (char *)low_alloc(len + 1);
+    char *dup = (char *) low_alloc(len + 1);
 
-    if(dup)
+    if (dup)
     {
-        if(len)
+        if (len)
+        {
             memcpy(dup, str, len + 1);
+        }
         else
+        {
             *dup = '\0';
+        }
     }
 
     return dup;

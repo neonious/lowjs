@@ -43,28 +43,29 @@
 
 struct low_system_t
 {
-    char *lib_path;
+  char *lib_path;
 
 #if LOW_HAS_TERMIOS
-    bool isatty, raw_mode;
-    struct termios orig_termios;
+  bool isatty, raw_mode;
+  struct termios orig_termios;
 #endif /* LOW_HAS_TERMIOS */
 
-    int signal_pipe_fd;
+  int signal_pipe_fd;
 };
 
-extern "C"
-{
-    bool low_system_init();
-    void low_system_destroy();
+extern "C" {
+bool low_system_init();
+void low_system_destroy();
 }
 
 bool low_set_raw_mode(bool mode);
+
 int low_tick_count();
 
 void low_push_error(struct low_main_t *low, int error, const char *syscall);
 
 void low_error_errno();
+
 void low_error(const char *txt);
 
 #endif /* __LOW_SYSTEM_H__ */

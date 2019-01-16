@@ -10,6 +10,7 @@
 #include "low_system.h"
 
 #include "low_config.h"
+
 #if LOW_INCLUDE_CARES_RESOLVER
 #include "LowDNSResolver.h"
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
@@ -29,7 +30,7 @@ duk_ret_t low_dns_lookup(duk_context *ctx)
     int family = duk_require_int(ctx, 1);
     int hints = duk_require_int(ctx, 2);
 
-    switch(family)
+    switch (family)
     {
         case 4:
             family = AF_INET;
@@ -47,8 +48,10 @@ duk_ret_t low_dns_lookup(duk_context *ctx)
     hints = (hints & 1) ? AI_ADDRCONFIG : 0 | (hints & 2) ? AI_V4MAPPED : 0;
 
     LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
-    if(!worker->Lookup(address, family, hints, 3))
+    if (!worker->Lookup(address, family, hints, 3))
+    {
         delete worker;
+    }
 
     return 0;
 }
@@ -63,8 +66,10 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
     int port = duk_require_int(ctx, 1);
 
     LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
-    if(!worker->LookupService(address, port, 2))
+    if (!worker->LookupService(address, port, 2))
+    {
         delete worker;
+    }
 
     return 0;
 }
@@ -91,9 +96,8 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
     duk_push_c_function(ctx, low_dns_resolver_finalizer, 1);
     duk_set_finalizer(ctx, 0);
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
     return 1;
@@ -116,9 +120,8 @@ duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
     low->resolvers[index]->Cancel();
     pthread_mutex_unlock(&low->resolvers_mutex);
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -210,9 +213,8 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
     }
     ares_free_data(list);
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 1;
 }
@@ -290,9 +292,8 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
         duk_throw(ctx);
     }
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -332,9 +333,8 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
     query->Resolve(hostname, type, ttl, 0, 4);
     pthread_mutex_unlock(&low->resolvers_mutex);
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
@@ -379,9 +379,8 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
         return 0;
     }
 #else
-    duk_reference_error(ctx,
-                        "low.js was compiled without c-ares. Recompile or "
-                        "use dns.lookup instead.");
+    duk_reference_error(ctx, "low.js was compiled without c-ares. Recompile or "
+                             "use dns.lookup instead.");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }

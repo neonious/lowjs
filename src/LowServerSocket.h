@@ -11,27 +11,29 @@ struct low_main_t;
 
 class LowServerSocket : public LowFD
 {
-  public:
-    LowServerSocket(low_main_t *low, bool isHTTP, LowTLSContext *secureContext);
-    virtual ~LowServerSocket();
+public:
+  LowServerSocket(low_main_t *low, bool isHTTP, LowTLSContext *secureContext);
 
-    bool Listen(struct sockaddr *addr, int addrLen, int callIndex, int &err,
-                const char *&syscall);
+  virtual ~LowServerSocket();
 
-    void Read(int pos, unsigned char *data, int len, int callIndex);
-    void Write(int pos, unsigned char *data, int len, int callIndex);
-    bool Close(int callIndex);
+  bool Listen(struct sockaddr *addr, int addrLen, int callIndex, int &err, const char *&syscall);
 
-  protected:
-    virtual bool OnEvents(short events);
+  void Read(int pos, unsigned char *data, int len, int callIndex);
 
-  private:
-    low_main_t *mLow;
-    bool mIsHTTP;
+  void Write(int pos, unsigned char *data, int len, int callIndex);
 
-    int mFamily, mAcceptCallID;
+  bool Close(int callIndex);
 
-    LowTLSContext *mSecureContext;
+protected:
+  virtual bool OnEvents(short events);
+
+private:
+  low_main_t *mLow;
+  bool mIsHTTP;
+
+  int mFamily, mAcceptCallID;
+
+  LowTLSContext *mSecureContext;
 };
 
 #endif /* __LOWSERVERSOCKET_H__ */

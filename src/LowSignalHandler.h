@@ -9,15 +9,15 @@
 
 class LowSignalHandler : public LowLoopCallback
 {
-  public:
-    LowSignalHandler(low_main_t *low, int signal);
+public:
+  LowSignalHandler(low_main_t *low, int signal);
 
-  protected:
-    virtual bool OnLoop();
+protected:
+  virtual bool OnLoop();
 
-  private:
-    low_main_t *mLow;
-    int mSignal;
+private:
+  low_main_t *mLow;
+  int mSignal;
 };
 
 #endif /* __LOWSIGNALHANDLER_H__ */

@@ -22,8 +22,10 @@
 #include <lwip/sockets.h>
 #define ioctl lwip_ioctl
 #else
+
 #include <netinet/tcp.h>
 #include <sys/uio.h>
+
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
@@ -31,14 +33,13 @@
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low, int fd) :
-    LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
-    mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
-    mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
-    mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
-    mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
-    mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
-    mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low, int fd) : LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
+                                                mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
+                                                mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
+                                                mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
+                                                mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
+                                                mDirectReadEnabled(false), mDirectWriteEnabled(false),
+                                                mTLSContext(NULL), mSSL(NULL)
 {
     AdvertiseFD();
     InitSocket(NULL);
@@ -48,79 +49,93 @@ LowSocket::LowSocket(low_main_t *low, int fd) :
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low,
-                     int fd,
-                     struct sockaddr *remoteAddr,
-                     int acceptCallID,
-                     LowSocketDirect *direct,
-                     int directType,
-                     LowTLSContext *tlsContext,
-                     bool clearOnReset) :
-    LowFD(low, LOWFD_TYPE_SOCKET, fd),
-    LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_ACCEPTED),
-    mAcceptConnectCallID(acceptCallID), mAcceptConnectError(false),
-    mReadCallID(0), mWriteCallID(0), mConnected(false), mClosed(false),
-    mDestroyed(false), mCloseCallID(0), mReadData(NULL), mWriteData(NULL),
-    mDirect(direct), mDirectType(directType),
-    mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
-    mTLSContext(tlsContext), mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low, int fd, struct sockaddr *remoteAddr, int acceptCallID, LowSocketDirect *direct,
+                     int directType, LowTLSContext *tlsContext, bool clearOnReset) : LowFD(low, LOWFD_TYPE_SOCKET, fd),
+                                                                                     LowLoopCallback(low), mLow(low),
+                                                                                     mType(LOWSOCKET_TYPE_ACCEPTED),
+                                                                                     mAcceptConnectCallID(acceptCallID),
+                                                                                     mAcceptConnectError(false),
+                                                                                     mReadCallID(0), mWriteCallID(0),
+                                                                                     mConnected(false), mClosed(false),
+                                                                                     mDestroyed(false), mCloseCallID(0),
+                                                                                     mReadData(NULL), mWriteData(NULL),
+                                                                                     mDirect(direct),
+                                                                                     mDirectType(directType),
+                                                                                     mDirectReadEnabled(direct != NULL),
+                                                                                     mDirectWriteEnabled(
+                                                                                         direct != NULL),
+                                                                                     mTLSContext(tlsContext), mSSL(NULL)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
 
-    if(mDirect)
-        mDirect->SetSocket(this);
-
-    if(!InitSocket(remoteAddr))
+    if (mDirect)
     {
-        if(mAcceptConnectCallID)
+        mDirect->SetSocket(this);
+    }
+
+    if (!InitSocket(remoteAddr))
+    {
+        if (mAcceptConnectCallID)
+        {
             low_loop_set_callback(mLow, this); // to output error
+        }
         else
+        {
             low_web_set_poll_events(mLow, this, POLLOUT);
+        }
 
         mTLSContext = NULL;
         return;
     }
-    else if(mTLSContext)
+    else if (mTLSContext)
+    {
         low_web_set_poll_events(mLow, this, POLLOUT);
+    }
     else
     {
         mConnected = true;
-        if(mAcceptConnectCallID)
+        if (mAcceptConnectCallID)
+        {
             low_loop_set_callback(mLow, this);
+        }
 
-        if(mDirect)
+        if (mDirect)
+        {
             low_web_set_poll_events(mLow, this, POLLIN | POLLOUT);
+        }
     }
 
-    if(mTLSContext)
+    if (mTLSContext)
+    {
         mTLSContext->AddRef();
+    }
 }
 
 // -----------------------------------------------------------------------------
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low,
-                     LowSocketDirect *direct,
-                     int directType,
-                     LowTLSContext *tlsContext,
-                     bool clearOnReset) :
-    LowFD(low, LOWFD_TYPE_SOCKET),
-    LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_CONNECTED),
-    mAcceptConnectCallID(0), mAcceptConnectError(false), mReadCallID(0),
-    mWriteCallID(0), mConnected(false), mClosed(false), mDestroyed(false),
-    mCloseCallID(0), mReadData(NULL), mWriteData(NULL), mDirect(direct),
-    mDirectType(directType), mDirectReadEnabled(direct != NULL),
-    mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL)
+LowSocket::LowSocket(low_main_t *low, LowSocketDirect *direct, int directType, LowTLSContext *tlsContext,
+                     bool clearOnReset) : LowFD(low, LOWFD_TYPE_SOCKET), LowLoopCallback(low), mLow(low),
+                                          mType(LOWSOCKET_TYPE_CONNECTED), mAcceptConnectCallID(0),
+                                          mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
+                                          mConnected(false), mClosed(false), mDestroyed(false), mCloseCallID(0),
+                                          mReadData(NULL), mWriteData(NULL), mDirect(direct), mDirectType(directType),
+                                          mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
+                                          mTLSContext(tlsContext), mSSL(NULL)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
 
-    if(mDirect)
+    if (mDirect)
+    {
         mDirect->SetSocket(this);
-    if(mTLSContext)
+    }
+    if (mTLSContext)
+    {
         mTLSContext->AddRef();
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -131,32 +146,40 @@ LowSocket::~LowSocket()
 {
     low_web_clear_poll(mLow, this);
 
-    if(mDirect)
+    if (mDirect)
     {
         delete mDirect;
         low_free(mReadData);
     }
 
-    if(mAcceptConnectCallID)
+    if (mAcceptConnectCallID)
     {
-        if(mType == LOWSOCKET_TYPE_CONNECTED)
+        if (mType == LOWSOCKET_TYPE_CONNECTED)
+        {
             low_remove_stash(mLow, mAcceptConnectCallID);
+        }
     }
 
-    if(mReadCallID)
+    if (mReadCallID)
+    {
         low_remove_stash(mLow, mReadCallID);
-    if(mWriteCallID)
+    }
+    if (mWriteCallID)
+    {
         low_remove_stash(mLow, mWriteCallID);
-    if(FD() >= 0 && mType != LOWSOCKET_TYPE_STDINOUT)
+    }
+    if (FD() >= 0 && mType != LOWSOCKET_TYPE_STDINOUT)
+    {
         close(FD());
+    }
     SetFD(-1);
 
-    if(mSSL)
+    if (mSSL)
     {
         mbedtls_ssl_free(mSSL);
         low_free(mSSL);
     }
-    if(mTLSContext)
+    if (mTLSContext)
     {
         mTLSContext->DecRef();
     }
@@ -168,29 +191,26 @@ LowSocket::~LowSocket()
 
 bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
 {
-    if(remoteAddr && remoteAddr->sa_family == AF_INET)
+    if (remoteAddr && remoteAddr->sa_family == AF_INET)
     {
         struct sockaddr_in *addr;
         unsigned char *ip;
 
         mNodeFamily = 4;
 
-        addr = (struct sockaddr_in *)remoteAddr;
-        ip = (unsigned char *)&addr->sin_addr.s_addr;
+        addr = (struct sockaddr_in *) remoteAddr;
+        ip = (unsigned char *) &addr->sin_addr.s_addr;
         sprintf(mRemoteHost, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
         mRemotePort = ntohs(addr->sin_port);
     }
-    else if(remoteAddr && remoteAddr->sa_family == AF_INET6)
+    else if (remoteAddr && remoteAddr->sa_family == AF_INET6)
     {
         struct sockaddr_in6 *addr;
 
         mNodeFamily = 6;
 
-        addr = (struct sockaddr_in6 *)remoteAddr;
-        if(inet_ntop(AF_INET6,
-                     addr->sin6_addr.s6_addr,
-                     mRemoteHost,
-                     sizeof(mRemoteHost)) == NULL)
+        addr = (struct sockaddr_in6 *) remoteAddr;
+        if (inet_ntop(AF_INET6, addr->sin6_addr.s6_addr, mRemoteHost, sizeof(mRemoteHost)) == NULL)
         {
             mAcceptConnectErrno = errno;
             mAcceptConnectErrnoSSL = false;
@@ -200,10 +220,12 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         mRemotePort = ntohs(addr->sin6_port);
     }
     else
-        mNodeFamily = 0; // UNIX
+    {
+        mNodeFamily = 0;
+    } // UNIX
 
     u_long mode = 1;
-    if(ioctl(FD(), FIONBIO, &mode) < 0)
+    if (ioctl(FD(), FIONBIO, &mode) < 0)
     {
         mAcceptConnectErrno = errno;
         mAcceptConnectErrnoSSL = false;
@@ -212,10 +234,10 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         return false;
     }
 
-    if(mTLSContext)
+    if (mTLSContext)
     {
-        mSSL = (mbedtls_ssl_context *)low_alloc(sizeof(mbedtls_ssl_context));
-        if(!mSSL)
+        mSSL = (mbedtls_ssl_context *) low_alloc(sizeof(mbedtls_ssl_context));
+        if (!mSSL)
         {
             mAcceptConnectErrno = ENOMEM;
             mAcceptConnectErrnoSSL = false;
@@ -227,7 +249,7 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         mbedtls_ssl_init(mSSL);
 
         int ret;
-        if((ret = mbedtls_ssl_setup(mSSL, &mTLSContext->GetSSLConfig())) != 0)
+        if ((ret = mbedtls_ssl_setup(mSSL, &mTLSContext->GetSSLConfig())) != 0)
         {
             mAcceptConnectErrno = ret;
             mAcceptConnectErrnoSSL = true;
@@ -236,8 +258,7 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
             return false;
         }
 
-        mbedtls_ssl_set_bio(
-          mSSL, &FD(), mbedtls_net_send, mbedtls_net_recv, NULL);
+        mbedtls_ssl_set_bio(mSSL, &FD(), mbedtls_net_send, mbedtls_net_recv, NULL);
     }
 
     return true;
@@ -247,13 +268,9 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
 //  LowSocket::Connect
 // -----------------------------------------------------------------------------
 
-bool LowSocket::Connect(struct sockaddr *remoteAddr,
-                        int remoteAddrLen,
-                        int callIndex,
-                        int &err,
-                        const char *&syscall)
+bool LowSocket::Connect(struct sockaddr *remoteAddr, int remoteAddrLen, int callIndex, int &err, const char *&syscall)
 {
-    if(mType != LOWSOCKET_TYPE_CONNECTED || FD() >= 0)
+    if (mType != LOWSOCKET_TYPE_CONNECTED || FD() >= 0)
     {
         err = mConnected ? EISCONN : EALREADY;
         syscall = "connect";
@@ -261,17 +278,17 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
     }
 
     SetFD(socket(remoteAddr->sa_family, SOCK_STREAM, 0));
-    if(FD() < 0)
+    if (FD() < 0)
     {
         err = errno;
         syscall = "socket";
         return false;
     }
-    if(InitSocket(remoteAddr))
+    if (InitSocket(remoteAddr))
     {
-        if(connect(FD(), remoteAddr, remoteAddrLen) < 0)
+        if (connect(FD(), remoteAddr, remoteAddrLen) < 0)
         {
-            if(errno != EINPROGRESS)
+            if (errno != EINPROGRESS)
             {
                 mAcceptConnectErrno = errno;
                 mAcceptConnectErrnoSSL = false;
@@ -279,11 +296,13 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
                 mAcceptConnectSyscall = "connect";
             }
         }
-        else if(!mTLSContext)
+        else if (!mTLSContext)
+        {
             mConnected = true;
+        }
     }
 
-    if(mAcceptConnectError)
+    if (mAcceptConnectError)
     {
         close(FD());
         SetFD(-1);
@@ -294,17 +313,20 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
     }
     else
     {
-        if(mConnected)
+        if (mConnected)
         {
-            if(callIndex == -1)
+            if (callIndex == -1)
+            {
                 return true;
+            }
             else
+            {
                 return CallAcceptConnect(callIndex, false);
+            }
         }
         else
         {
-            mAcceptConnectCallID =
-              callIndex != -1 ? low_add_stash(mLow, callIndex) : 0;
+            mAcceptConnectCallID = callIndex != -1 ? low_add_stash(mLow, callIndex) : 0;
             low_web_set_poll_events(mLow, this, POLLOUT);
 
             return true;
@@ -326,7 +348,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    if(mDirect || mReadData)
+    if (mDirect || mReadData)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "read");
@@ -341,17 +363,18 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     // If TLS context is used, always use other thread to read
     bool tryNow = !mTLSContext && mConnected;
     len = mClosed ? 0 : (tryNow ? DoRead() : -1);
-    if(len >= 0 ||
-       (tryNow && len == -1 && (mReadErrno != EAGAIN || mReadErrnoSSL)))
+    if (len >= 0 || (tryNow && len == -1 && (mReadErrno != EAGAIN || mReadErrnoSSL)))
     {
-        if(len == 0)
+        if (len == 0)
+        {
             mClosed = true;
+        }
 
         int err = errno;
         mReadData = NULL;
 
         duk_dup(mLow->duk_ctx, callIndex);
-        if(len >= 0)
+        if (len >= 0)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, len);
@@ -367,12 +390,8 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     {
         mReadCallID = low_add_stash(mLow, callIndex);
 
-        short events =
-          mClosed ? 0
-                  : (POLLIN | (!mConnected || (mWriteData && !mWritePos) ||
-                                   mDirectWriteEnabled
-                                 ? POLLOUT
-                                 : 0));
+        short events = mClosed ? 0 : (POLLIN |
+                                      (!mConnected || (mWriteData && !mWritePos) || mDirectWriteEnabled ? POLLOUT : 0));
         low_web_set_poll_events(mLow, this, events);
     }
 }
@@ -400,7 +419,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    if(mDirect || mWriteData)
+    if (mDirect || mWriteData)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "write");
@@ -415,14 +434,13 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     // If TLS context is used, always use other thread to read
     bool tryNow = !mTLSContext && mConnected;
     len = mClosed ? 0 : (tryNow ? DoWrite() : -1);
-    if(len >= 0 ||
-       (tryNow && len == -1 && (mWriteErrno != EAGAIN || mWriteErrnoSSL)))
+    if (len >= 0 || (tryNow && len == -1 && (mWriteErrno != EAGAIN || mWriteErrnoSSL)))
     {
         int err = errno;
         mWriteData = NULL;
 
         duk_dup(mLow->duk_ctx, callIndex);
-        if(len > 0)
+        if (len > 0)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, len);
@@ -438,9 +456,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     {
         mWriteCallID = low_add_stash(mLow, callIndex);
 
-        short events =
-          ((mReadData && !mReadPos) || mDirectReadEnabled ? POLLIN : 0) |
-          POLLOUT;
+        short events = ((mReadData && !mReadPos) || mDirectReadEnabled ? POLLIN : 0) | POLLOUT;
         low_web_set_poll_events(mLow, this, events);
     }
 }
@@ -452,12 +468,12 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
 void LowSocket::Shutdown(int callIndex)
 {
     duk_dup(mLow->duk_ctx, callIndex);
-    if(!mConnected)
+    if (!mConnected)
     {
         low_push_error(mLow, ENOTCONN, "shutdown");
         duk_call(mLow->duk_ctx, 1);
     }
-    else if(Shutdown() < 0)
+    else if (Shutdown() < 0)
     {
         int err = errno;
         duk_dup(mLow->duk_ctx, callIndex);
@@ -477,13 +493,17 @@ void LowSocket::Shutdown(int callIndex)
 
 int LowSocket::Shutdown()
 {
-    if(mTLSContext)
+    if (mTLSContext)
     {
-        if(mSSL)
-            return mbedtls_ssl_close_notify(mSSL); // todo: errnos are wrong
+        if (mSSL)
+        {
+            return mbedtls_ssl_close_notify(mSSL);
+        } // todo: errnos are wrong
     }
     else
+    {
         return shutdown(FD(), SHUT_WR);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -492,19 +512,27 @@ int LowSocket::Shutdown()
 
 bool LowSocket::Close(int callIndex)
 {
-    if(mDestroyed)
+    if (mDestroyed)
+    {
         return true;
+    }
 
-    if(callIndex != -1)
+    if (callIndex != -1)
+    {
         mCloseCallID = low_add_stash(mLow, callIndex);
+    }
 
     mDestroyed = true;
-    if(mCloseCallID)
+    if (mCloseCallID)
+    {
         low_loop_set_callback(mLow, this);
 
-    // for direct
+        // for direct
+    }
     else
+    {
         low_web_mark_delete(mLow, this);
+    }
     return true;
 }
 
@@ -514,22 +542,24 @@ bool LowSocket::Close(int callIndex)
 
 void LowSocket::KeepAlive(bool enable, int secs)
 {
-    if(FD() < 0)
+    if (FD() < 0)
+    {
         return;
+    }
 
     int opt = enable;
-    if(setsockopt(FD(), SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(int)) < 0)
+    if (setsockopt(FD(), SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(int)) < 0)
     {
         low_push_error(mLow, errno, "setsockopt");
         duk_throw(mLow->duk_ctx);
     }
 
-    if(secs)
+    if (secs)
     {
 #ifdef __APPLE__
         if(setsockopt(FD(), IPPROTO_TCP, TCP_KEEPALIVE, &secs, sizeof(int)) < 0)
 #else
-        if(setsockopt(FD(), IPPROTO_TCP, TCP_KEEPIDLE, &secs, sizeof(int)) < 0)
+        if (setsockopt(FD(), IPPROTO_TCP, TCP_KEEPIDLE, &secs, sizeof(int)) < 0)
 #endif /* #ifdef __APPLE__ */
         {
             low_push_error(mLow, errno, "setsockopt");
@@ -545,7 +575,7 @@ void LowSocket::KeepAlive(bool enable, int secs)
 void LowSocket::NoDelay(bool enable)
 {
     int opt = enable;
-    if(setsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(int)) < 0)
+    if (setsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(int)) < 0)
     {
         low_push_error(mLow, errno, "setsockopt");
         duk_throw(mLow->duk_ctx);
@@ -558,33 +588,37 @@ void LowSocket::NoDelay(bool enable)
 
 bool LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
 {
-    if(direct && (mDirect || !mConnected || mReadData || mWriteData))
-        return false;
-    if(!direct && !mDirect)
-        return false;
-
-    if(!direct && mDirect)
+    if (direct && (mDirect || !mConnected || mReadData || mWriteData))
     {
-        if(!fromWebThread)
+        return false;
+    }
+    if (!direct && !mDirect)
+    {
+        return false;
+    }
+
+    if (!direct && mDirect)
+    {
+        if (!fromWebThread)
+        {
             low_web_clear_poll(mLow, this);
+        }
         low_free(mReadData);
         mReadData = NULL;
     }
 
     mDirect = direct;
     mDirectType = type;
-    if(mDirect)
+    if (mDirect)
     {
         mDirectReadEnabled = true;
 
         mDirect->SetSocket(this);
-        if(!mDestroyed)
-            low_web_set_poll_events(
-              mLow,
-              this,
-              mClosed ? 0
-                      : (POLLIN | (mTLSContext ? POLLOUT : 0) |
-                         (!mConnected || mDirectWriteEnabled ? POLLOUT : 0)));
+        if (!mDestroyed)
+        {
+            low_web_set_poll_events(mLow, this, mClosed ? 0 : (POLLIN | (mTLSContext ? POLLOUT : 0) |
+                                                               (!mConnected || mDirectWriteEnabled ? POLLOUT : 0)));
+        }
     }
 
     return true;
@@ -606,19 +640,22 @@ LowSocketDirect *LowSocket::GetDirect(int &type)
 
 void LowSocket::TriggerDirect(int trigger)
 {
-    if(mDestroyed)
+    if (mDestroyed)
+    {
         return;
+    }
 
-    if(trigger & LOWSOCKET_TRIGGER_READ)
+    if (trigger & LOWSOCKET_TRIGGER_READ)
+    {
         mDirectReadEnabled = true;
-    if(trigger & LOWSOCKET_TRIGGER_WRITE)
+    }
+    if (trigger & LOWSOCKET_TRIGGER_WRITE)
+    {
         mDirectWriteEnabled = true;
+    }
 
-    short events =
-      mClosed
-        ? 0
-        : (mDirectReadEnabled ? (POLLIN | (mTLSContext ? POLLOUT : 0)) : 0) |
-            (!mConnected || mDirectWriteEnabled ? POLLOUT : 0);
+    short events = mClosed ? 0 : (mDirectReadEnabled ? (POLLIN | (mTLSContext ? POLLOUT : 0)) : 0) |
+                                 (!mConnected || mDirectWriteEnabled ? POLLOUT : 0);
     low_web_set_poll_events(mLow, this, events);
 }
 
@@ -628,31 +665,32 @@ void LowSocket::TriggerDirect(int trigger)
 
 bool LowSocket::OnEvents(short events)
 {
-    if((mDestroyed || mAcceptConnectError) && !mCloseCallID)
+    if ((mDestroyed || mAcceptConnectError) && !mCloseCallID)
+    {
         return false;
-    if(mClosed)
+    }
+    if (mClosed)
     {
         low_web_set_poll_events(mLow, this, 0);
         return true;
     }
 
-    while(mTLSContext && mSSL->state != MBEDTLS_SSL_HANDSHAKE_OVER &&
-          (events & (POLLIN | POLLOUT)))
+    while (mTLSContext && mSSL->state != MBEDTLS_SSL_HANDSHAKE_OVER && (events & (POLLIN | POLLOUT)))
     {
         int ret = mbedtls_ssl_handshake_step(mSSL);
-        if(mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+        if (mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
         {
             mDirectReadEnabled = mDirect;
             mDirectWriteEnabled = mDirect;
         }
-        else if(ret)
+        else if (ret)
         {
-            if(ret == MBEDTLS_ERR_SSL_WANT_READ)
+            if (ret == MBEDTLS_ERR_SSL_WANT_READ)
             {
                 mDirectWriteEnabled = false;
                 mDirectReadEnabled = true;
             }
-            else if(ret == MBEDTLS_ERR_SSL_WANT_WRITE)
+            else if (ret == MBEDTLS_ERR_SSL_WANT_WRITE)
             {
                 mDirectReadEnabled = false;
                 mDirectWriteEnabled = true;
@@ -662,7 +700,7 @@ bool LowSocket::OnEvents(short events)
                 mDirectReadEnabled = false;
                 mDirectWriteEnabled = false;
 
-                if(mAcceptConnectCallID)
+                if (mAcceptConnectCallID)
                 {
                     mAcceptConnectErrno = ret;
                     mAcceptConnectErrnoSSL = true;
@@ -671,28 +709,31 @@ bool LowSocket::OnEvents(short events)
                     low_loop_set_callback(mLow, this);
                 }
                 else
+                {
                     return false;
+                }
 
                 low_web_set_poll_events(mLow, this, 0);
                 return true;
             }
 
-            short events = (mDirectReadEnabled ? POLLIN : 0) |
-                           (mDirectWriteEnabled ? POLLOUT : 0);
+            short events = (mDirectReadEnabled ? POLLIN : 0) | (mDirectWriteEnabled ? POLLOUT : 0);
             low_web_set_poll_events(mLow, this, events);
             return true;
         }
     }
-    if(!mConnected)
+    if (!mConnected)
     {
         int error;
         socklen_t len = sizeof(error);
 
-        if(getsockopt(FD(), SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-            error = errno;
-        if(error)
+        if (getsockopt(FD(), SOL_SOCKET, SO_ERROR, &error, &len) < 0)
         {
-            if(mAcceptConnectCallID)
+            error = errno;
+        }
+        if (error)
+        {
+            if (mAcceptConnectCallID)
             {
                 mAcceptConnectErrno = error;
                 mAcceptConnectErrnoSSL = false;
@@ -702,49 +743,58 @@ bool LowSocket::OnEvents(short events)
                 low_loop_set_callback(mLow, this);
             }
             else
+            {
                 return false;
+            }
 
             return true;
         }
 
-        if(mDirect)
+        if (mDirect)
+        {
             mDirect->OnSocketConnected();
+        }
         mConnected = true;
-        if(mAcceptConnectCallID)
+        if (mAcceptConnectCallID)
+        {
             low_loop_set_callback(mLow, this);
+        }
     }
 
-    if(!mTLSContext || mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+    if (!mTLSContext || mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
     {
-        if(mDirect)
+        if (mDirect)
         {
-            if(((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) &&
-               mDirectReadEnabled)
+            if (((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) && mDirectReadEnabled)
             {
-                if(!mReadData)
+                if (!mReadData)
                 {
-                    mReadData = (unsigned char *)low_alloc(1024);
+                    mReadData = (unsigned char *) low_alloc(1024);
                     mReadLen = 1024;
                 }
-                if(mReadData)
+                if (mReadData)
                 {
                     mDirectReadEnabled = false; // no race conditions
-                    while(true) // required with SSL b/c Read might not always
-                                // be retriggered if SSL still has data
+                    while (true) // required with SSL b/c Read might not always
+                        // be retriggered if SSL still has data
                     {
                         int len = DoRead();
-                        if(len < 0 && mReadErrno == EAGAIN && !mReadErrnoSSL)
+                        if (len < 0 && mReadErrno == EAGAIN && !mReadErrnoSSL)
                         {
                             mDirectReadEnabled = true;
                             break;
                         }
 
-                        if(len == 0)
+                        if (len == 0)
+                        {
                             mClosed = true;
-                        if(!mDirect->OnSocketData(mReadData, len))
+                        }
+                        if (!mDirect->OnSocketData(mReadData, len))
+                        {
                             break;
+                        }
 
-                        if(!mTLSContext)
+                        if (!mTLSContext)
                         {
                             mDirectReadEnabled = true;
                             break;
@@ -752,38 +802,39 @@ bool LowSocket::OnEvents(short events)
                     }
                 }
             }
-            if((events & POLLOUT) && mDirectWriteEnabled)
+            if ((events & POLLOUT) && mDirectWriteEnabled)
             {
                 mDirectWriteEnabled = false; // no race conditions
-                if(mDirect->OnSocketWrite())
+                if (mDirect->OnSocketWrite())
+                {
                     mDirectWriteEnabled = true;
+                }
             }
 
-            short events = mClosed ? 0
-                                   : (mDirectReadEnabled ? POLLIN : 0) |
-                                       (mDirectWriteEnabled ? POLLOUT : 0);
+            short events = mClosed ? 0 : (mDirectReadEnabled ? POLLIN : 0) | (mDirectWriteEnabled ? POLLOUT : 0);
             low_web_set_poll_events(mLow, this, events);
         }
         else
         {
             bool change = false;
-            if((events & (POLLIN | POLLHUP | POLLERR)) && mReadData &&
-               !mReadPos)
+            if ((events & (POLLIN | POLLHUP | POLLERR)) && mReadData && !mReadPos)
             {
                 int len = DoRead();
-                if(len == 0)
+                if (len == 0)
+                {
                     mClosed = true;
+                }
 
-                if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+                if (len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
                 {
                     mReadPos = len;
                     change = true;
                 }
             }
-            if((events & POLLOUT) && mWriteData && !mWritePos)
+            if ((events & POLLOUT) && mWriteData && !mWritePos)
             {
                 int len = DoWrite();
-                if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+                if (len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
                 {
                     mWritePos = len;
                     change = true;
@@ -791,8 +842,10 @@ bool LowSocket::OnEvents(short events)
             }
 
             low_web_set_poll_events(mLow, this, 0);
-            if(change)
+            if (change)
+            {
                 low_loop_set_callback(mLow, this);
+            }
         }
     }
 
@@ -805,9 +858,9 @@ bool LowSocket::OnEvents(short events)
 
 bool LowSocket::OnLoop()
 {
-    if(mDestroyed)
+    if (mDestroyed)
     {
-        if(mCloseCallID)
+        if (mCloseCallID)
         {
             low_push_stash(mLow, mCloseCallID, true);
             duk_push_null(mLow->duk_ctx);
@@ -816,11 +869,11 @@ bool LowSocket::OnLoop()
         return false;
     }
 
-    if(mAcceptConnectCallID)
+    if (mAcceptConnectCallID)
     {
-        if(!CallAcceptConnect(mAcceptConnectCallID, true))
+        if (!CallAcceptConnect(mAcceptConnectCallID, true))
         {
-            if(mCloseCallID)
+            if (mCloseCallID)
             {
                 low_push_stash(mLow, mCloseCallID, true);
                 duk_push_null(mLow->duk_ctx);
@@ -829,9 +882,9 @@ bool LowSocket::OnLoop()
             return false;
         }
     }
-    else if(mAcceptConnectError)
+    else if (mAcceptConnectError)
     {
-        if(mCloseCallID)
+        if (mCloseCallID)
         {
             low_push_stash(mLow, mCloseCallID, true);
             duk_push_null(mLow->duk_ctx);
@@ -840,10 +893,12 @@ bool LowSocket::OnLoop()
         return false;
     }
 
-    if(mDirect || !mConnected)
+    if (mDirect || !mConnected)
+    {
         return true;
+    }
 
-    if(mReadData && (mClosed || mReadPos))
+    if (mReadData && (mClosed || mReadPos))
     {
         mReadData = NULL;
 
@@ -851,7 +906,7 @@ bool LowSocket::OnLoop()
         mReadCallID = 0;
 
         low_push_stash(mLow, callID, true);
-        if(mReadPos >= 0)
+        if (mReadPos >= 0)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, mReadPos);
@@ -863,7 +918,7 @@ bool LowSocket::OnLoop()
             duk_call(mLow->duk_ctx, 1);
         }
     }
-    if(mWriteData && mWritePos)
+    if (mWriteData && mWritePos)
     {
         mWriteData = NULL;
 
@@ -871,7 +926,7 @@ bool LowSocket::OnLoop()
         mWriteCallID = 0;
 
         low_push_stash(mLow, callID, true);
-        if(mWritePos > 0)
+        if (mWritePos > 0)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, mWritePos);
@@ -884,8 +939,7 @@ bool LowSocket::OnLoop()
         }
     }
 
-    short events =
-      mClosed ? 0 : (mReadData ? POLLIN : 0) | (mWriteData ? POLLOUT : 0);
+    short events = mClosed ? 0 : (mReadData ? POLLIN : 0) | (mWriteData ? POLLOUT : 0);
     low_web_set_poll_events(mLow, this, events);
     return true;
 }
@@ -901,20 +955,20 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
 
     mAcceptConnectCallID = 0;
 
-    if(!mAcceptConnectError && mNodeFamily)
+    if (!mAcceptConnectError && mNodeFamily)
     {
-        if(mNodeFamily == 4)
+        if (mNodeFamily == 4)
         {
             sockaddr_in localAddr;
             socklen_t localAddrLen = sizeof(localAddr);
-            if(getsockname(FD(), (sockaddr *)&localAddr, &localAddrLen) < 0)
+            if (getsockname(FD(), (sockaddr * ) & localAddr, &localAddrLen) < 0)
             {
                 mAcceptConnectErrno = errno;
                 mAcceptConnectErrnoSSL = false;
                 mAcceptConnectError = true;
                 mAcceptConnectSyscall = "getsockname";
             }
-            unsigned char *ip = (unsigned char *)&localAddr.sin_addr.s_addr;
+            unsigned char *ip = (unsigned char *) &localAddr.sin_addr.s_addr;
             sprintf(localHost, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
             localPort = ntohs(localAddr.sin_port);
         }
@@ -922,11 +976,8 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
         {
             sockaddr_in6 localAddr;
             socklen_t localAddrLen = sizeof(localAddr);
-            if(getsockname(FD(), (sockaddr *)&localAddr, &localAddrLen) < 0 ||
-               inet_ntop(AF_INET6,
-                         localAddr.sin6_addr.s6_addr,
-                         localHost,
-                         sizeof(localHost)) == NULL)
+            if (getsockname(FD(), (sockaddr * ) & localAddr, &localAddrLen) < 0 ||
+                inet_ntop(AF_INET6, localAddr.sin6_addr.s6_addr, localHost, sizeof(localHost)) == NULL)
             {
                 mAcceptConnectErrno = errno;
                 mAcceptConnectErrnoSSL = false;
@@ -937,29 +988,37 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
         }
     }
 
-    if(mAcceptConnectError)
+    if (mAcceptConnectError)
     {
-        if(onStash)
+        if (onStash)
+        {
             low_push_stash(mLow, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
+        }
         else
+        {
             duk_dup(mLow->duk_ctx, callIndex);
+        }
         PushError(2);
         duk_call(mLow->duk_ctx, 1);
 
         return false;
     }
-    else if(mConnected)
+    else if (mConnected)
     {
         AdvertiseFD();
 
-        if(onStash)
+        if (onStash)
+        {
             low_push_stash(mLow, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
+        }
         else
+        {
             duk_dup(mLow->duk_ctx, callIndex);
+        }
         duk_push_null(mLow->duk_ctx);
         duk_push_int(mLow->duk_ctx, FD());
         duk_push_int(mLow->duk_ctx, mNodeFamily);
-        if(mNodeFamily)
+        if (mNodeFamily)
         {
             duk_push_string(mLow->duk_ctx, localHost);
             duk_push_int(mLow->duk_ctx, localPort);
@@ -968,7 +1027,9 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
             duk_call(mLow->duk_ctx, 7);
         }
         else
+        {
             duk_call(mLow->duk_ctx, 3);
+        }
     }
 
     return true;
@@ -981,22 +1042,23 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
 int LowSocket::DoRead()
 {
     int len = 0;
-    while(len != mReadLen)
+    while (len != mReadLen)
     {
-        int size = mTLSContext
-                     ? mbedtls_ssl_read(mSSL, mReadData + len, mReadLen - len)
-#if LOW_ESP32_LWIP_SPECIALITIES
-                     : lwip_read(FD(), mReadData + len, mReadLen - len);
-#else
-                     : read(FD(), mReadData + len, mReadLen - len);
+        int size = mTLSContext ? mbedtls_ssl_read(mSSL, mReadData + len, mReadLen - len)
+                   #if LOW_ESP32_LWIP_SPECIALITIES
+                   : lwip_read(FD(), mReadData + len, mReadLen - len);
+                   #else
+                               : read(FD(), mReadData + len, mReadLen - len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        if(size < 0)
+        if (size < 0)
         {
-            if(mTLSContext)
+            if (mTLSContext)
             {
-                if(size == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+                if (size == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+                {
                     return len;
-                if(size == MBEDTLS_ERR_SSL_WANT_READ)
+                }
+                if (size == MBEDTLS_ERR_SSL_WANT_READ)
                 {
                     mReadErrno = EAGAIN;
                     mReadErrnoSSL = false;
@@ -1014,10 +1076,14 @@ int LowSocket::DoRead()
             }
             return len ? len : -1;
         }
-        else if(size == 0)
+        else if (size == 0)
+        {
             return len;
+        }
         else
+        {
             len += size;
+        }
     }
     return len;
 }
@@ -1029,21 +1095,19 @@ int LowSocket::DoRead()
 int LowSocket::DoWrite()
 {
     int len = 0;
-    while(len != mWriteLen)
+    while (len != mWriteLen)
     {
-        int size =
-          mTLSContext
-            ? mbedtls_ssl_write(mSSL, mWriteData + len, mWriteLen - len)
-#if LOW_ESP32_LWIP_SPECIALITIES
-            : ::lwip_write(FD(), mWriteData + len, mWriteLen - len);
-#else
-            : ::write(FD(), mWriteData + len, mWriteLen - len);
+        int size = mTLSContext ? mbedtls_ssl_write(mSSL, mWriteData + len, mWriteLen - len)
+                   #if LOW_ESP32_LWIP_SPECIALITIES
+                   : ::lwip_write(FD(), mWriteData + len, mWriteLen - len);
+                   #else
+                               : ::write(FD(), mWriteData + len, mWriteLen - len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        if(size < 0)
+        if (size < 0)
         {
-            if(mTLSContext)
+            if (mTLSContext)
             {
-                if(size == MBEDTLS_ERR_SSL_WANT_WRITE)
+                if (size == MBEDTLS_ERR_SSL_WANT_WRITE)
                 {
                     mWriteErrno = EAGAIN;
                     mWriteErrnoSSL = false;
@@ -1061,10 +1125,14 @@ int LowSocket::DoWrite()
             }
             return len ? len : -1;
         }
-        else if(size == 0)
+        else if (size == 0)
+        {
             return len;
+        }
         else
+        {
             len += size;
+        }
     }
     return len;
 }
@@ -1076,16 +1144,18 @@ int LowSocket::DoWrite()
 
 int LowSocket::write(const unsigned char *data, int len)
 {
-    if(!len)
+    if (!len)
+    {
         return 0;
+    }
 
     int size;
-    if(mTLSContext)
+    if (mTLSContext)
     {
         size = mbedtls_ssl_write(mSSL, data, len);
-        if(size < 0)
+        if (size < 0)
         {
-            if(size == MBEDTLS_ERR_SSL_WANT_WRITE)
+            if (size == MBEDTLS_ERR_SSL_WANT_WRITE)
             {
                 errno = EAGAIN; // because we are checking this in LowHTTPDirect
                 mWriteErrno = EAGAIN;
@@ -1107,7 +1177,7 @@ int LowSocket::write(const unsigned char *data, int len)
 #else
         size = ::write(FD(), data, len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        if(size < 0)
+        if (size < 0)
         {
             mWriteErrno = errno;
             mWriteErrnoSSL = true;
@@ -1123,17 +1193,18 @@ int LowSocket::write(const unsigned char *data, int len)
 
 int LowSocket::writev(const struct iovec *iov, int iovcnt)
 {
-    if(!iovcnt)
+    if (!iovcnt)
+    {
         return 0;
+    }
 
     int size;
-    if(mTLSContext)
+    if (mTLSContext)
     {
-        size =
-          mbedtls_ssl_write(mSSL, (unsigned char *)iov->iov_base, iov->iov_len);
-        if(size < 0)
+        size = mbedtls_ssl_write(mSSL, (unsigned char *) iov->iov_base, iov->iov_len);
+        if (size < 0)
         {
-            if(size == MBEDTLS_ERR_SSL_WANT_WRITE)
+            if (size == MBEDTLS_ERR_SSL_WANT_WRITE)
             {
                 errno = EAGAIN; // because we are checking this in LowHTTPDirect
                 mWriteErrno = EAGAIN;
@@ -1156,7 +1227,7 @@ int LowSocket::writev(const struct iovec *iov, int iovcnt)
         size = ::writev(FD(), iov, iovcnt);
 #endif /* #if LOW_ESP32_LWIP_SPECIALITIES */
 
-        if(size < 0)
+        if (size < 0)
         {
             mWriteErrno = errno;
             mWriteErrnoSSL = true;
@@ -1171,7 +1242,7 @@ int LowSocket::writev(const struct iovec *iov, int iovcnt)
 
 void LowSocket::SetError(bool write, int error, bool ssl)
 {
-    if(write)
+    if (write)
     {
         mWriteErrno = error;
         mWriteErrnoSSL = ssl;
@@ -1193,7 +1264,7 @@ void LowSocket::PushError(int call)
     bool ssl;
     const char *syscall;
 
-    switch(call)
+    switch (call)
     {
         case 0:
             error = mReadErrno;
@@ -1214,7 +1285,7 @@ void LowSocket::PushError(int call)
             break;
     }
 
-    if(error && ssl)
+    if (error && ssl)
     {
         char code[32], message[256];
         mbedtls_strerror(error, message, sizeof(message));
@@ -1230,5 +1301,7 @@ void LowSocket::PushError(int call)
         duk_put_prop_string(mLow->duk_ctx, -2, "syscall");
     }
     else
+    {
         low_push_error(mLow, error, syscall);
+    }
 }

@@ -115,7 +115,7 @@ class Timeout {
         native.clearChore(this._id);
         this._id = native.setChore(this._func, this._delay, this._oneshot);
     }
-v}
+}
 exports.setTimeout = function (func, delay) {
     var cb_func;
     var bind_args;

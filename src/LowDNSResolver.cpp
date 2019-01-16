@@ -3,6 +3,7 @@
 // -----------------------------------------------------------------------------
 
 #include "low_config.h"
+
 #if LOW_INCLUDE_CARES_RESOLVER
 
 #include "LowDNSResolver.h"
