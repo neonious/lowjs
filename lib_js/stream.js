@@ -747,7 +747,7 @@ function pipeline(...streams) {
 
 // *** legacy stream
 function Stream() {
-    EE.call(this);
+    EventEmitter.call(this);
 }
 Stream.prototype = Object.create(EventEmitter.prototype);
 
@@ -796,7 +796,7 @@ Stream.prototype.pipe = function (dest, options) {
     // don't leave dangling pipes when there are errors.
     function onerror(er) {
         cleanup();
-        if (EE.listenerCount(this, 'error') === 0) {
+        if (EventEmitter.listenerCount(this, 'error') === 0) {
             throw er; // Unhandled stream error in pipe.
         }
     }

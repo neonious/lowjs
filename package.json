@@ -4,11 +4,13 @@
   "description": "The Node.JS port for embedded devices.",
   "author": "neonious GmbH",
   "scripts": {
-    "test": "cd test/tests_script && ts-node tests.ts"
+    "test": "cd test/tests_script && ts-node tests.ts",
+    "install-pkgmantest": "ts-node --project test/pkgman/tsconfig.json test/pkgman/installPackages.ts"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
     "ts-node": "^7.0.1",
-    "typescript": "^2.9.1"
+    "typescript": "3.1.6"
   },
   "dependencies": {
     "babel": "^6.23.0",

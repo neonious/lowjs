@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "target": "es2017"
+  },
+  "include": ["../../lowrmt-common/src/**/*","**/*"]
+}

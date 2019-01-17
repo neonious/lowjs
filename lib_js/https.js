@@ -33,11 +33,14 @@ class Server extends tls.Server {
     }
 }
 
+class Agent {}
+
 function createServer(options, acceptCallback) {
     return new Server(options, acceptCallback);
 }
 
 module.exports = {
     Server,
-    createServer
+    createServer,
+    Agent
 }

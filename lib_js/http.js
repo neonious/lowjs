@@ -230,7 +230,7 @@ class ClientRequest extends stream.Writable {
     constructor(options, cb) {
         super({
             write(chunk, encoding, callback) {
-                if (this.connection.destroyed)
+                if (!this.connection || this.connection.destroyed)
                     return;
                 this.connection.bufferSize = this.connection.writableLength;
                 this.connection._socketWriting = true;

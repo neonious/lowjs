@@ -830,8 +830,8 @@ Object.prototype.toString = (function(toString) {
                         return '[object Set]';
                 else if(this instanceof Map)
                         return '[object Map]';
-                else if(this instanceof Collection)
-                        return '[object Collection]';
+                // else if(this instanceof Collection)
+                //         return '[object Collection]';
                 else
                         return toString.call(this);
         }
@@ -1068,6 +1068,20 @@ process.stdin.on('resume', () => {
 });
 
 exports.console = require('console');
+
+for (const name of Object.getOwnPropertyNames(Buffer)) {
+  const desc = Object.getOwnPropertyDescriptor(Buffer, name);
+  if (['concat', 'isEncoding', 'isBuffer', 'byteLength', 'compare'].some(s => name === s)) {
+    const newDesc = {};
+    desc.set && (newDesc.set = desc.set);
+    desc.get && (newDesc.get = desc.get);
+    newDesc.value = desc.value;
+    newDesc.writable = true;
+    newDesc.enumerable = true;
+    newDesc.configurable = desc.configurable;
+    Object.defineProperty(Buffer, name, newDesc)
+  }
+}
 
 Buffer.from = (...args) => { return new Buffer(...args); }
 Buffer.allocUnsafe = Buffer.alloc = (...args) => { return new Buffer(...args); }

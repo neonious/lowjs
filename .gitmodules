@@ -7,3 +7,6 @@
 [submodule "deps/c-ares"]
 	path = deps/c-ares
 	url = https://github.com/c-ares/c-ares.git
+[submodule "lowrmt-common"]
+	path = lowrmt-common
+	url = https://github.com/neonious/lowrmt-common.git
