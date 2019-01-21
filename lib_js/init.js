@@ -7,7 +7,6 @@ delete Reflect.construct;
 
 let native = require('native');
 let events = require('events');
-var loadedBla = false;
 
 const {
     ERR_INVALID_ARG_TYPE,
@@ -1833,4 +1832,3 @@ exports.regeneratorRuntime = (function (exports) {
   // the regeneratorRuntime variable at the top of this file.
   typeof module === "object" ? module.exports : {}
 ));
-loadedBla = true;
