@@ -652,8 +652,26 @@ void low_error_errno()
 //  low_error
 // -----------------------------------------------------------------------------
 
+#if 0
+#include <execinfo.h>
+
+static void output_backtrace(void)
+{
+    int nptrs;
+    void *buffer[100];
+
+    nptrs = backtrace(buffer, 100);
+    backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO);
+}
+
 void low_error(const char *txt)
 {
+    output_backtrace();
+#else
+void low_error(const char *txt)
+{
+#endif
+
 #if LOW_ESP32_LWIP_SPECIALITIES
     printf("%s\n", txt);
 #else

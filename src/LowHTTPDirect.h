@@ -110,7 +110,8 @@ class LowHTTPDirect
     char mWriteChunkedHeaderLine[10];
     struct iovec mWriteBuffers[3];
     int mWriteBufferStashID[3];
-    int mWritePos, mWriteLen, mWriteBufferCount;
+    int mWritePos, mWriteLen;
+    uint8_t mWriteBufferCount, mWriteBufferStashInvalidCount;
     bool mWriting, mWriteDone, mWriteChunkedEncoding;
 
     bool mReadError, mWriteError, mHTTPError;

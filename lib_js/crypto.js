@@ -25,9 +25,7 @@ class Hash {
     }
 }
 
-export function randomBytes(size) {
-    return new Buffer(size); // todo needed e.g. for request npm module
-}
+exports.randomBytes = native.randomBytes;
 
 exports.createHash = function (type) {
     return new Hash(type);

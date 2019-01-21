@@ -629,7 +629,11 @@ void LowSocket::TriggerDirect(int trigger)
 bool LowSocket::OnEvents(short events)
 {
     if((mDestroyed || mAcceptConnectError) && !mCloseCallID)
-        return false;
+    {
+        // We will be destroyed on other ways ASAP
+        low_web_set_poll_events(mLow, this, 0);
+        return true;
+    }
     if(mClosed)
     {
         low_web_set_poll_events(mLow, this, 0);

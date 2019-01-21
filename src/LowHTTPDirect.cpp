@@ -17,7 +17,8 @@
 LowHTTPDirect::LowHTTPDirect(low_main_t *low, bool isServer) :
     LowLoopCallback(low), mLow(low), mIsServer(isServer), mRequestCallID(0),
     mReadCallID(0), mWriteCallID(0), mBytesRead(0), mBytesWritten(0),
-    mParamFirst(NULL), mParamLast(NULL), mWriteBufferCount(0), mShutdown(false),
+    mParamFirst(NULL), mParamLast(NULL), mWriteBufferCount(0), mWriteBufferStashInvalidCount(0),
+    mShutdown(false),
     mClosed(false), mEraseNextN(false), mReadData(NULL), mRemainingRead(NULL),
     mReadError(false), mWriteError(false), mHTTPError(false)
 {
@@ -48,7 +49,7 @@ LowHTTPDirect::~LowHTTPDirect()
         low_free(param);
     }
 
-    for(int i = 0; i < mWriteBufferCount; i++)
+    for(int i = 0; i < mWriteBufferStashInvalidCount + mWriteBufferCount; i++)
     {
         if(mWriteBufferStashID[i])
             low_remove_stash(mLow, mWriteBufferStashID[i]);
@@ -237,6 +238,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                     low_free(param);
                 }
 
+
                 if(mIsServer)
                     duk_call(mLow->duk_ctx, 4);
                 else
@@ -306,6 +308,16 @@ void LowHTTPDirect::Write(unsigned char *data,
     }
 
     pthread_mutex_lock(&mMutex);
+    while(mWriteBufferStashInvalidCount)
+    {
+        low_remove_stash(mLow, mWriteBufferStashID[0]);
+        mWriteBufferStashID[0] = mWriteBufferStashID[1];
+        mWriteBufferStashID[1] = mWriteBufferStashID[2];
+        mWriteBufferStashID[2] = 0;
+
+        mWriteBufferStashInvalidCount--;
+    }
+
     if(len == 0)
     {
         mWriteDone = true;
@@ -409,17 +421,13 @@ void LowHTTPDirect::DoWrite()
         while(mWriteBufferCount && size >= mWriteBuffers[0].iov_len)
         {
             size -= mWriteBuffers[0].iov_len;
-            low_remove_stash(mLow, mWriteBufferStashID[0]);
 
             mWriteBuffers[0].iov_base = mWriteBuffers[1].iov_base;
             mWriteBuffers[0].iov_len = mWriteBuffers[1].iov_len;
-            mWriteBufferStashID[0] = mWriteBufferStashID[1];
-
             mWriteBuffers[1].iov_base = mWriteBuffers[2].iov_base;
             mWriteBuffers[1].iov_len = mWriteBuffers[2].iov_len;
-            mWriteBufferStashID[1] = mWriteBufferStashID[2];
 
-            mWriteBufferStashID[2] = 0;
+            mWriteBufferStashInvalidCount++;
             mWriteBufferCount--;
         }
         if(size)
@@ -619,6 +627,7 @@ bool LowHTTPDirect::OnLoop()
                 duk_push_null(mLow->duk_ctx);
                 duk_push_int(mLow->duk_ctx, mBytesWritten);
                 mBytesWritten = 0;
+
                 duk_call(mLow->duk_ctx, 2);
             }
         }

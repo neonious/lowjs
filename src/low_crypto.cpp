@@ -121,3 +121,21 @@ duk_ret_t low_crypto_hash_digest(duk_context *ctx)
     duk_push_buffer_object(ctx, -1, 0, len, DUK_BUFOBJ_NODEJS_BUFFER);
     return 1;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_crypto_random_bytes
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_crypto_random_bytes(duk_context *ctx)
+{
+    int len = duk_require_int(ctx, 0);
+    if(!duk_is_undefined(ctx, 1))
+        duk_reference_error(ctx, "crypto.randomBytes async version not implemented yet");
+
+    unsigned char *buffer = (unsigned char *)duk_push_fixed_buffer(ctx, len);
+    for(int i = 0; i < len; i++)
+        buffer[i] = rand();
+
+    return 1;
+}

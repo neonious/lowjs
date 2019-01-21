@@ -820,20 +820,20 @@ WeakMap.prototype[Symbol.iterator] = WeakMap.prototype.entries;
 
 Object.prototype.toString = (function(toString) {
         return function() {
-                if(this instanceof Promise)
-                        return '[object Promise]';
-                else if(this instanceof WeakSet)
-                        return '[object WeakSet]';
-                else if(this instanceof WeakMap)
-                        return '[object WeakMap]';
-                else if(this instanceof Set)
-                        return '[object Set]';
-                else if(this instanceof Map)
-                        return '[object Map]';
-                // else if(this instanceof Collection)
-                //         return '[object Collection]';
-                else
-                        return toString.call(this);
+            if(this.constructor.name instanceof Promise)
+                    return '[object Promise]';
+            else if(this.constructor.name instanceof WeakSet)
+                    return '[object WeakSet]';
+            else if(this instanceof WeakMap)
+                    return '[object WeakMap]';
+            else if(this instanceof Set)
+                    return '[object Set]';
+            else if(this instanceof Map)
+                    return '[object Map]';
+            else if(this.constructor.name == "Collection")
+                    return '[object Collection]';
+            else
+                    return toString.call(this);
         }
 })(Object.prototype.toString);
 
@@ -1069,6 +1069,8 @@ process.stdin.on('resume', () => {
 
 exports.console = require('console');
 
+// Properties of Buffer must be enumerable to be compatible to Node.JS
+// (safe-buffer module does not work otherwise)
 for (const name of Object.getOwnPropertyNames(Buffer)) {
   const desc = Object.getOwnPropertyDescriptor(Buffer, name);
   if (['concat', 'isEncoding', 'isBuffer', 'byteLength', 'compare'].some(s => name === s)) {
