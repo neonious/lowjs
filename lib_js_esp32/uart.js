@@ -17,7 +17,7 @@ let native = require('native');
  * Call resume() if you are not interested in the received data so it does not
  * fill up memory.
  * 
- * @extends net.Duplex
+ * @extends stream.Duplex
  */
 class UART extends stream.Duplex {
     /**
