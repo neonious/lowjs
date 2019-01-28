@@ -26,6 +26,7 @@ void duk_compress_stack(duk_context *ctx, duk_ret_t (*func)(duk_context *ctx, vo
 void code_print_error() {}
 void code_gc() {}
 int jit_compile(unsigned int *pc) { printf("should not be called!\n"); return 0; }
+void jit_revert(unsigned int *pc) { printf("should not be called!\n"); }
 
 int pathStartLen;
 
