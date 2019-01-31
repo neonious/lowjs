@@ -13,7 +13,9 @@ For more information on low.js, please visit http://www.lowjs.org/ .
 
 ## First steps / documentation
 
-To try out low.js, download the [webserver example](http://www.lowjs.org/lowjs-webserver-example.tar.gz) which you can run with both low.js and Node.js.
+To try out low.js on a PC, download the [webserver example](https://github.com/neonious/lowjs/tree/master/examples/webserver) which you can run with both low.js and Node.js.
+
+To try out low.js on a ESP32-WROVER, try out the [examples](https://www.lowjs.org/examples/getting-started.html) on your own board.
 
 The documentation is located at [lowjs documentation](https://www.neonious.com/Documentation/lowjs).
 
