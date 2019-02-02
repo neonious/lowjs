@@ -337,19 +337,28 @@ bool low_fs_resolve(char *res,
                     int res_len,
                     const char *base,
                     const char *add,
-                    const char *add_node_modules_at)
+                    const char *add_node_modules_at
+#if LOW_ESP32_LWIP_SPECIALITIES
+                    , bool add_esp_base
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+                    )
 {
     char *start, *path;
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    strcpy(res, "/fs/user/");
-    start = res + 8;
-    path = res + 9;
-#else
-    res[0] = '/';
-    start = res;
-    path = res + 1;
+    if(add_esp_base)
+    {
+        strcpy(res, "/fs/user/");
+        start = res + 8;
+        path = res + 9;
+    }
+    else
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    {
+        res[0] = '/';
+        start = res;
+        path = res + 1;
+    }
 
     if(add[0] != '/')
     {
@@ -402,7 +411,7 @@ bool low_fs_resolve(char *res,
         if(path + 13 - res >= res_len)
             return false;
 
-        memcpy(path, "node_modules/", 13);
+        memcpy(path, add_esp_base ? "node_modules/" : "modules/", 13);
         path += 13;
     }
 

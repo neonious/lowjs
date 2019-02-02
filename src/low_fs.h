@@ -24,6 +24,10 @@ bool low_fs_resolve(char *res,
                     int res_len,
                     const char *base,
                     const char *add,
-                    const char *add_node_modules_at = NULL);
+                    const char *add_node_modules_at = NULL
+#if LOW_ESP32_LWIP_SPECIALITIES
+                    , bool add_esp_base = true
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+                    );
 
 #endif /* __LOW_FS_H__ */
