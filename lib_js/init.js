@@ -817,24 +817,56 @@ WeakSet.prototype[Symbol.iterator] = WeakSet.prototype.values;
 Map.prototype[Symbol.iterator] = Map.prototype.entries;
 WeakMap.prototype[Symbol.iterator] = WeakMap.prototype.entries;
 
-Object.prototype.toString = (function(toString) {
-        return function() {
-            if(this.constructor.name instanceof Promise)
-                    return '[object Promise]';
-            else if(this.constructor.name instanceof WeakSet)
-                    return '[object WeakSet]';
-            else if(this instanceof WeakMap)
-                    return '[object WeakMap]';
-            else if(this instanceof Set)
-                    return '[object Set]';
-            else if(this instanceof Map)
-                    return '[object Map]';
-            else if(this.constructor.name == "Collection")
-                    return '[object Collection]';
-            else
-                    return toString.call(this);
-        }
-})(Object.prototype.toString);
+Object.defineProperty(
+    Map.prototype, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'Map'
+    }
+);
+Object.defineProperty(
+    WeakMap.prototype, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'WeakMap'
+    }
+);
+Object.defineProperty(
+    Set.prototype, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'Set'
+    }
+);
+Object.defineProperty(
+    WeakSet.prototype, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'WeakSet'
+    }
+);
+Object.defineProperty(
+    Promise.prototype, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'Promise'
+    }
+);
 
 Array.prototype[Symbol.iterator] = Array.prototype.values = function values() {
 	let someArray = this;
