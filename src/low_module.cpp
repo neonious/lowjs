@@ -864,9 +864,13 @@ bool low_module_resolve_c(duk_context *ctx,
                   module_id[2] == '/')))
                 continue;
 
+#if LOW_ESP32_LWIP_SPECIALITIES
             low_fs_resolve(res_id, 1024, parent_id, module_id, NULL, user_space);
             if(!user_space)
                 res_id[7] = 's';    // make it /modules/
+#else
+            low_fs_resolve(res_id, 1024, parent_id, module_id, NULL);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         }
         else
         {
@@ -888,9 +892,13 @@ bool low_module_resolve_c(duk_context *ctx,
             }
             else
             {
+#if LOW_ESP32_LWIP_SPECIALITIES
                 low_fs_resolve(res_id, 1024, parent_id, module_id, parent_end, user_space);
                 if(!user_space)
                     res_id[7] = 's';    // make it /modules/
+#else
+                low_fs_resolve(res_id, 1024, parent_id, module_id, parent_end);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 parent_end--;
             }
         }
@@ -991,14 +999,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 len = strlen(str);
 
                 char *res_id2 = (char *)duk_push_buffer(ctx, 1024, false);
-                low_fs_resolve(res_id2, 1024, res_id, str, NULL, false);
-
-                char *path = res_id2 + strlen(res_id2);
 #if LOW_ESP32_LWIP_SPECIALITIES
+                low_fs_resolve(res_id2, 1024, res_id, str, NULL, false);
                 char *start = res_id2 + (!user_space ? 8 : 8); // /fs/user
 #else
+                low_fs_resolve(res_id2, 1024, res_id, str, NULL);
                 char *start = res_id2;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+                char *path = res_id2 + strlen(res_id2);
 
                 bool isFolder = path[-1] == '/';
                 if(isFolder)
@@ -1007,12 +1015,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 path[0] = 0;
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
+#if LOW_ESP32_LWIP_SPECIALITIES
                     if(!user_space)
                     {
                         memcpy(res_id, "module:", 7);
                         memmove(res_id + 7, start, path + 1 - start);
                     }
                     else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                         memmove(res_id, start, path + 1 - start);
                     duk_pop_3(ctx);
                     return true;
@@ -1023,12 +1033,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 strcpy(path, ".js");
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
+#if LOW_ESP32_LWIP_SPECIALITIES
                     if(!user_space)
                     {
                         memcpy(res_id, "module:", 7);
                         memmove(res_id + 7, start, path + 4 - start);
                     }
                     else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                         memmove(res_id, start, path + 4 - start);
 
                     duk_pop_3(ctx);
@@ -1040,12 +1052,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 strcpy(path, ".json");
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
+#if LOW_ESP32_LWIP_SPECIALITIES
                     if(!user_space)
                     {
                         memcpy(res_id, "module:", 7);
                         memmove(res_id + 7, start, path + 6 - start);
                     }
                     else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                         memmove(res_id, start, path + 6 - start);
 
                     duk_pop_3(ctx);
@@ -1057,12 +1071,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 strcpy(path, "/index.js");
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
+#if LOW_ESP32_LWIP_SPECIALITIES
                     if(!user_space)
                     {
                         memcpy(res_id, "module:", 7);
                         memmove(res_id + 7, start, path + 10 - start);
                     }
                     else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                         memmove(res_id, start, path + 10 - start);
 
                     duk_pop_3(ctx);
@@ -1074,12 +1090,14 @@ bool low_module_resolve_c(duk_context *ctx,
                 strcpy(path, "/index.json");
                 if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
+#if LOW_ESP32_LWIP_SPECIALITIES
                     if(!user_space)
                     {
                         memcpy(res_id, "module:", 7);
                         memmove(res_id + 7, start, path + 12 - start);
                     }
                     else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                         memmove(res_id, start, path + 12 - start);
 
                     duk_pop_3(ctx);

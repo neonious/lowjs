@@ -411,7 +411,7 @@ bool low_fs_resolve(char *res,
         if(path + 13 - res >= res_len)
             return false;
 
-        memcpy(path, add_esp_base ? "node_modules/" : "modules/", 13);
+        memcpy(path, "node_modules/", 13);
         path += 13;
     }
 
