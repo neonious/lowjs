@@ -109,7 +109,7 @@ class SPI {
         let dataOut = new Buffer(data.length);
         native.transferPeripherial(this._index, pinCS, data, dataOut, (err) => {
             if(callback)
-                callback(err, dataOut);
+                callback(err, err ? null : dataOut);
 
             if (this._holdRef)
                 native.runRef(-1);

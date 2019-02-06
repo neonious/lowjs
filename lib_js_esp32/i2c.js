@@ -62,7 +62,7 @@ class I2C {
             this._pipe.push([address, data, bytesRead, callback]);
             return;
         }
-        if (!data) {
+        if (!data && !bytesRead) {
             callback(null);
             if (this._pipe.length) {
                 let entry = this._pipe.shift();
@@ -78,7 +78,7 @@ class I2C {
         let dataOut = bytesRead ? new Buffer(bytesRead) : null;
         native.transferPeripherial(this._index, address, data, dataOut, (err) => {
             if(callback)
-                callback(err, dataOut);
+                callback(err, err ? null : dataOut);
 
             if (this._holdRef)
                 native.runRef(-1);
@@ -89,6 +89,28 @@ class I2C {
                 this.transfer(entry[0], entry[1], entry[2], entry[3]);
             }
         });
+    }
+
+    /**
+     * Write data to the slave.
+     *
+     * @param {Number} address the address of the I2C slave
+     * @param {Buffer} data data to send to slave
+     * @param {I2CTransferCallback} [callback] called when the transfer is completed
+     */
+    write(address, data, callback) {
+        transfer(address, data, 0, callback);
+    }
+
+    /**
+     * Read data from the slave.
+     *
+     * @param {Number} address the address of the I2C slave
+     * @param {Number} bytesRead how many bytes should be read after sending the data to the slave
+     * @param {I2CTransferCallback} [callback] called when the transfer is completed
+     */
+    read(address, bytesRead, callback) {
+        transfer(address, null, bytesRead, callback);
     }
 
     /**
