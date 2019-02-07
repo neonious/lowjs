@@ -72,7 +72,9 @@ duk_ret_t low_crypto_hash_finalizer(duk_context *ctx)
 {
     low_main_t *low = duk_get_low_context(ctx);
 
-    int index = duk_require_int(ctx, 0);
+    duk_get_prop_string(ctx, 0, "_native");
+    int index = duk_require_int(ctx, -1);
+
     if(index < 0 || index >= low->cryptoHashes.size())
         duk_reference_error(ctx, "crypto hash not found");
 
