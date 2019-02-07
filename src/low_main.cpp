@@ -53,9 +53,8 @@ static void *low_duk_alloc(void *udata, duk_size_t size)
     auto data = low_alloc(size);
     if(!data)
     {
-        ESP_LOGE(TAG, "returning NULL ptr");
         low_main_t *low = (low_main_t *)udata;
-        duk_generic_error(low->duk_ctx, "memory full");
+        duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
     }
     return data;
 #else
@@ -74,9 +73,8 @@ static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
     auto data = low_realloc(ptr, size);
     if(!data)
     {
-        ESP_LOGE(TAG, "returning NULL ptr");
         low_main_t *low = (low_main_t *)udata;
-        duk_generic_error(low->duk_ctx, "memory full");
+        duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
     }
     return data;
 #else
