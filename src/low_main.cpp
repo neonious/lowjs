@@ -231,13 +231,12 @@ low_main_t *low_init()
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
     {
 #if LOW_ESP32_LWIP_SPECIALITIES
-        err = xTaskCreatePinnedToCore((void (*)(void *))low_data_thread_main,
+        err = xTaskCreate((void (*)(void *))low_data_thread_main,
                                       "data",
                                       CONFIG_DATA_THREAD_STACK_SIZE,
                                       low,
                                       CONFIG_DATA_PRIORITY,
-                                      &low->data_thread[i],
-                                      0);
+                                      &low->data_thread[i]);
         if(err != pdPASS)
         {
             fprintf(
@@ -346,13 +345,12 @@ low_main_t *low_init()
         goto err;
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
-    err = xTaskCreatePinnedToCore((void (*)(void *))low_web_thread_main,
+    err = xTaskCreate((void (*)(void *))low_web_thread_main,
                                   "web",
                                   CONFIG_WEB_THREAD_STACK_SIZE,
                                   low,
                                   CONFIG_WEB_PRIORITY,
-                                  &low->web_thread,
-                                  0);
+                                  &low->web_thread);
     if(err != pdPASS)
     {
         fprintf(stderr, "failed to create web task, error code: %d\n", err);
