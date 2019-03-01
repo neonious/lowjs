@@ -16,6 +16,7 @@ function handleRequest(req, res) {
         contentType = 'text/css';
     else
         contentType = 'text/html';
+    res.setHeader("Content-Type", contentType);
 
     console.log("streaming " + wwwPath + url);
 
