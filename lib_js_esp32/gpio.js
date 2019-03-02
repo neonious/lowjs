@@ -313,17 +313,19 @@ function GPIOPin(index) {
     }
 
     /**
-     * Fired on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * Fires on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
      * and the level of the pin rises to 1
      *
      * @event rise
+     * @param {Number} timestamp Offset in milliseconds. Base (0) is different and should not be compared between ESP32 and LPC822 pins
      */
 
     /**
-     * Fired on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * Fires on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
      * and the level of the pin falls to 0
      *
      * @event fall
+     * @param {Number} timestamp Offset in milliseconds. Base (0) is different and should not be compared between ESP32 and LPC822 pins
      */
 
     this.on('newListener', (event, listener) => {
@@ -363,14 +365,14 @@ GPIOPin.prototype = Object.create(EventEmitter.prototype);
 
 let internalPins = [];
 
-isNeoniousOne = native.gpioSetCallback((index, rise) => {
+isNeoniousOne = native.gpioSetCallback((index, rise, timestamp) => {
     if (!internalPins[index])
         return;
 
     if (rise)
-        internalPins[index].emit('rise');
+        internalPins[index].emit('rise', timestamp);
     else
-        internalPins[index].emit('fall');
+        internalPins[index].emit('fall', timestamp);
 });
 
 /**

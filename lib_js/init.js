@@ -1119,6 +1119,12 @@ for (const name of Object.getOwnPropertyNames(Buffer)) {
 Buffer.from = (...args) => { return new Buffer(...args); }
 Buffer.allocUnsafe = Buffer.alloc = (...args) => { return new Buffer(...args); }
 
+// DukTape push_buffer does not create a Node.JS buffer, make toString work
+Uint8Array.prototype.toString = ((oldFunc) => {
+    return function (encoding) {
+        return new Buffer(this).toString(encoding);
+    }
+})(Uint8Array.prototype.toString);
 // Overwrite toString because DukTape does not implement hex and base64
 Buffer.prototype.toString = ((oldFunc) => {
     return function (encoding) {

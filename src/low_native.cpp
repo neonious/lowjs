@@ -11,6 +11,7 @@
 #include "low_module.h"
 #include "low_native_aux.h"
 #include "low_net.h"
+#include "low_dgram.h"
 #include "low_process.h"
 #include "low_tls.h"
 
@@ -49,6 +50,8 @@ duk_function_list_entry g_low_native_methods[] = {
   {"rmdirSync", low_fs_rmdir_sync, 1},
   {"waitDone", low_fs_waitdone, 1},
   {"file_pos", low_fs_file_pos, 1},
+  {"bind", low_dgram_bind, 6},
+  {"send", low_dgram_send, 5},
   {"listen", low_net_listen, 7},
   {"connect", low_net_connect, 5},
   {"setsockopt", low_net_setsockopt, 5},

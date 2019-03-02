@@ -10,7 +10,7 @@ In node_modules you can find the following modules, transpiled to ES5 via
 TypeScript:
 
 ws:		6.1.0
-async_limited:	1.0.0
+async_limiter:	1.0.0
 
 The package.json is NOT included, so a npm install does not replace the
 transpiled files with the non-transpiled versions.

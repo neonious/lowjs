@@ -32,6 +32,8 @@ OBJECTS =							\
 	src/low_fs_misc.o					\
 	src/low_http.o					\
 	src/low_net.o					\
+	src/low_dgram.o					\
+	src/LowDatagram.o					\
 	src/low_tls.o					\
 	src/low_dns.o					\
 	src/low_crypto.o				\

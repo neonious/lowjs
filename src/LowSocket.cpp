@@ -347,7 +347,6 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
         if(len == 0)
             mClosed = true;
 
-        int err = errno;
         mReadData = NULL;
 
         duk_dup(mLow->duk_ctx, callIndex);
@@ -418,7 +417,6 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     if(len >= 0 ||
        (tryNow && len == -1 && (mWriteErrno != EAGAIN || mWriteErrnoSSL)))
     {
-        int err = errno;
         mWriteData = NULL;
 
         duk_dup(mLow->duk_ctx, callIndex);
@@ -484,6 +482,8 @@ int LowSocket::Shutdown()
     }
     else
         return shutdown(FD(), SHUT_WR);
+
+    return 0;
 }
 
 // -----------------------------------------------------------------------------

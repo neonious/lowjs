@@ -125,9 +125,9 @@ class Socket extends stream.Duplex {
     connect(...args) {
         if (this.destroyed)
             throw new Error('Socket already closed.');
-        if (this._socketFD !== undefined || this._tryConnect)
+        if (this._socketFD !== undefined || this.connecting)
             throw new Error('Socket already connected/connecting.');
-        this._tryConnect = true;
+        this.connecting = true;
 
         let normalized;
         // If passed an array, it's treated as an array of arguments that have
@@ -148,12 +148,17 @@ class Socket extends stream.Duplex {
             dns.lookup(options.host, (err, host, family) => {
                 this.emit('lookup', err, options.host, family, host);
                 if (err) {
-                    this._tryConnect = false;
+                    this.connecting = false;
+                    this._updateRef();
+
                     this.emit('error', err);
                     return;
                 }
-                if (this.destroyed)
+                if (this.destroyed) {
+                    this.connecting = false;
+                    this._updateRef();
                     return;
+                }
 
                 this._connect(options, family, host, cb);
             });
@@ -163,14 +168,17 @@ class Socket extends stream.Duplex {
     _connect(options, family, address, callback) {
         this._updateRef();
         native.connect(family, address, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
-            this._tryConnect = false;
-            this._updateRef();
             if (err) {
+                this.connecting = false;
+                this._updateRef();
+
                 this.emit('error', err);
                 return;
             }
             if (this.destroyed) {
                 native.close(fd, (err) => {
+                    this.connecting = false;
+                    this._updateRef();
                     if (err)
                         this.emit('error', err);
                 });
@@ -221,7 +229,7 @@ class Socket extends stream.Duplex {
         this._sockoptKeepaliveEnabled = !!setting;
         if (msecs)
             this._sockoptKeepaliveSecs = ~~(msecs / 1000);
-        if (!this.connecting && !this.destroyed && !this._tryConnect)
+        if (!this.connecting && !this.destroyed && !this.connecting)
             native.setsockopt(this._socketFD, this._sockoptKeepaliveEnabled, this._sockoptKeepaliveSecs);
         return this;
     }
@@ -229,7 +237,7 @@ class Socket extends stream.Duplex {
     setNoDelay(enable) {
         // backwards compatibility: assume true when `enable` is omitted
         this._sockoptNoDelay = enable === undefined ? true : !!enable;
-        if (!this.connecting && !this.destroyed && !this._tryConnect)
+        if (!this.connecting && !this.destroyed && !this.connecting)
             native.setsockopt(this._socketFD, undefined, undefined, this._sockoptNoDelay);
         return this;
     }
@@ -262,7 +270,7 @@ class Socket extends stream.Duplex {
         return this;
     }
     _updateRef() {
-        if (this._ref && !this.destroyed && (this._tryConnect || this._waitConnect || this._socketReading || this._socketWriting)) {
+        if (this._ref && !this.destroyed && (this.connecting || this._waitConnect || this._socketReading || this._socketWriting)) {
             if (!this._refSet) {
                 native.runRef(1);
                 this._refSet = true;

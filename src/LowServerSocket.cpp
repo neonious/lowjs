@@ -63,7 +63,7 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
     if (FD() >= 0)
     {
         err = EISCONN;
-        syscall = "bind";
+        syscall = "socket";
         return false;
     }
 
@@ -121,25 +121,6 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
     mAcceptCallID = low_add_stash(mLow, callIndex);
     low_web_set_poll_events(mLow, this, POLLIN);
     return true;
-}
-
-// -----------------------------------------------------------------------------
-//  LowServerSocket::Read
-// -----------------------------------------------------------------------------
-
-void LowServerSocket::Read(int pos, unsigned char *data, int len, int callIndex)
-{
-    duk_reference_error(mLow->duk_ctx, "read not supported on server");
-}
-
-// -----------------------------------------------------------------------------
-//  LowServerSocket::Write
-// -----------------------------------------------------------------------------
-
-void LowServerSocket::Write(int pos, unsigned char *data, int len,
-                            int callIndex)
-{
-    duk_reference_error(mLow->duk_ctx, "write not supported on server");
 }
 
 // -----------------------------------------------------------------------------

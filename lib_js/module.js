@@ -3,6 +3,8 @@ exports.builtinModules = [
     'assert',
     'buffer',
     'console',
+    'crypto',
+    'dgram',
     'dns',
     'events',
     'fs',
@@ -21,13 +23,15 @@ exports.builtinModules = [
     'tty',
     'url',
     'util',
-    'vm'
+    'vm',
+    'zlib'
 ]
 if (process.platform == 'esp32') {
     exports.builtinModules.push('gpio');
-    exports.builtinModules.push('signal');
-    exports.builtinModules.push('ws2812b');
     exports.builtinModules.push('i2c');
+    exports.builtinModules.push('lowsys');
+    exports.builtinModules.push('sdcard');
+    exports.builtinModules.push('signal');
     exports.builtinModules.push('spi');
     exports.builtinModules.push('uart');
 }
