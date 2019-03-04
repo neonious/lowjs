@@ -61,7 +61,7 @@ exports.HIGH = 1;
 exports.DIGITAL = 0;
 
 /**
- * Flag for GPIOPin.getValue. Retrieves voltage of pin via ADC (0 = 0V, 1 = board voltage).
+ * Flag for GPIOPin.getValue. Retrieves voltage of pin via ADC (0 = 0 V, 1 = board voltage, usually 3.3 V).
  */
 exports.ANALOG = 1;
 
@@ -225,7 +225,7 @@ function GPIOPin(index) {
      * Sets the type of the pin.
      * At program start, all pins are set to INPUT, with exception of the LED pins on neonious ones. These are set to OUTPUT with level 0.
      *
-     * @param {(INPUT|INPUT_PULLUP|INPUT_PULLDOWN|OUTPUT|OUTPUT_OPENDRAIN)} type the type
+     * @param {(gpio.INPUT|gpio.INPUT_PULLUP|gpio.INPUT_PULLDOWN|gpio.OUTPUT|gpio.OUTPUT_OPENDRAIN)} type the type
      * @returns {GPIOPin} pin itself, to chain call methods
      */
     this.setType = (type) => {
@@ -246,7 +246,7 @@ function GPIOPin(index) {
     /**
      * Returns the type of the pin.
      *
-     * @returns {(INPUT|INPUT_PULLUP|INPUT_PULLDOWN|OUTPUT|OUTPUT_OPENDRAIN)} the type
+     * @returns {(gpio.INPUT|gpio.INPUT_PULLUP|gpio.INPUT_PULLDOWN|gpio.OUTPUT|gpio.OUTPUT_OPENDRAIN)} the type
      */
     this.getType = () => {
         return pinType;
@@ -294,13 +294,13 @@ function GPIOPin(index) {
      * 
      * @callback GPIOGetValueCallback
      * @param {?Error} err optional error. If not null, the next parameters are not set
-     * @param {Number} [value] if DIGITAL was used exactly 0 or 1, if ANALOG was used a value from 0 (= 0V) to 1 (= board voltage).
+     * @param {Number} [value] if gpio.DIGITAL was used exactly 0 or 1, if ANALOG was used a value from 0 (= 0V) to 1 (= board voltage).
      */
 
     /**
      * Retrieves the level or voltage of the input pin
      *
-     * @param {(DIGITAL|ANALOG)} [flags=DIGITAL] are exact levels requested or shall the voltage be retrieved via ADC?
+     * @param {(gpio.DIGITAL|gpio.ANALOG)} [flags=gpio.DIGITAL] are exact levels requested or shall the voltage be retrieved via ADC?
      * @param {GPIOGetValueCallback} callback the callback called with the level or voltage
      */
     this.getValue = (flags, callback) => {
@@ -313,19 +313,19 @@ function GPIOPin(index) {
     }
 
     /**
-     * Fires on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * Fires on GPIOPin if the pin is set to gpio.INPUT, gpio.INPUT_PULLUP or gpio.INPUT_PULLDOWN
      * and the level of the pin rises to 1
      *
      * @event rise
-     * @param {Number} timestamp Offset in milliseconds. Base (0) is different and should not be compared between ESP32 and LPC822 pins
+     * @param {Number} timestamp Offset in milliseconds from boot. Resolution on ESP32: 1 microsecond, on LPC822: 33.333... nanoseconds. May reset to 0 every few days. Base/boot timestamp/0 is different between ESP32 and LPC822 pins and should not be compared between these pins.
      */
 
     /**
-     * Fires on GPIOPin, when the pin is set to INPUT, INPUT_PULLUP or INPUT_PULLDOWN
+     * Fires on GPIOPin if the pin is set to gpio.INPUT, gpio.INPUT_PULLUP or gpio.INPUT_PULLDOWN
      * and the level of the pin falls to 0
      *
      * @event fall
-     * @param {Number} timestamp Offset in milliseconds. Base (0) is different and should not be compared between ESP32 and LPC822 pins
+     * @param {Number} timestamp Offset in milliseconds from boot. Resolution on ESP32: 1 microsecond, on LPC822: 33.333... nanoseconds. May reset to 0 every few days. Base/boot timestamp/0 is different between ESP32 and LPC822 pins and should not be compared between these pins.
      */
 
     this.on('newListener', (event, listener) => {
@@ -408,11 +408,39 @@ if (isNeoniousOne) {
     i = 0;
     last = 39;
 
+    /**
+     * Analog measurements up to 1.1 V, mediocre quality.
+     * For use with setAnalogAttenuation. Only available if not on neonious one, as neonious one always allows up to 3.3 V at industry-standard precision (uses LPC822 for ADC, not the ESP32).
+     */
     exports.ANALOG_ATTEN_DB_0 = 0;
+
+    /**
+     * Analog measurements up to 1.5 V.
+     * For use with setAnalogAttenuation. Only available if not on neonious one, as neonious one always allows up to 3.3 V at industry-standard precision (uses LPC822 for ADC, not the ESP32).
+     */
     exports.ANALOG_ATTEN_DB_2_5 = 1;
+
+    /**
+     * Analog measurements up to 2.2 V.
+     * For use with setAnalogAttenuation. Only available if not on neonious one, as neonious one always allows up to 3.3 V at industry-standard precision (uses LPC822 for ADC, not the ESP32).
+     */
     exports.ANALOG_ATTEN_DB_6 = 2;
+
+    /**
+     * Analog measurements up to 3.3 V, worst quality. Default setting on program startup.
+     * For use with setAnalogAttenuation. Only available if not on neonious one, as neonious one always allows up to 3.3 V at industry-standard precision (uses LPC822 for ADC, not the ESP32).
+     */
     exports.ANALOG_ATTEN_DB_11 = 3;
 
+    /**
+     * Only available if not on neonious one. Allows to set the attenuation of the ESP32 ADC. The ESP32 ADC is a quite
+     * bad design: Depending on the range you want to measure (between 1.1 V and 3.3 V) you get mediocre or very bad
+     * accuracy. For industry-standard accuracy, use the ADC on the neonious one which is provided by the LPC822 chip
+     * instead.
+     *
+     * @method setAnalogAttenuation
+     * @param {(gpio.ANALOG_ATTEN_DB_0|gpio.ANALOG_ATTEN_DB_2_5|gpio.ANALOG_ATTEN_DB_6|gpio.ANALOG_ATTEN_DB_11)} attenuation to use. Default: gpio.ANALOG_ATTEN_DB_11
+     */
     exports.setAnalogAttenuation = native.gpioSetAnalogAttenuation;
 }
 for (; i <= last; i++) {
