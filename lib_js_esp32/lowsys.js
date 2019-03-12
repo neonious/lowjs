@@ -51,7 +51,7 @@ module.exports = {
      * @param {Number} [length=buffer.length-bufOffset] the number of bytes to read
      * @param {HimemTransferCallback} callback the callback to call when the data is read
      */
-    himemRead: native.himemRead
+    himemRead: native.himemRead,
 
     /**
      * The user program can use a RTC or GPS module to get the current time
