@@ -50,7 +50,7 @@ class I2C {
      */
 
     /**
-     * Transfers data to and from the slave.
+     * Does both the write and read phase of a transfer in one step.
      *
      * @param {Number} address the address of the I2C slave
      * @param {Buffer} data data to send to slave
