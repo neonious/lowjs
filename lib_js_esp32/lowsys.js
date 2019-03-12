@@ -52,6 +52,16 @@ module.exports = {
      * @param {HimemTransferCallback} callback the callback to call when the data is read
      */
     himemRead: native.himemRead
+
+    /**
+     * The user program can use a RTC or GPS module to get the current time
+     * and pass it to this method to set the system time to it
+     * @function setSystemTime
+     * @param {Date} time the new system time
+     */
+    setSystemTime: (time) => {
+        native.setSystemTime(time.getTime());
+    }
 };
 
 /**

@@ -15,7 +15,7 @@
 // -----------------------------------------------------------------------------
 
 LowHTTPDirect::LowHTTPDirect(low_main_t *low, bool isServer) :
-    LowLoopCallback(low), mLow(low), mIsServer(isServer), mRequestCallID(0),
+    LowLoopCallback(low), mLow(low), mIsServer(isServer), mSocket(NULL), mRequestCallID(0),
     mReadCallID(0), mWriteCallID(0), mBytesRead(0), mBytesWritten(0),
     mParamFirst(NULL), mParamLast(NULL), mWriteBufferCount(0), mWriteBufferStashInvalidCount(0),
     mShutdown(false),
