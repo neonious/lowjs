@@ -1172,12 +1172,19 @@ Buffer = ((oldFunc) => {
         else
             return oldFunc.call(this, ...args);
     }
+    newBuffer.byteLength = oldFunc.byteLength;
+    newBuffer.compare = oldFunc.compare;
+    newBuffer.concat = oldFunc.concat;
+    newBuffer.isBuffer = oldFunc.isBuffer;
+    newBuffer.isEncoding = oldFunc.isEncoding;
+    newBuffer.poolSize = oldFunc.poolSize;
     newBuffer.prototype = oldFunc.prototype;
+
+    // Not implemented by DukTape
+    newBuffer.from = (...args) => { return new newBuffer(...args); }
+    newBuffer.allocUnsafe = newBuffer.alloc = (...args) => { return new newBuffer(...args); }
     return newBuffer;
 })(Buffer);
-
-Buffer.from = (...args) => { return new Buffer(...args); }
-Buffer.allocUnsafe = Buffer.alloc = (...args) => { return new Buffer(...args); }
 
 Buffer.prototype.toString = ((oldFunc) => {
     return function (encoding) {
