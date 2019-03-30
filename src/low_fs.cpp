@@ -119,6 +119,7 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
 
     while(true)
     {
+        low_loop_clear_callback(low, file);
         if(file->FinishPhase())
             break;
 
@@ -184,6 +185,7 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
 
     while(true)
     {
+        low_loop_clear_callback(low, file);
         if(file->FinishPhase())
             return 0;
 
@@ -294,6 +296,7 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
 
     while(true)
     {
+        low_loop_clear_callback(low, file);
         if(file->FinishPhase())
             return 0;
 

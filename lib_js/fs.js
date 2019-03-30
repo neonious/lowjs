@@ -288,6 +288,8 @@ exports.writeFileSync = (path, data, options) => {
     try {
         exports.writeSync(fd, data, 0, data.length, null);
     } catch (e) {
+        exports.close(fd);
+        throw e;
     }
     exports.close(fd);
 };
