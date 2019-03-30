@@ -950,6 +950,52 @@ if (!Array.prototype.find) {
   });
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
+if (!Array.prototype.fill) {
+    Object.defineProperty(Array.prototype, 'fill', {
+      value: function(value) {
+  
+        // Steps 1-2.
+        if (this == null) {
+          throw new TypeError('this is null or not defined');
+        }
+  
+        var O = Object(this);
+  
+        // Steps 3-5.
+        var len = O.length >>> 0;
+  
+        // Steps 6-7.
+        var start = arguments[1];
+        var relativeStart = start >> 0;
+  
+        // Step 8.
+        var k = relativeStart < 0 ?
+          Math.max(len + relativeStart, 0) :
+          Math.min(relativeStart, len);
+  
+        // Steps 9-10.
+        var end = arguments[2];
+        var relativeEnd = end === undefined ?
+          len : end >> 0;
+  
+        // Step 11.
+        var final = relativeEnd < 0 ?
+          Math.max(len + relativeEnd, 0) :
+          Math.min(relativeEnd, len);
+  
+        // Step 12.
+        while (k < final) {
+          O[k] = value;
+          k++;
+        }
+  
+        // Step 13.
+        return O;
+      }
+    });
+  }
+
 // required for util.promisify(fs.readFile)
 Object.defineProperty(
     Object,
@@ -1100,24 +1146,47 @@ process.stdin.on('resume', () => {
 
 exports.console = require('console');
 
+
+// ***** MODIFICATIONS ON DUKTAPE BUFFER TO WORK BETTER WITH NODE.JS CODE *****
+
 // Properties of Buffer must be enumerable to be compatible to Node.JS
 // (safe-buffer module does not work otherwise)
 for (const name of Object.getOwnPropertyNames(Buffer)) {
-  const desc = Object.getOwnPropertyDescriptor(Buffer, name);
-  if (['concat', 'isEncoding', 'isBuffer', 'byteLength', 'compare'].some(s => name === s)) {
-    const newDesc = {};
-    desc.set && (newDesc.set = desc.set);
-    desc.get && (newDesc.get = desc.get);
-    newDesc.value = desc.value;
-    newDesc.writable = true;
-    newDesc.enumerable = true;
-    newDesc.configurable = desc.configurable;
-    Object.defineProperty(Buffer, name, newDesc)
+    const desc = Object.getOwnPropertyDescriptor(Buffer, name);
+    if (['concat', 'isEncoding', 'isBuffer', 'byteLength', 'compare'].some(s => name === s)) {
+      const newDesc = {};
+      desc.set && (newDesc.set = desc.set);
+      desc.get && (newDesc.get = desc.get);
+      newDesc.value = desc.value;
+      newDesc.writable = true;
+      newDesc.enumerable = true;
+      newDesc.configurable = desc.configurable;
+      Object.defineProperty(Buffer, name, newDesc)
+    }
   }
-}
+
+Buffer = ((oldFunc) => {
+    let newBuffer = function (...args) {
+        if(typeof args[0] === 'string' && (args[1] == 'hex' || args[1] == 'base64'))
+            return oldFunc.call(this, Duktape.dec(args[1], args[0]));
+        else
+            return oldFunc.call(this, ...args);
+    }
+    newBuffer.prototype = oldFunc.prototype;
+    return newBuffer;
+})(Buffer);
 
 Buffer.from = (...args) => { return new Buffer(...args); }
 Buffer.allocUnsafe = Buffer.alloc = (...args) => { return new Buffer(...args); }
+
+Buffer.prototype.toString = ((oldFunc) => {
+    return function (encoding) {
+        if (encoding == 'hex' || encoding == 'base64')
+            return Duktape.enc(encoding, this);
+        else
+            return oldFunc.call(this, encoding);
+    }
+})(Buffer.prototype.toString);
 
 // DukTape push_buffer does not create a Node.JS buffer, make toString work
 Uint8Array.prototype.toString = ((oldFunc) => {
@@ -1125,39 +1194,7 @@ Uint8Array.prototype.toString = ((oldFunc) => {
         return new Buffer(this).toString(encoding);
     }
 })(Uint8Array.prototype.toString);
-// Overwrite toString because DukTape does not implement hex and base64
-Buffer.prototype.toString = ((oldFunc) => {
-    return function (encoding) {
-        if (encoding == 'hex') {
-            let txt = '';
-            for (let i = 0; i < this.length; i++) {
-                let c = this[i];
-                txt += c < 16 ? '0' + c.toString(16) : c.toString(16);
-            }
-            return txt;
-        } else if (encoding == 'base64') {
-            let txt = '';
-            for (let i = 0; i < this.length; i += 3) {
-                const _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-                let enc1 = this[i] >> 2;
-                let enc2 = ((this[i] & 3) << 4) | (this[i + 1] >> 4);
-                let enc3 = ((this[i + 1] & 15) << 2) | (this[i + 2] >> 6);
-                let enc4 = this[i + 2] & 63;
-
-                if (i + 1 == this.length)
-                    enc3 = enc4 = 64;
-                else if (i + 2 == this.length)
-                    enc4 = 64;
-
-                txt += _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
-                    _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
-            }
-            return txt;
-        } else
-            return oldFunc.call(this, encoding);
-    }
-})(Buffer.prototype.toString);
 
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
