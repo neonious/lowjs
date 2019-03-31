@@ -155,6 +155,11 @@ bool LowServerSocket::OnEvents(short events)
         socklen_t remoteAddrLen = sizeof(remoteAddr);
 
         fd = accept(FD(), (sockaddr *)&remoteAddr, &remoteAddrLen);
+        if(fd < 0 && errno == ENFILE)
+        {
+            low_web_set_poll_events(mLow, this, 0);
+            mLow->reset_accepts = true;
+        }
         if (fd >= 0)
             socket = new (low_new)
                 LowSocket(mLow, fd, (sockaddr *)&remoteAddr, mAcceptCallID,
@@ -163,6 +168,11 @@ bool LowServerSocket::OnEvents(short events)
     else
     {
         fd = accept(FD(), NULL, NULL); // no address if UNIX
+        if(fd < 0 && errno == ENFILE)
+        {
+            low_web_set_poll_events(mLow, this, 0);
+            mLow->reset_accepts = true;
+        }
         if (fd >= 0)
             socket = new (low_new) LowSocket(mLow, fd, NULL, mAcceptCallID,
                                              direct, 0, mSecureContext);

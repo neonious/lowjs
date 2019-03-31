@@ -257,16 +257,18 @@ class ServerResponse extends stream.Writable {
                     this._httpHeadersLowerCase["date"] = new Date().toUTCString();
                 }
         */
-        this._httpHeadersLower2Name["connection"] = "Connection";
-        this._httpHeadersLowerCase["connection"] = "keep-alive";
+        if(!this._httpHeadersLower2Name["connection"]) {
+            // Close by default, as embedded system cannot handle many sockets
+            this._httpHeadersLower2Name["connection"] = "Connection";
+            this._httpHeadersLowerCase["connection"] = "close";
+        }
         if (contentLen !== undefined)
             len = contentLen | 0;  // to int
         else if (this._httpMessage.httpVersion == '1.1') {
             this._httpHeadersLower2Name["transfer-encoding"] = "Transfer-Encoding";
             this._httpHeadersLowerCase["transfer-encoding"] = "chunked";
             chunked = true;
-        } else
-            this._httpHeadersLowerCase["connection"] = "close";
+        }
 
         let headersAsTxt = 'HTTP/1.1 ' + this.statusCode + ' ' + this.statusMessage + '\r\n';
         for (let name in this._httpHeadersLowerCase)

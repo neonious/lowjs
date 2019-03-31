@@ -69,6 +69,7 @@ struct low_main_t
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     LowFD *web_changed_first, *web_changed_last;
     bool web_thread_done, web_thread_notinevents;
+    bool reset_accepts;
 
     map<int, LowFD *, less<int>, low_allocator<pair<const int, LowFD *>>> fds;
 

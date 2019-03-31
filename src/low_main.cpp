@@ -268,6 +268,7 @@ low_main_t *low_init()
     }
 
     low->web_thread_done = low->web_thread_notinevents = false;
+    low->reset_accepts = false;
 #if !LOW_ESP32_LWIP_SPECIALITIES
     if(pipe(low->web_thread_pipe) < 0)
     {

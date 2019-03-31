@@ -38,6 +38,16 @@ public:
         if(mAdvertisedFD >= 0)
             mLow->fds.erase(mAdvertisedFD);
         low_web_clear_poll(mLow, this);
+
+        if(mLow->reset_accepts)
+        {
+            mLow->reset_accepts = false;
+            for(auto iter = mLow->fds.begin(); iter != mLow->fds.end(); iter++)
+            {
+                if(iter->second->FDType() == LOWFD_TYPE_SERVER && iter->second->FD() >= 0)
+                    low_web_set_poll_events(mLow, iter->second, POLLIN);
+            }
+        }
     }
 
     virtual void Read(int pos, unsigned char *data, int len, int callIndex) = 0;
