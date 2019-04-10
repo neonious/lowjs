@@ -257,14 +257,16 @@ function GPIOPin(index) {
      * On neonious one, PWM is implemented with the signal module, so PWM and program defined signals cannot be used at the same time.
      *
      * @param {Number} value 0 or 1 if a level should be set, a value between 0 and 1 for the duty period of the PWM
+     * @returns {GPIOPin} pin itself, to chain call methods
      */
     this.setValue = (value) => {
-        if (pinType < 3)
-            throw new RangeError("pin " + index + " is set to input");
         if (value < 0 || value > 1)
             throw new RangeError("can only set pin to a value between 0 and 1");
 
         if (value > 0.0 && value < 1.0) { // PWM
+            if (pinType < 3)
+                throw new RangeError("pin " + index + " is set to input, PWM not supported");
+
             isPWM = true;
             setPWM(index, value);
         } else {
@@ -287,6 +289,7 @@ function GPIOPin(index) {
             }
             native.gpioSetValues(valuesLo, valuesHi);
         }
+        return this;
     }
 
     /**
