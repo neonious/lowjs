@@ -868,7 +868,7 @@ Object.defineProperty(
     }
 );
 
-Array.prototype[Symbol.iterator] = Array.prototype.values = function values() {
+function values() {
 	let someArray = this;
   let nextIndex = 0;
   return {
@@ -884,7 +884,11 @@ Array.prototype[Symbol.iterator] = Array.prototype.values = function values() {
       };
     }
   };
-};
+}
+Object.defineProperty(Array.prototype, 'values', {value: values, configurable: true,
+    writable: true});
+Object.defineProperty(Array.prototype, Symbol.iterator, {value: values, configurable: true,
+    writable: true});
 
 Array.from = function from(o) {
     var m = o[Symbol.iterator];
