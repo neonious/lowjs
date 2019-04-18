@@ -61,7 +61,15 @@ module.exports = {
      */
     setSystemTime: (time) => {
         native.setSystemTime(time.getTime());
-    }
+    },
+
+    /**
+     * Kicks the watchdog. Required to do by the user program if the code.watchdog_mode
+     * setting is not off, and it takes too long to get back to the event loop or
+     * code.kick_watchdog_event_loop is not true.
+     * @function kickWatchdog
+     */
+    kickWatchdog: native.kickWatchdog
 };
 
 /**
