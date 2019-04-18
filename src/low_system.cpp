@@ -673,7 +673,7 @@ void low_error(const char *txt)
 #endif
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    printf("%s\n", txt);
+    // error is printed by modified DukTape in ESP32 version
 #else
     fprintf(stderr, "%s\n", txt);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
