@@ -773,7 +773,7 @@ int low_add_stash(low_main_t *low, int index)
 
 void low_remove_stash(low_main_t *low, int index)
 {
-    if(low->duk_flag_stop)
+    if(low->duk_flag_stop || !index)
         return;
 
     duk_context *ctx = low->duk_ctx;

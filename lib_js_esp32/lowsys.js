@@ -28,12 +28,17 @@ module.exports = {
     gc: native.gc,
 
     /**
+     * Ends the process just like process.exit (with call to process event exit), but restarts the process afterwards
+     * @function restart
+     */
+    restart: native.restart,
+
+    /**
      * Callback which is called when a transfer completed.
      *
      * @callback HimemTransferCallback
      * @param {?Error} err optional error
      */
-
 
     /**
      * Allows user program to write to the higher 4 MB of PSRAM

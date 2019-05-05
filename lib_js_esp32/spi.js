@@ -13,7 +13,7 @@ class SPI {
     /**
      * Creates a SPI master interface.
      *
-     * Destroy explicitly with distroy() when the interface is no longer in use.
+     * Destroy explicitly with destroy() when the interface is no longer in use.
      *
      * @param {Object} options The options
      * @param {Number} [options.mode=0] 0: capture data on first edge, the rest state of the clock (between frames) is low /

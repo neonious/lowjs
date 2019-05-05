@@ -11,7 +11,7 @@ class I2C {
     /**
      * Creates a I2C master interface.
      *
-     * Destroy explicitly with distroy() when the interface is no longer in use.
+     * Destroy explicitly with destroy() when the interface is no longer in use.
      *
      * @param {Object} options The options
      * @param {Number} [options.clockHz=100000] speed of link in Hz

@@ -53,16 +53,16 @@ duk_ret_t low_gc(duk_context *ctx)
 static duk_ret_t low_process_exit(duk_context *ctx)
 {
     low_main_t *low = duk_get_low_context(ctx);
-#if LOW_ESP32_LWIP_SPECIALITIES
-    low->duk_flag_stop = 1;
-    duk_throw(ctx);
-#else
     if(low->signal_call_id)
     {
         low_push_stash(low, low->signal_call_id, false);
         duk_push_string(ctx, "exit");
         duk_call(ctx, 1);
     }
+#if LOW_ESP32_LWIP_SPECIALITIES
+    low->duk_flag_stop = 1;
+    duk_throw(ctx);
+#else
     low_set_raw_mode(false);
     exit(duk_get_int(ctx, 0));
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
