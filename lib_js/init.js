@@ -1191,17 +1191,17 @@ Buffer = ((oldFunc) => {
 })(Buffer);
 
 Buffer.prototype.toString = ((oldFunc) => {
-    return function (encoding) {
+    return function (encoding, b, c) {
         if (encoding == 'hex' || encoding == 'base64')
             return Duktape.enc(encoding, this);
         else
-            return oldFunc.call(this, encoding);
+            return oldFunc.call(this, encoding, b, c);
     }
 })(Buffer.prototype.toString);
 
 // DukTape push_buffer does not create a Node.JS buffer, make toString work
 Uint8Array.prototype.toString = ((oldFunc) => {
-    return function (encoding) {
+    return function (encoding, b, c) {
         return new Buffer(this).toString(encoding);
     }
 })(Uint8Array.prototype.toString);

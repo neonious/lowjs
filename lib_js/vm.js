@@ -35,7 +35,13 @@ class Script {
     }
 
     runInThisContext(options) {
-        return runInContext(global, options);
+        if (options && options.filename)
+            this._func.fileName = options.filename;
+        else
+            this._func.fileName = this._filename;
+
+        let res = native.runInContext(this._func, global, options ? options.timeout : undefined, options ? !!options.breakOnSigint : undefined);
+        return res;
     }
 
     createCachedData() {

@@ -37,12 +37,36 @@ extern char **environ;
 extern low_system_t g_low_system;
 
 // -----------------------------------------------------------------------------
-//  low_process_gc
+//  low_gc
 // -----------------------------------------------------------------------------
 
-static duk_ret_t low_process_gc(duk_context *ctx)
+duk_ret_t low_gc(duk_context *ctx)
 {
     duk_gc(ctx, 0);
+    return 0;
+}
+
+// -----------------------------------------------------------------------------
+//  low_process_exit
+// -----------------------------------------------------------------------------
+
+static duk_ret_t low_process_exit(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+#if LOW_ESP32_LWIP_SPECIALITIES
+    low->duk_flag_stop = 1;
+    duk_throw(ctx);
+#else
+    if(low->signal_call_id)
+    {
+        low_push_stash(low, low->signal_call_id, false);
+        duk_push_string(ctx, "exit");
+        duk_call(ctx, 1);
+    }
+    low_set_raw_mode(false);
+    exit(duk_get_int(ctx, 0));
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     return 0;
 }
 
@@ -156,8 +180,8 @@ duk_ret_t low_process_info(duk_context *ctx)
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
     duk_put_prop_string(ctx, 0, "env");
 
-    duk_push_c_function(ctx, low_process_gc, 0);
-    duk_put_prop_string(ctx, 0, "gc");
+    duk_push_c_function(ctx, low_process_exit, 1);
+    duk_put_prop_string(ctx, 0, "exit");
     duk_push_c_function(ctx, low_process_cwd, 0);
     duk_put_prop_string(ctx, 0, "cwd");
     duk_push_c_function(ctx, low_process_chdir, 1);

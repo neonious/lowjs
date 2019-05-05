@@ -21,8 +21,43 @@ void user_cpu_load(bool active);
 
 bool low_loop_run(low_main_t *low)
 {
-    while(!low->duk_flag_stop && (low->run_ref || low->loop_callback_first))
+    while(!low->duk_flag_stop)
     {
+        if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
+        {
+            if(duk_safe_call(low->duk_ctx,
+                            low_loop_exit_safe,
+                            NULL,   // beforeExit
+                            0,
+                            1) != DUK_EXEC_SUCCESS)
+            {
+                if(!low->duk_flag_stop) // flag stop also produces error
+                    low_duk_print_error(low->duk_ctx);
+                duk_pop(low->duk_ctx);
+
+                return low->duk_flag_stop;
+            }
+        }
+        if(low->duk_flag_stop || (!low->run_ref && !low->loop_callback_first))
+        {
+            if(!low->duk_flag_stop && low->signal_call_id)
+            {
+                if(duk_safe_call(low->duk_ctx,
+                                low_loop_exit_safe,
+                                (void *)1,  // exit
+                                0,
+                                1) != DUK_EXEC_SUCCESS)
+                {
+                    if(!low->duk_flag_stop) // flag stop also produces error
+                        low_duk_print_error(low->duk_ctx);
+                    duk_pop(low->duk_ctx);
+
+                    return low->duk_flag_stop;
+                }
+            }
+            break;
+        }
+
         int millisecs = -1;
         if(low->chore_times.size())
         {
@@ -181,6 +216,21 @@ duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata)
         delete callback;
     return 0;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_loop_exit_safe
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    low_push_stash(low, low->signal_call_id, false);
+    duk_push_string(ctx, udata == NULL ? "beforeExit" : "exit");
+    duk_call(ctx, 1);
+    return 0;
+}
+
 
 // -----------------------------------------------------------------------------
 //  low_loop_set_chore

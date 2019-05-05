@@ -20,6 +20,14 @@ module.exports = {
 //    setSettings: native.setSettings,
 
     /**
+     * Calls the garbage collector. Useful if you want to see the actual usage of memory in the graph of the neonious IDE.
+     * Not needed for correct functioning of low.js however: The garbage collector is automatically called when there is no free memory
+     * availavble.
+     * @function gc
+     */
+    gc: native.gc,
+
+    /**
      * Callback which is called when a transfer completed.
      *
      * @callback HimemTransferCallback
