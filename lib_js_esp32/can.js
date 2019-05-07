@@ -171,6 +171,9 @@ https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/
         if(!options.timing)
             options.timing = exports.TIMING_500_KBITS;
         native.canConstruct(options, (event, a, b, c, d) => {
+            if(event == 'message')
+                a = new Buffer(a);  // so readUInt* is defined
+
             this.emit(event, a, b, c, d);
         });
 
@@ -369,7 +372,7 @@ https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/
             If specified, it will be called as soon as the message is shipped.
      * @returns {CAN} interface itself, to chain call other methods
      */
-    trasmit(buffer, id, id_len, flags, callback) {
+    transmit(buffer, id, id_len, flags, callback) {
         if(this._isDestroyed) {
             let err = new Error('CAN interface already destroyed.');
             err.code = 'CAN_DESTROYED';
