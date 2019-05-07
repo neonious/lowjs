@@ -89,14 +89,12 @@ exports.STATE_ERR_ACTIVE = 0;
 exports.STATE_ERR_PASSIVE = 1;
 
 /**
- * Too many errors occurred (rxError >= 256), interface no longer participates in the event.
- * intf.recover() must be called. Data to be sent is buffered in the TX queue.
+ * Too many errors occurred (rxError >= 256), interface no longer participates, intf.recover() must be called
  */
 exports.STATE_BUS_OFF = 2;
 
 /**
- * Recover is in progress (not finished until error count goes down).
- * Data to be sent is buffered in the TX queue.
+ * Recover is in progress (not finished until error count goes down)
  */
 exports.STATE_RECOVERING = 3;
 
@@ -120,11 +118,11 @@ exports.STATE_DESTROYED = 4;
  *      can.STATE_ERR_ACTIVE: Now under 128 rxErrors or 128 txErrors
  *      can.STATE_ERR_PASSIVE: More than 128 rxError and 128 txError occurred
  *      can.STATE_BUS_OFF: Too many errors occurred (rxError >= 256), interface no longer participates in the event.
- *           intf.recover() must be called. Data to be sent is buffered in the TX queue.
- *      can.STATE_RECOVERING: Recover is in progress (not finished until error count goes down). Data to be sent is buffered in the TX queue.
+ *           intf.recover() must be called
+ *      can.STATE_RECOVERING: Recover is in progress (not finished until error count goes down)
  *      can.STATE_DESTROYED: intf.destroy() was called.
  * @property {Number} txQueueCount Number of messages that are to be sent (=intf.transmit 
- *          calls that still have not caused a callback call/resolved or rejected)
+ *          calls that still have not caused a callback call
  * @property {Number} txQueueThreshold If intf.txQueueCount falls below this value again, the event belowTXQueueThreshold is called. Default: 0
  * @property {Number} rxQueueCount Number of messages that have been received but for which the message event could not be called yet.
  * @property {Number} errorThreshold If txError and rxError are above this value, the event aboveErrorThreshold is called,
@@ -133,7 +131,7 @@ exports.STATE_DESTROYED = 4;
  * @property {Number} stats.rxMissed Number of unsaved CAN messages due to too small RX buffer
  * @property {Number} stats.arbLost Number of sent packets where another node has priority
  * @property {Number} stats.busError Number of bus errors
- * @property {Number} stats.rxError Number of receive errors after CAN2.0B. Goes also down, not only up
+ * @property {Number} stats.rxError Number of receive errors after CAN2.0B. Also goes down, not only up
  * @property {Number} stats.txError Number of transmit errors according to CAN2.0B. Also goes down, not only up
  ***/
 class CAN extends events.EventEmitter {
@@ -272,7 +270,7 @@ https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/
      *      can.STATE_ERR_ACTIVE: Now under 128 rxErrors or 128 txErrors
 	 *      can.STATE_ERR_PASSIVE: More than 128 rxError and 128 txError occurred
 	 *      can.STATE_BUS_OFF: Too many errors occurred (rxError >= 256), interface no longer participates in the event.
-     *           intf.recover() must be called. Data to be sent is buffered in the TX queue.
+     *           intf.recover() must be called
      *      can.STATE_RECOVERING: Recover is in progress (not finished until error count goes down). Data to be sent is buffered
      *                            in the TX queue.
      *      can.STATE_DESTROYED: intf.destroy() was called.
@@ -359,7 +357,7 @@ https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/
     }
 
     /**
-     * Sends a packet. If interface is in status can.STATE_BUS_OFF or can.STATE_RECOVERING, the packet is buffered in the TX queue.
+     * Sends a message
      *
      * @param {Buffer} buffer The data, maximum 8 bytes
      * @param {Number} id The id of the recipient
