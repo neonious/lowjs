@@ -252,7 +252,7 @@ exports.writeFile = (path, data, options, callback) => {
     if (typeof data === 'string')
         data = new Buffer(data, options && options.encoding ? options.encoding : 'utf8');
 
-    exports.open(path, options && options.flags ? options.flags : 'w', (err, fd) => {
+    exports.open(path, options && options.flag ? options.flag : 'w', (err, fd) => {
         if (err) {
             callback(err);
             return;
@@ -284,7 +284,7 @@ exports.writeFileSync = (path, data, options) => {
     if (typeof data === 'string')
         data = new Buffer(data, options && options.encoding ? options.encoding : 'utf8');
 
-    let fd = exports.openSync(path, options && options.flags ? options.flags : 'w');
+    let fd = exports.openSync(path, options && options.flag ? options.flag : 'w');
     try {
         exports.writeSync(fd, data, 0, data.length, null);
     } catch (e) {
