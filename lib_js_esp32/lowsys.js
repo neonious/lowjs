@@ -20,9 +20,24 @@ module.exports = {
 //    setSettings: native.setSettings,
 
     /**
+     * Restarts the device into the Over-The-Air updater. Throws if no update is available (in which
+     * case updateVersion is undefined) or if the Over-The-Air updater is not supported (currently only
+     * supported on neonious one).
+     * @function updateNow
+     */
+    updateNow: () => {
+        if(!this.updateVersion)
+            throw new Error('no newer version to install available');
+
+        if(!native.updateNow)
+            throw new Error('Over-The-Air updater not supported on this device (only supported on neonious one)');
+        native.updateNow();
+    },
+
+    /**
      * Calls the garbage collector. Useful if you want to see the actual usage of memory in the graph of the neonious IDE.
      * Not needed for correct functioning of low.js however: The garbage collector is automatically called when there is no free memory
-     * availavble.
+     * available.
      * @function gc
      */
     gc: native.gc,
@@ -86,13 +101,17 @@ module.exports = {
 };
 
 /**
- * An object holding status information
- * @property {String} status.eth Status of Ethernet interface
- * @property {String} status.wifi Status of Wifi interface
- * @property {String} status.time Status of requesting time from time server
- * @property {String} status.sdcard Status of SD card
- * @name status
+ * If set, is the version of low newer than the running version (defined in process.versions.low)
+ * the system can update to.
+ * @property {String}
+ * @name updateVersion
  */
+Object.defineProperty(module.exports, 'updateVersion', {
+    enumerable: true,
+    get: function () {
+        return native.updateVersion;
+    }
+});
 
  /**
  * An object holding status information

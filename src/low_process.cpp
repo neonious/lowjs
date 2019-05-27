@@ -25,6 +25,11 @@
 #include <time.h>
 #endif /* __APPLE__ */
 
+#if LOW_INCLUDE_CARES_RESOLVER
+#include "../deps/c-ares/ares.h"
+#endif /* LOW_INCLUDE_CARES_RESOLVER */
+#include "mbedtls/version.h"
+
 // used in low_hrtime() below
 #define NANOS_PER_SEC 1000000000
 #define NANOS_PER_MICROSEC 1000
@@ -222,6 +227,20 @@ duk_ret_t low_process_info(duk_context *ctx)
     duk_put_prop_string(ctx, 0, "arch");
 
     duk_push_object(ctx);
+    duk_push_string(ctx, LOW_VERSION);
+    duk_put_prop_string(ctx, -2, "low");
+#if LOW_ESP32_LWIP_SPECIALITIES
+    duk_push_string(ctx, LOW_ESP32_VERSION);
+    duk_put_prop_string(ctx, -2, "low_esp32");
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    duk_push_string(ctx, "10.0.0");
+    duk_put_prop_string(ctx, -2, "node");
+#if LOW_INCLUDE_CARES_RESOLVER
+    duk_push_string(ctx, ares_version(NULL));
+    duk_put_prop_string(ctx, -2, "ares");
+#endif /* LOW_INCLUDE_CARES_RESOLVER */
+    duk_push_string(ctx, MBEDTLS_VERSION_STRING);
+    duk_put_prop_string(ctx, -2, "mbedtls");
     duk_put_prop_string(ctx, 0, "versions");
 
     low->signal_call_id = low_add_stash(low, 1);

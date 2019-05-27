@@ -21,6 +21,13 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    if(argc == 2
+    && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "-version") == 0))
+    {
+        printf("Version (GIT commit): %s\n", LOW_VERSION);
+        return EXIT_SUCCESS;
+    }
+
     if(!low_system_init())
         return EXIT_FAILURE;
 

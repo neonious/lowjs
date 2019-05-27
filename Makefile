@@ -1,4 +1,4 @@
-FLAGS = -O3
+FLAGS = -O3 -DLOW_VERSION="\"`git rev-parse --short HEAD`\""
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
@@ -61,7 +61,7 @@ clean:
 
 bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
-	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
+	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
 bin/low_with_native_module: $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
 	 $(LD) -o bin/low_with_native_module deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) $(LDFLAGS)
@@ -128,7 +128,7 @@ deps/mbedtls/programs/test/benchmark:
 	cd deps/mbedtls && make
 
 # Builds distribution
-DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`date +"%Y%m%d"`
+DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`git rev-parse --short HEAD`
 
 dist: bin/low lib/BUILT
 	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
