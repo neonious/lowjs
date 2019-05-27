@@ -1,3 +1,5 @@
+IMPORTANT: This repository neither includes the ESP32 internals nor the neonious one IDE. Thus, most development happens outside of the repository. Thus, see the [Change Log](https://www.neonious.com/documentation/changelog) for more activity.
+
 # lowjs
 
 low.js is a port of Node.JS with far lower system requirements.
