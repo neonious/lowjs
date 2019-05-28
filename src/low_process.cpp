@@ -19,10 +19,14 @@
 #include <libproc.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
+#include <sys/types.h>
+#include <signal.h>
 #else
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/types.h>
+#include <signal.h>
 #endif /* __APPLE__ */
 
 #if LOW_INCLUDE_CARES_RESOLVER
@@ -74,6 +78,34 @@ static duk_ret_t low_process_exit(duk_context *ctx)
 
     return 0;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_process_abort
+// -----------------------------------------------------------------------------
+
+static duk_ret_t low_process_abort(duk_context *ctx)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    if(low->signal_call_id)
+    {
+        low_push_stash(low, low->signal_call_id, false);
+        duk_push_string(ctx, "exit");
+        duk_call(ctx, 1);
+    }
+
+    low_set_raw_mode(false);
+#if LOW_ESP32_LWIP_SPECIALITIES
+    duk_generic_error(ctx, "Process aborted.");
+#else
+    kill(SIGABRT, 0);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+    // Just in case
+    exit(1);
+    return 0;
+}
+
 
 // -----------------------------------------------------------------------------
 //  low_process_cwd
@@ -187,6 +219,8 @@ duk_ret_t low_process_info(duk_context *ctx)
 
     duk_push_c_function(ctx, low_process_exit, 1);
     duk_put_prop_string(ctx, 0, "exit");
+    duk_push_c_function(ctx, low_process_abort, 0);
+    duk_put_prop_string(ctx, 0, "abort");
     duk_push_c_function(ctx, low_process_cwd, 0);
     duk_put_prop_string(ctx, 0, "cwd");
     duk_push_c_function(ctx, low_process_chdir, 1);
