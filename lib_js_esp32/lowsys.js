@@ -26,7 +26,7 @@ module.exports = {
      * @function updateNow
      */
     updateNow: () => {
-        if(!this.updateVersion)
+        if(!module.exports.updateVersion)
             throw new Error('no newer version to install available');
 
         if(!native.updateNow)
@@ -101,7 +101,7 @@ module.exports = {
 };
 
 /**
- * If set, is the version of low newer than the running version (defined in process.versions.low)
+ * If set, is the version of low newer than the running version (defined in process.versions.lowjs_esp32)
  * the system can update to.
  * @property {String}
  * @name updateVersion
@@ -109,7 +109,7 @@ module.exports = {
 Object.defineProperty(module.exports, 'updateVersion', {
     enumerable: true,
     get: function () {
-        return native.updateVersion;
+        return native.updateVersion ? native.updateVersion() : undefined;
     }
 });
 

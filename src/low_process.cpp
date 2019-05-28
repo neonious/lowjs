@@ -15,6 +15,8 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "esp_timer.h"
+
+void console_log(const char *loglevel, const char *txt);
 #elif defined(__APPLE__)
 #include <libproc.h>
 #include <mach/clock.h>
@@ -96,7 +98,7 @@ static duk_ret_t low_process_abort(duk_context *ctx)
 
     low_set_raw_mode(false);
 #if LOW_ESP32_LWIP_SPECIALITIES
-    duk_generic_error(ctx, "Process aborted.");
+    console_log("e", "Process aborted.");
 
     low->duk_flag_stop = 1;
     duk_throw(ctx);
@@ -263,10 +265,10 @@ duk_ret_t low_process_info(duk_context *ctx)
 
     duk_push_object(ctx);
     duk_push_string(ctx, LOW_VERSION);
-    duk_put_prop_string(ctx, -2, "low");
+    duk_put_prop_string(ctx, -2, "lowjs");
 #if LOW_ESP32_LWIP_SPECIALITIES
     duk_push_string(ctx, LOW_ESP32_VERSION);
-    duk_put_prop_string(ctx, -2, "low_esp32");
+    duk_put_prop_string(ctx, -2, "lowjs_esp32");
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     duk_push_string(ctx, "10.0.0");
     duk_put_prop_string(ctx, -2, "node");
