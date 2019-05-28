@@ -1,4 +1,4 @@
-FLAGS = -O3 -DLOW_VERSION="\"`git rev-parse --short HEAD`\""
+FLAGS = -O3 -DLOW_VERSION="\"`git show -s --format=%cd --date=format:%Y%m%d`_`git rev-parse --short HEAD`\""
 
 C = gcc
 CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
@@ -128,7 +128,7 @@ deps/mbedtls/programs/test/benchmark:
 	cd deps/mbedtls && make
 
 # Builds distribution
-DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`git rev-parse --short HEAD`
+DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`git show -s --format=%cd --date=format:%Y%m%d`_`git rev-parse --short HEAD`
 
 dist: bin/low lib/BUILT
 	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz

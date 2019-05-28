@@ -97,12 +97,13 @@ static duk_ret_t low_process_abort(duk_context *ctx)
     low_set_raw_mode(false);
 #if LOW_ESP32_LWIP_SPECIALITIES
     duk_generic_error(ctx, "Process aborted.");
+
+    low->duk_flag_stop = 1;
+    duk_throw(ctx);
 #else
-    kill(SIGABRT, 0);
+    abort();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    // Just in case
-    exit(1);
     return 0;
 }
 
