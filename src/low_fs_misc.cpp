@@ -192,6 +192,8 @@ duk_ret_t low_fs_rmdir(duk_context *ctx)
 
     fl->RmDir(file_name);
     fl->Run(callIndex);
+    delete fl;
+
     return 0;
 }
 
@@ -212,6 +214,8 @@ duk_ret_t low_fs_rename_sync(duk_context *ctx)
 
     fl->Rename(old_name, new_name);
     fl->Run();
+    delete fl;
+
     return 0;
 }
 
@@ -230,6 +234,8 @@ duk_ret_t low_fs_unlink_sync(duk_context *ctx)
 
     fl->Unlink(file_name);
     fl->Run();
+    delete fl;
+
     return 0;
 }
 
@@ -249,6 +255,8 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
 
     fl->Stat(file_name);
     fl->Run();
+    delete fl;
+
     return 1;
 }
 
@@ -274,6 +282,8 @@ duk_ret_t low_fs_access_sync(duk_context *ctx)
 
     fl->Access(file_name, mode);
     fl->Run();
+    delete fl;
+
     return 1;
 }
 
@@ -301,6 +311,8 @@ duk_ret_t low_fs_readdir_sync(duk_context *ctx)
 
     fl->ReadDir(file_name, withFileTypes);
     fl->Run();
+    delete fl;
+
     return 1;
 }
 
@@ -332,6 +344,8 @@ duk_ret_t low_fs_mkdir_sync(duk_context *ctx)
 
     fl->MkDir(file_name, recursive, mode);
     fl->Run();
+    delete fl;
+
     return 0;
 }
 
@@ -351,5 +365,7 @@ duk_ret_t low_fs_rmdir_sync(duk_context *ctx)
 
     fl->RmDir(file_name);
     fl->Run();
+    delete fl;
+
     return 0;
 }

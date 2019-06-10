@@ -187,7 +187,10 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
     {
         low_loop_clear_callback(low, file);
         if(file->FinishPhase())
+        {
+            delete file;
             return 0;
+        }
 
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)

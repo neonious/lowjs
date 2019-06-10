@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
+#include "esp_heap_caps.h"
 #include "esp_timer.h"
 
 void console_log(const char *loglevel, const char *txt);
@@ -25,6 +26,7 @@ void console_log(const char *loglevel, const char *txt);
 #include <sys/sysctl.h>
 #include <signal.h>
 #else
+#include <sys/sysinfo.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
@@ -295,7 +297,12 @@ duk_ret_t low_os_info(duk_context *ctx)
     duk_push_object(ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-
+    duk_push_int(ctx, heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+    duk_put_prop_string(ctx, -2, "freemem");
+    duk_push_int(ctx, 4 * 1024 * 1024);
+    duk_put_prop_string(ctx, -2, "totalmem");
+    duk_push_int(ctx, esp_timer_get_time() / 1000000);
+    duk_put_prop_string(ctx, -2, "uptime");
 #elif defined(__APPLE__)
 {
     struct timeval boottime;
@@ -331,6 +338,16 @@ duk_ret_t low_os_info(duk_context *ctx)
     }
 }
 #else
+    struct sysinfo info;
+    if(sysinfo(&info) == 0)
+    {
+        duk_push_number(ctx, info.freeram * (double)info.mem_unit);
+        duk_put_prop_string(ctx, -2, "freemem");
+        duk_push_number(ctx, info.totalram * (double)info.mem_unit);
+        duk_put_prop_string(ctx, -2, "totalmem");
+        duk_push_int(ctx, info.uptime);
+        duk_put_prop_string(ctx, -2, "uptime");
+    }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     return 1;
