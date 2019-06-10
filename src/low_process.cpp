@@ -22,6 +22,7 @@ void console_log(const char *loglevel, const char *txt);
 #include <mach/clock.h>
 #include <mach/mach.h>
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <signal.h>
 #else
 #include <sys/stat.h>
@@ -283,6 +284,58 @@ duk_ret_t low_process_info(duk_context *ctx)
     low->signal_call_id = low_add_stash(low, 1);
     return 0;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_os_info
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_os_info(duk_context *ctx)
+{
+    duk_push_object(ctx);
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+
+#elif defined(__APPLE__)
+{
+    struct timeval boottime;
+    size_t len = sizeof(boottime);
+    int mib[2] = { CTL_KERN, KERN_BOOTTIME };
+    if(sysctl(mib, 2, &boottime, &len, NULL, 0) >= 0)
+    {
+        time_t bsec = boottime.tv_sec, csec = time(NULL);
+        duk_push_int(ctx, csec - bsec);
+        duk_put_prop_string(ctx, -2, "uptime");
+    }
+}
+{
+    unsigned long long mem;
+    size_t len = sizeof(mem);
+    int mib[2] = { CTL_HW, HW_MEMSIZE };
+    if(sysctl(mib, 2, &mem, &len, NULL, 0) >= 0)
+    {
+        duk_push_number(ctx, mem);
+        duk_put_prop_string(ctx, -2, "totalmem");
+    }
+    // Get Virtual Memory Stats
+    xsw_usage vmusage = {0};
+    size_t size = sizeof(vmusage);
+    if( sysctlbyname("vm.swapusage", &vmusage, &size, NULL, 0) == 0 )
+    {
+        mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+        vm_statistics_data_t vmstat;
+        if(KERN_SUCCESS == host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count)) {
+        duk_push_number(ctx, (int64_t)vmstat.free_count * (int64_t)vmusage.xsu_pagesize);
+        duk_put_prop_string(ctx, -2, "freemem");
+        }
+    }
+}
+#else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+    return 1;
+}
+
 
 // -----------------------------------------------------------------------------
 //  low_tty_info

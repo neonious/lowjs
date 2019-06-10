@@ -19,6 +19,7 @@
 duk_function_list_entry g_low_native_methods[] = {
   {"gc", low_gc, 0},
   {"processInfo", low_process_info, 2},
+  {"osInfo", low_os_info, 0},
   {"ttyInfo", low_tty_info, 0},
   {"hrtime", low_hrtime, 1},
   {"compile", low_compile, 1},
