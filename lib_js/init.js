@@ -432,8 +432,15 @@ function publish(promise) {
   var callbacks = promise.then_;
   promise.then_ = undefined;
 
-  if(promise.state_ === REJECTED && !callbacks.length)
-    throw new Error('unhandled Promise reject ' + promise.data_);
+  if(promise.state_ === REJECTED && !callbacks.length) {
+      // Changed this so that the original error with the original
+      // stack frame is thrown
+      if(promise.data_ && promise.data_.message) {
+          promise.data_.message = 'unhandled Promise reject: ' + promise.data_.message;
+          throw promise.data_;
+      } else
+        throw new Error('unhandled Promise reject: ' + promise.data_);
+    }
   for (var i = 0; i < callbacks.length; i++) {
     invokeCallback(callbacks[i]);
   }
