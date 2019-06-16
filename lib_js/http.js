@@ -81,6 +81,7 @@ class Agent {
                 }
             }
         }
+        socket.destroy();
 
         if (this.requests[name] && this.requests[name].length) {
             var req = this.requests[name][0];
@@ -92,6 +93,8 @@ class Agent {
     }
 
     freeSocket(socket, options) {
+        socket.setTimeout(0);
+
         var name = this.getName(options);
         if (this.requests[name] && this.requests[name].length) {
             this.requests[name].shift()._onSocket(socket, options);
