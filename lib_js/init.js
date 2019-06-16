@@ -1068,6 +1068,19 @@ exports.process = new events.EventEmitter();
 native.processInfo(process, (signal) => {
     return process.emit(signal);
 });
+// required for test for node in axios module, file /lib/defaults.js
+// the test is:
+// Object.prototype.toString.call(process) === '[object process]'
+Object.defineProperty(
+    process, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'process'
+    }
+);
 
 process.nextTick = setImmediate;
 process.hrtime = function hrtime(time) {

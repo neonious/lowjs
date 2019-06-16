@@ -524,10 +524,7 @@ function urlFormat(urlObject, options) {
         throw new ERR_INVALID_ARG_TYPE('urlObject',
             ['Object', 'string'], urlObject);
     } else if (!(urlObject instanceof Url)) {
-        var format = urlObject[formatSymbol];
-        return format ?
-            format.call(urlObject, options) :
-            Url.prototype.format.call(urlObject);
+        return Url.prototype.format.call(urlObject);
     }
     return urlObject.format();
 }
