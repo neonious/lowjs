@@ -42,5 +42,8 @@ function createServer(options, acceptCallback) {
 module.exports = {
     Server,
     createServer,
-    Agent
+    Agent,
+    request = () => {
+        throw new Error("https.request is not implemented yet, only https.createServer. Please use http")
+    }
 }
