@@ -179,7 +179,7 @@ EventEmitter.prototype.emit = function emit(type, ...args) {
     if (handler === undefined)
         return false;
 
-    if (typeof handler === 'function') {
+        if (typeof handler === 'function') {
         Reflect.apply(handler, this, args);
     } else {
         const len = handler.length;

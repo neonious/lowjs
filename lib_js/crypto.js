@@ -34,3 +34,38 @@ exports.createHash = function (type) {
 exports.createHmac = function (type, key) {
     return new Hash(type, key);
 }
+
+exports.randomFillSync = function(buffer, offset, size) {
+    if(offset === undefined)
+        offset = 0;
+    if(size === undefined)
+        size = buffer.length - offset;
+
+    let buf = new Buffer(native.randomBytes(size));
+    buf.copy(buffer, offset);
+}
+
+// TODO: use second core
+exports.randomFill = function(buffer, offset, size, callback) {
+    if(callback === undefined) {
+        if(size === undefined) {
+            callback = offset;
+            offset = undefined;
+        } else {
+            callback = size;
+            size = undefined;
+        }
+    }
+
+    if(offset === undefined)
+        offset = 0;
+    if(size === undefined)
+        size = buffer.length - offset;
+
+    let buf = new Buffer(native.randomBytes(size));
+    buf.copy(buffer, offset);
+
+    process.nextTick(() => {
+        callback(null, buffer);
+    });
+}

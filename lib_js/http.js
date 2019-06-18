@@ -491,11 +491,14 @@ class ClientRequest extends stream.Writable {
             message.rawHeaders = data.slice(3);
             message.headers = {};
 
+            let upgrade = false;
             for (let i = 3; i + 1 < data.length; i += 2) {
                 let key = data[i];
                 let value = data[i + 1];
 
                 key = key.toLowerCase();
+                if (key == 'upgrade')
+                    upgrade = true;
                 if (message.headers[key]) {
                     if (key == 'set-cookie')
                         message.headers[key] = [value];
@@ -507,6 +510,13 @@ class ClientRequest extends stream.Writable {
                     message.headers[key] = value;
             }
 
+            if (upgrade && this.listenerCount('upgrade')) {
+                let buffer = native.httpDetach(socket._socketFD);
+                socket._socketHTTPWrapped = false;
+    
+                if (this.emit('upgrade', message, socket, buffer))
+                    return;
+            }
             this.emit('response', message);
         });
 
@@ -568,7 +578,6 @@ class Server extends net.Server {
 
     // event checkContinue
     // event checkExpectation
-    // event upgrade
     // event connect
 
     constructor(options, acceptCallback) {

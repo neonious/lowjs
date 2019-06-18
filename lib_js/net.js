@@ -19,8 +19,8 @@ class Socket extends stream.Duplex {
         super({
             allowHalfOpen: options && options.allowHalfOpen,
             read(size) {
-                if (options && !options.readable)
-                    throw new Error("writing to stream not allowed");
+                if (options && !this.readable)
+                    throw new Error("reading from stream not allowed");
                 if (this._socketHTTPWrapped)
                     throw new Error("socket is an http stream, writing not allowed");
 
@@ -55,7 +55,7 @@ class Socket extends stream.Duplex {
                 });
             },
             write(chunk, encoding, callback) {
-                if (options && !options.writable)
+                if (options && !this.writable)
                     throw new Error("writing to stream not allowed");
                 if (this._socketHTTPWrapped)
                     throw new Error("socket is an http stream, reading not allowed");
@@ -108,10 +108,8 @@ class Socket extends stream.Duplex {
             }
         });
 
-        if (options && options.readable === false)
-            this.readable = false;
-        if (options && options.writable === false)
-            this.writable = false;
+        this.readable = this._socketFD === undefined ? true : (options ? !!options.readable : false);
+        this.writable = this._socketFD === undefined ? true : (options ? !!options.writable : false);
 
         if (this._socketFD === undefined)
             this.cork();
