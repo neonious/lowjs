@@ -43,7 +43,7 @@ module.exports = {
     Server,
     createServer,
     Agent,
-    request = () => {
+    request: () => {
         throw new Error("https.request is not implemented yet, only https.createServer. Please use http")
     }
 }
