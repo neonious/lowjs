@@ -33,19 +33,6 @@ duk_ret_t low_net_listen(duk_context *ctx)
     const char *address = duk_require_string(ctx, 1);
     bool isHTTP = duk_require_boolean(ctx, 3);
 
-    LowTLSContext *tlsContext = NULL;
-    if(duk_is_object(ctx, 4))
-    {
-        duk_get_prop_string(ctx, 4, "_index");
-
-        int index = duk_require_int(ctx, -1);
-        if(index < 0 || index >= low->tlsContexts.size() ||
-           !low->tlsContexts[index])
-            duk_reference_error(ctx, "tls context not found");
-
-        tlsContext = low->tlsContexts[index];
-    }
-
     int addrLen;
 #if LOW_HAS_UNIX_SOCKET
     if(family == 0)
@@ -105,6 +92,19 @@ duk_ret_t low_net_listen(duk_context *ctx)
             }
             addr_in6->sin6_port = htons(port);
         }
+    }
+
+    LowTLSContext *tlsContext = NULL;
+    if(duk_is_object(ctx, 4))
+    {
+        duk_get_prop_string(ctx, 4, "_index");
+
+        int index = duk_require_int(ctx, -1);
+        if(index < 0 || index >= low->tlsContexts.size() ||
+           !low->tlsContexts[index])
+            duk_reference_error(ctx, "tls context not found");
+
+        tlsContext = low->tlsContexts[index];
     }
 
     LowServerSocket *server =
@@ -215,7 +215,21 @@ duk_ret_t low_net_connect(duk_context *ctx)
         }
     }
 
-    LowSocket *socket = new(low_new) LowSocket(low, NULL, 0, NULL);
+    LowTLSContext *tlsContext = NULL;
+    if(duk_is_object(ctx, 3))
+    {
+        duk_get_prop_string(ctx, 3, "_index");
+
+        int index = duk_require_int(ctx, -1);
+
+        if(index < 0 || index >= low->tlsContexts.size() ||
+           !low->tlsContexts[index])
+            duk_reference_error(ctx, "tls context not found");
+
+        tlsContext = low->tlsContexts[index];
+    }
+
+    LowSocket *socket = new(low_new) LowSocket(low, NULL, 0, tlsContext);
     if(!socket)
     {
         duk_dup(low->duk_ctx, 4);

@@ -18,6 +18,7 @@
 duk_ret_t low_tls_create_context(duk_context *ctx)
 {
     low_main_t *low = duk_get_low_context(ctx);
+    bool isServer = duk_require_boolean(ctx, 1);
 
     unsigned char *cert = NULL, *key = NULL, *ca = NULL;
     char *my_cert = NULL, *my_key = NULL, *my_ca = NULL;
@@ -110,7 +111,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     }
 
     LowTLSContext *context = new(low_new) LowTLSContext(
-      low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, true);
+      low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, isServer);
     low_free(my_cert);
     low_free(my_key);
     low_free(my_ca);

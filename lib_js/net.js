@@ -456,9 +456,12 @@ function createConnection(...args) {
     let options = normalized[0];
 
     let socket = new Socket(options);
+    let cb = normalized[1];
+    if(cb)
+        socket.once('connect', cb);
     if (options.timeout)
         socket.setTimeout(options.timeout);
-    return Socket.prototype.connect.call(socket, normalized);
+    return Socket.prototype.connect.call(socket, options);
 }
 // Returns an array [options, cb], where options is an object,
 // cb is either a function or null.

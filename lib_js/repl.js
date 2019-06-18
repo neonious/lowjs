@@ -747,7 +747,6 @@ REPLServer.prototype.close = function close() {
 REPLServer.prototype.createContext = function () {
     var context;
     if (this.useGlobal) {
-        console.log("aa");
         context = global;
     } else {
         context = vm.createContext();
