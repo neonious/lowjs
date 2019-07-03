@@ -283,7 +283,7 @@ duk_ret_t low_process_info(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "mbedtls");
     duk_put_prop_string(ctx, 0, "versions");
     duk_push_string(ctx, "v10.0.0");
-    duk_put_prop_string(ctx, -2, "version");
+    duk_put_prop_string(ctx, 0, "version");
 
     low->signal_call_id = low_add_stash(low, 1);
     return 0;
