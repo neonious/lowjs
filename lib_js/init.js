@@ -185,7 +185,7 @@ exports.setImmediate = function (func) {
         cb_func = eval.bind(this, func);
     } else if (typeof func !== 'function') {
         throw new TypeError('callback is not a function/string');
-    } else if (arguments.length > 2) {
+    } else if (arguments.length > 1) {
         // Special case: callback arguments are provided.
         bind_args = Array.prototype.slice.call(arguments, 1);  // [ arg1, arg2, ... ]
         bind_args.unshift(this);  // [ global(this), arg1, arg2, ... ]
