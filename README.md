@@ -30,6 +30,7 @@ Before compiling, make sure you have the following software installed:
 
     make g++
     automake autoconf libtool
+    cmake
     python py-pip
     nodejs
     npm (if not already installed together with nodejs)

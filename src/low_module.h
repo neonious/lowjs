@@ -24,12 +24,11 @@ extern "C" bool low_module_make_native(low_main_t *low,
                                        void *cb_data);
 extern "C" bool low_module_main(low_main_t *low, const char *path);
 
-void low_module_run(duk_context *ctx, const char *path, int flags);
-
 duk_ret_t low_module_require(duk_context *ctx);
 duk_ret_t low_module_resolve(duk_context *ctx);
 duk_ret_t low_module_make(duk_context *ctx);
 
+void low_module_require_c(duk_context *ctx, const char *path, int flags);
 bool low_module_resolve_c(duk_context *ctx,
                           const char *module_id,
                           const char *parent_id,

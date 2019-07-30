@@ -8,10 +8,10 @@
 #if LOW_HAS_POLL
 #include <poll.h>
 #else
-#define POLLIN 1
-#define POLLOUT 2
-#define POLLERR 4
-#define POLLHUP 8
+#define POLLIN 0x01
+#define POLLOUT 0x04
+#define POLLERR 0x08
+#define POLLHUP 0x10
 #endif /* LOW_HAS_POLL */
 #define POLLRESET 0xFF
 

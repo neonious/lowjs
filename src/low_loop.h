@@ -12,7 +12,11 @@ struct low_main_t;
 struct low_chore_t
 {
     int stamp, interval;
-    bool oneshot, ref;
+    unsigned char oneshot, ref;
+
+    // If oneshot == 2, C version
+    void (*call)(void *data);
+    void *data;
 };
 
 class LowLoopCallback;
@@ -27,6 +31,9 @@ duk_ret_t low_loop_run_ref(duk_context *ctx);
 
 duk_ret_t low_loop_set_chore(duk_context *ctx);
 duk_ret_t low_loop_clear_chore(duk_context *ctx);
+
+int low_loop_set_chore_c(low_main_t *low, int index, int delay, void (*call)(void *data), void *data);
+void low_loop_clear_chore_c(low_main_t *low, int index);
 
 void low_loop_set_callback(
     low_main_t *low,

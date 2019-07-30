@@ -76,35 +76,49 @@ bool low_loop_run(low_main_t *low)
                 low->chore_times.erase(iter);
 
                 auto iterData = low->chores.find(index);
-                bool erase = iterData->second.oneshot;
-                if(erase)
+                if(iterData->second.oneshot == 2)
                 {
+                    // C version
+                    void (*call)(void *data) = iterData->second.call;
+                    void *data = iterData->second.data;
                     if(iterData->second.ref)
                         low->run_ref--;
                     low->chores.erase(iterData);
+
+                    call(data);
                 }
                 else
                 {
-                    iterData->second.stamp += iterData->second.interval;
-                    if(iterData->second.stamp - tick_count < 0)
-                        iterData->second.stamp = tick_count;
+                    bool erase = iterData->second.oneshot;
+                    if(erase)
+                    {
+                        if(iterData->second.ref)
+                            low->run_ref--;
+                        low->chores.erase(iterData);
+                    }
+                    else
+                    {
+                        iterData->second.stamp += iterData->second.interval;
+                        if(iterData->second.stamp - tick_count < 0)
+                            iterData->second.stamp = tick_count;
 
-                    low->chore_times.insert(
-                      pair<int, int>(iterData->second.stamp, index));
-                }
+                        low->chore_times.insert(
+                        pair<int, int>(iterData->second.stamp, index));
+                    }
 
-                int args[2] = {index, erase};
-                if(duk_safe_call(
-                     low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) !=
-                   DUK_EXEC_SUCCESS)
-                {
-                    if(!low->duk_flag_stop) // flag stop also produces error
-                        low_duk_print_error(low->duk_ctx);
+                    int args[2] = {index, erase};
+                    if(duk_safe_call(
+                        low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) !=
+                    DUK_EXEC_SUCCESS)
+                    {
+                        if(!low->duk_flag_stop) // flag stop also produces error
+                            low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+
+                        return low->duk_flag_stop;
+                    }
                     duk_pop(low->duk_ctx);
-
-                    return low->duk_flag_stop;
                 }
-                duk_pop(low->duk_ctx);
                 continue;
             }
         }
@@ -282,6 +296,71 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
 
     return 0;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_loop_set_chore_c
+// -----------------------------------------------------------------------------
+
+int low_loop_set_chore_c(low_main_t *low, int index, int delay, void (*call)(void *data), void *data)
+{
+    if(index == 0)
+    {
+        index = low->chores.size() ? low->chores.begin()->first - 1 : -1;
+        if(index >= 0)
+            index = -1;
+    }
+    else
+    {
+        auto iter = low->chores.find(index);
+        if(iter != low->chores.end())
+        {
+            auto iter2 = low->chore_times.find(iter->second.stamp);
+            while(iter2->second != index)
+                iter2++;
+            low->chore_times.erase(iter2);
+
+            if(iter->second.ref)
+                low->run_ref--;
+        }
+    }
+
+    if(delay < 0)
+        delay = 0;
+
+    low_chore_t &chore = low->chores[index];
+    chore.interval = delay;
+    chore.stamp = low_tick_count() + chore.interval;
+    chore.oneshot = 2;  // C
+    chore.ref = false;
+    chore.call = call;
+    chore.data = data;
+
+    low->chore_times.insert(pair<int, int>(chore.stamp, index));
+    return index;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_loop_clear_chore_c
+// -----------------------------------------------------------------------------
+
+void low_loop_clear_chore_c(low_main_t *low, int index)
+{
+    auto iter = low->chores.find(index);
+    if(iter == low->chores.end())
+        return;
+
+    auto iter2 = low->chore_times.find(iter->second.stamp);
+    while(iter2->second != index)
+        iter2++;
+    low->chore_times.erase(iter2);
+
+    if(iter->second.ref)
+        low->run_ref--;
+    low->chores.erase(iter);
+}
+
 
 // -----------------------------------------------------------------------------
 //  low_loop_chore_ref

@@ -199,10 +199,10 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
 #if LOW_ESP32_LWIP_SPECIALITIES
         neonious_start_result(NULL);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        low_module_run(ctx, res_id, LOW_MODULE_FLAG_MAIN);
+        low_module_require_c(ctx, res_id, LOW_MODULE_FLAG_MAIN);
     }
     else
-        low_module_run(ctx, "lib:main", LOW_MODULE_FLAG_MAIN);
+        low_module_require_c(ctx, "lib:main", LOW_MODULE_FLAG_MAIN);
 
     return 0;
 }
@@ -235,7 +235,229 @@ bool low_module_main(low_main_t *low, const char *path)
 }
 
 // -----------------------------------------------------------------------------
-//  low_module_run
+//  low_module_require - returns cached module or loads it
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_module_require(duk_context *ctx)
+{
+    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
+
+    const char *id = duk_require_string(ctx, 0);
+
+    // Get parent ID
+    duk_push_current_function(ctx);
+    duk_get_prop_string(ctx,
+                        -1,
+                        "\xff"
+                        "module");
+    duk_remove(ctx, -2);
+
+    const char *parent_id;
+    int popCount = 0;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
+
+    // We always resolve with our own function
+    if(!low_module_resolve_c(ctx, id, parent_id, res_id))
+    {
+        duk_type_error(
+          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
+        return 1;
+    }
+
+    // Try to find in cache
+    low_module_require_c(ctx, res_id, 0);
+
+    // [ id parent module ]
+
+    if(memcmp(parent_id, "lib:", 4) != 0) // security check
+    {
+        duk_get_prop_string(ctx,
+                            -2,
+                            "\xff"
+                            "childrenMap");
+        if(duk_get_prop_string(ctx, -1, res_id))
+            duk_pop_2(ctx);
+        else
+        {
+            duk_push_boolean(ctx, true);
+            duk_put_prop_string(ctx, -3, res_id);
+            duk_pop_2(ctx);
+
+            // Add to children
+            duk_get_prop_string(ctx, -2, "children");
+            duk_get_prop_string(ctx, -1, "length");
+            duk_dup(ctx, -3);
+            duk_put_prop(ctx, -3);
+            duk_pop(ctx);
+        }
+    }
+
+    duk_get_prop_string(ctx, -1, "exports");
+    return 1;
+}
+
+// -----------------------------------------------------------------------------
+//  low_module_resolve - resolves path to module
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_module_resolve(duk_context *ctx)
+{
+    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
+
+    const char *id = duk_require_string(ctx, 0);
+
+    // Get parent ID
+    duk_push_current_function(ctx);
+    duk_get_prop_string(ctx,
+                        -1,
+                        "\xff"
+                        "module");
+    duk_remove(ctx, -2);
+
+    const char *parent_id;
+    int popCount = 1;
+    while(true)
+    {
+        duk_get_prop_string(ctx, -1, "filename");
+        parent_id = duk_get_string(ctx, -1);
+        duk_pop(ctx);
+
+        if(parent_id)
+            break;
+
+        // If a module does not have a filename (vm.createContext), then try
+        // parent
+        popCount++;
+        if(!duk_get_prop_string(ctx, -1, "parent"))
+            break;
+    }
+    while(popCount--)
+        duk_pop(ctx);
+
+    if(low_module_resolve_c(ctx, id, parent_id, res_id))
+    {
+        duk_push_string(ctx, res_id);
+        return 1;
+    }
+    else
+    {
+        duk_type_error(
+          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
+        return 1;
+    }
+}
+
+// -----------------------------------------------------------------------------
+//  low_module_make
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_module_make(duk_context *ctx)
+{
+    duk_push_object(ctx); // our new module!
+
+    duk_get_prop_string(ctx, -2, "main");
+    duk_put_prop_string(ctx, -2, "main");
+
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx, -2, "parent");
+
+    duk_dup(ctx, 0);
+    duk_put_prop_string(ctx, -2, "id");
+
+    duk_push_null(ctx);
+    duk_put_prop_string(ctx, -2, "filename");
+
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, -2, "exports");
+
+    duk_push_false(ctx);
+    duk_put_prop_string(ctx, -2, "loaded");
+
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "paths");
+
+    duk_push_array(ctx);
+    duk_put_prop_string(ctx, -2, "children");
+
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "childrenMap");
+
+    // [... module]
+
+    // require function
+    duk_push_c_function(ctx, low_module_require, 1);
+
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "module");
+
+    duk_push_string(ctx, "name");
+    duk_push_string(ctx, "require"); // this is used in call stack
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx, -2, "module");
+
+    // [... module require]
+
+    // require.cache
+    duk_push_heap_stash(ctx);
+
+    duk_get_prop_string(ctx, -1, "modules");
+    duk_put_prop_string(ctx, -3, "cache");
+    duk_pop(ctx);
+
+    // require.resolve
+    duk_push_c_function(ctx, low_module_resolve, 2);
+
+    duk_dup(ctx, -2);
+    duk_put_prop_string(ctx,
+                        -2,
+                        "\xff"
+                        "module");
+
+    duk_push_string(ctx, "name");
+    duk_push_string(ctx, "resolve"); // this is used in call stack
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+    duk_put_prop_string(ctx, -2, "resolve");
+
+    // require.main
+    duk_get_prop_string(ctx, -2, "main");
+    duk_put_prop_string(ctx, -2, "main");
+
+    duk_put_prop_string(ctx, -2, "require");
+
+    // [... module]
+
+    /* module.loaded = true */
+    duk_push_true(ctx);
+    duk_put_prop_string(ctx, -2, "loaded");
+
+    return 1;
+}
+
+// -----------------------------------------------------------------------------
+//  low_module_require_c
 // -----------------------------------------------------------------------------
 
 #if LOW_ESP32_LWIP_SPECIALITIES
@@ -246,9 +468,20 @@ bool get_data_block(const char *path,
                     bool escapeZero = false);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-  void
-  low_module_run(duk_context *ctx, const char *path, int flags)
+void low_module_require_c(duk_context *ctx, const char *path, int flags)
 {
+    // Try to find in cache
+    duk_push_heap_stash(ctx);
+    duk_get_prop_string(ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
+    if(duk_get_prop_string(ctx, -1, path))
+    {
+        duk_remove(ctx, -2);
+        duk_remove(ctx, -2);
+        return;
+    }
+    else
+        duk_pop_3(ctx);
+
     unsigned char *data;
     int len;
     struct stat st;
@@ -550,248 +783,10 @@ bool get_data_block(const char *path,
     /* module.loaded = true */
     duk_push_true(ctx);
     duk_put_prop_string(ctx, -2, "loaded");
-
     return;
 
 cantLoad:
     duk_type_error(ctx, "cannot read module '%s' into memory", path);
-}
-
-// -----------------------------------------------------------------------------
-//  low_module_require - returns cached module or loads it
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_module_require(duk_context *ctx)
-{
-    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
-
-    const char *id = duk_require_string(ctx, 0);
-
-    // Get parent ID
-    duk_push_current_function(ctx);
-    duk_get_prop_string(ctx,
-                        -1,
-                        "\xff"
-                        "module");
-    duk_remove(ctx, -2);
-
-    const char *parent_id;
-    int popCount = 0;
-    while(true)
-    {
-        duk_get_prop_string(ctx, -1, "filename");
-        parent_id = duk_get_string(ctx, -1);
-        duk_pop(ctx);
-
-        if(parent_id)
-            break;
-
-        // If a module does not have a filename (vm.createContext), then try
-        // parent
-        popCount++;
-        if(!duk_get_prop_string(ctx, -1, "parent"))
-            break;
-    }
-    while(popCount--)
-        duk_pop(ctx);
-
-    // We always resolve with our own function
-    if(!low_module_resolve_c(ctx, id, parent_id, res_id))
-    {
-        duk_type_error(
-          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
-        return 1;
-    }
-
-    // Try to find in cache
-    duk_push_heap_stash(ctx);
-    duk_get_prop_string(
-      ctx, -1, memcmp(res_id, "lib:", 4) == 0 ? "lib_modules" : "modules");
-    if(duk_get_prop_string(ctx, -1, res_id))
-    {
-        duk_remove(ctx, -2);
-        duk_remove(ctx, -2);
-    }
-    else
-    {
-        duk_pop_3(ctx);
-
-        // [ id parent ]
-
-        low_module_run(ctx, res_id, 0);
-    }
-
-    // [ id parent module ]
-
-    if(memcmp(parent_id, "lib:", 4) != 0) // security check
-    {
-        duk_get_prop_string(ctx,
-                            -2,
-                            "\xff"
-                            "childrenMap");
-        if(duk_get_prop_string(ctx, -1, res_id))
-            duk_pop_2(ctx);
-        else
-        {
-            duk_push_boolean(ctx, true);
-            duk_put_prop_string(ctx, -3, res_id);
-            duk_pop_2(ctx);
-
-            // Add to children
-            duk_get_prop_string(ctx, -2, "children");
-            duk_get_prop_string(ctx, -1, "length");
-            duk_dup(ctx, -3);
-            duk_put_prop(ctx, -3);
-            duk_pop(ctx);
-        }
-    }
-
-    duk_get_prop_string(ctx, -1, "exports");
-    return 1;
-}
-
-// -----------------------------------------------------------------------------
-//  low_module_resolve - resolves path to module
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_module_resolve(duk_context *ctx)
-{
-    char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
-
-    const char *id = duk_require_string(ctx, 0);
-
-    // Get parent ID
-    duk_push_current_function(ctx);
-    duk_get_prop_string(ctx,
-                        -1,
-                        "\xff"
-                        "module");
-    duk_remove(ctx, -2);
-
-    const char *parent_id;
-    int popCount = 1;
-    while(true)
-    {
-        duk_get_prop_string(ctx, -1, "filename");
-        parent_id = duk_get_string(ctx, -1);
-        duk_pop(ctx);
-
-        if(parent_id)
-            break;
-
-        // If a module does not have a filename (vm.createContext), then try
-        // parent
-        popCount++;
-        if(!duk_get_prop_string(ctx, -1, "parent"))
-            break;
-    }
-    while(popCount--)
-        duk_pop(ctx);
-
-    if(low_module_resolve_c(ctx, id, parent_id, res_id))
-    {
-        duk_push_string(ctx, res_id);
-        return 1;
-    }
-    else
-    {
-        duk_type_error(
-          ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
-        return 1;
-    }
-}
-
-// -----------------------------------------------------------------------------
-//  low_module_make
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_module_make(duk_context *ctx)
-{
-    duk_push_object(ctx); // our new module!
-
-    duk_get_prop_string(ctx, -2, "main");
-    duk_put_prop_string(ctx, -2, "main");
-
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2, "parent");
-
-    duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, "id");
-
-    duk_push_null(ctx);
-    duk_put_prop_string(ctx, -2, "filename");
-
-    duk_push_object(ctx);
-    duk_put_prop_string(ctx, -2, "exports");
-
-    duk_push_false(ctx);
-    duk_put_prop_string(ctx, -2, "loaded");
-
-    duk_push_array(ctx);
-    duk_put_prop_string(ctx, -2, "paths");
-
-    duk_push_array(ctx);
-    duk_put_prop_string(ctx, -2, "children");
-
-    duk_push_object(ctx);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "childrenMap");
-
-    // [... module]
-
-    // require function
-    duk_push_c_function(ctx, low_module_require, 1);
-
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
-
-    duk_push_string(ctx, "name");
-    duk_push_string(ctx, "require"); // this is used in call stack
-    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2, "module");
-
-    // [... module require]
-
-    // require.cache
-    duk_push_heap_stash(ctx);
-
-    duk_get_prop_string(ctx, -1, "modules");
-    duk_put_prop_string(ctx, -3, "cache");
-    duk_pop(ctx);
-
-    // require.resolve
-    duk_push_c_function(ctx, low_module_resolve, 2);
-
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
-
-    duk_push_string(ctx, "name");
-    duk_push_string(ctx, "resolve"); // this is used in call stack
-    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
-    duk_put_prop_string(ctx, -2, "resolve");
-
-    // require.main
-    duk_get_prop_string(ctx, -2, "main");
-    duk_put_prop_string(ctx, -2, "main");
-
-    duk_put_prop_string(ctx, -2, "require");
-
-    // [... module]
-
-    /* module.loaded = true */
-    duk_push_true(ctx);
-    duk_put_prop_string(ctx, -2, "loaded");
-
-    return 1;
 }
 
 // -----------------------------------------------------------------------------

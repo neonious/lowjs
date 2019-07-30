@@ -19,6 +19,8 @@
 #include "low_config.h"
 #include "low_system.h"
 
+#include "low_opcua.h"
+
 #include "duktape.h"
 #if LOW_INCLUDE_CARES_RESOLVER
 #include "../deps/c-ares/ares.h"
@@ -632,7 +634,7 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
     duk_pop(ctx);
 
     low_module_init(ctx);
-    low_module_run(ctx, "lib:init", LOW_MODULE_FLAG_GLOBAL);
+    low_module_require_c(ctx, "lib:init", LOW_MODULE_FLAG_GLOBAL);
 
     return 0;
 }
@@ -647,7 +649,8 @@ bool low_lib_init(low_main_t *low)
         return false;
     }
     duk_pop(low->duk_ctx);
-    return true;
+
+    return low_register_opcua(low);     // 100% native module
 }
 
 // -----------------------------------------------------------------------------
@@ -749,8 +752,8 @@ int low_add_stash(low_main_t *low, int index)
     while(true)
     {
         stashIndex = ++low->last_stash_index;
-        if(!stashIndex)
-            stashIndex = ++low->last_stash_index;
+        if(stashIndex <= 0)
+            stashIndex = low->last_stash_index = 1;
 
         if(!duk_get_prop_index(ctx, -1, stashIndex))
         {
