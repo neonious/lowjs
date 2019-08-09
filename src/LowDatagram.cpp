@@ -272,7 +272,7 @@ bool LowDatagram::OnLoop()
         else
         {
             duk_push_null(mLow->duk_ctx);
-            memcpy(duk_push_fixed_buffer(mLow->duk_ctx, mRecvLen), mRecvData, mRecvLen);
+            memcpy(low_push_buffer(mLow->duk_ctx, mRecvLen), mRecvData, mRecvLen);
             duk_push_object(mLow->duk_ctx);
 
             duk_push_string(mLow->duk_ctx, remoteHost);

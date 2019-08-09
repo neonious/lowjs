@@ -23,6 +23,7 @@ class LowLoopCallback;
 
 extern "C" bool low_loop_run(low_main_t *low);
 duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata);
+duk_ret_t low_loop_call_chore_c_safe(duk_context *ctx, void *udata);
 duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata);
 duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata);
 

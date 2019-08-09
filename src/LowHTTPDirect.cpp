@@ -115,11 +115,11 @@ void LowHTTPDirect::Detach(bool pushRemainingRead)
     {
         low_web_clear_poll(mLow, mSocket);
         if(mRemainingRead)
-            memcpy(duk_push_fixed_buffer(mLow->duk_ctx, mRemainingReadLen),
+            memcpy(low_push_buffer(mLow->duk_ctx, mRemainingReadLen),
                    mRemainingRead,
                    mRemainingReadLen);
         else
-            duk_push_fixed_buffer(mLow->duk_ctx, 0);
+            low_push_buffer(mLow->duk_ctx, 0);
     }
 
     if(mSocket)

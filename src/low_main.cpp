@@ -805,6 +805,20 @@ void low_push_stash(low_main_t *low, int index, bool remove)
     duk_pop(ctx);
 }
 
+
+// -----------------------------------------------------------------------------
+//  low_push_buffer
+// -----------------------------------------------------------------------------
+
+void *low_push_buffer(duk_context *ctx, int len)
+{
+    void *data = duk_push_fixed_buffer(ctx, len);
+    duk_push_buffer_object(ctx, -1, 0, len, DUK_BUFOBJ_NODEJS_BUFFER);
+    duk_remove(ctx, -2);
+    return data;
+}
+
+
 // -----------------------------------------------------------------------------
 //  low_duk_print_error
 // -----------------------------------------------------------------------------

@@ -116,7 +116,7 @@ duk_ret_t low_crypto_hash_digest(duk_context *ctx)
         duk_reference_error(ctx, "crypto hash not found");
 
     int len = low->cryptoHashes[index]->OutputSize();
-    auto buffer = duk_push_fixed_buffer(ctx, len);
+    auto buffer = low_push_buffer(ctx, len);
 
     low->cryptoHashes[index]->Digest((unsigned char *)buffer, len);
 
@@ -135,7 +135,7 @@ duk_ret_t low_crypto_random_bytes(duk_context *ctx)
     if(!duk_is_undefined(ctx, 1))
         duk_reference_error(ctx, "crypto.randomBytes async version not implemented yet");
 
-    unsigned char *buffer = (unsigned char *)duk_push_fixed_buffer(ctx, len);
+    unsigned char *buffer = (unsigned char *)low_push_buffer(ctx, len);
     for(int i = 0; i < len; i++)
         buffer[i] = rand();
 

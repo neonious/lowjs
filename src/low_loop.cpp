@@ -85,7 +85,18 @@ bool low_loop_run(low_main_t *low)
                         low->run_ref--;
                     low->chores.erase(iterData);
 
-                    call(data);
+                    void *args[2] = {(void *)call, data};
+                    if(duk_safe_call(
+                        low->duk_ctx, low_loop_call_chore_c_safe, args, 0, 1) !=
+                    DUK_EXEC_SUCCESS)
+                    {
+                        if(!low->duk_flag_stop) // flag stop also produces error
+                            low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+
+                        return low->duk_flag_stop;
+                    }
+                    duk_pop(low->duk_ctx);
                 }
                 else
                 {
@@ -216,6 +227,14 @@ duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
 
     low_push_stash(duk_get_low_context(ctx), args[0], args[1]);
     duk_call(ctx, 0);
+    return 0;
+}
+
+duk_ret_t low_loop_call_chore_c_safe(duk_context *ctx, void *udata)
+{
+    void **args = (void **)udata;
+
+    ((void (*)(void *))args[0])(args[1]);
     return 0;
 }
 

@@ -41,7 +41,7 @@ exports.randomFillSync = function(buffer, offset, size) {
     if(size === undefined)
         size = buffer.length - offset;
 
-    let buf = new Buffer(native.randomBytes(size));
+    let buf = native.randomBytes(size);
     buf.copy(buffer, offset);
 }
 
@@ -62,7 +62,7 @@ exports.randomFill = function(buffer, offset, size, callback) {
     if(size === undefined)
         size = buffer.length - offset;
 
-    let buf = new Buffer(native.randomBytes(size));
+    let buf = native.randomBytes(size);
     buf.copy(buffer, offset);
 
     process.nextTick(() => {

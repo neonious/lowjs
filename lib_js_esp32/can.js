@@ -169,9 +169,6 @@ https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/
         if(!options.timing)
             options.timing = exports.TIMING_500_KBITS;
         native.canConstruct(options, (event, a, b, c, d) => {
-            if(event == 'message')
-                a = new Buffer(a);  // so readUInt* is defined
-
             this.emit(event, a, b, c, d);
         });
 

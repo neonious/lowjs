@@ -106,6 +106,8 @@ int low_add_stash(low_main_t *low, int index);
 void low_remove_stash(low_main_t *low, int index);
 void low_push_stash(low_main_t *low, int index, bool remove);
 
-void low_duk_print_error(duk_context *duk);
+void *low_push_buffer(duk_context *ctx, int len);
+
+void low_duk_print_error(duk_context *ctx);
 
 #endif /* __LOW_MAIN_H__ */
