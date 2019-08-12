@@ -120,12 +120,12 @@ int opcua_uaclient_constructor(duk_context *ctx)
     LowOPCUA **opcua = (LowOPCUA **)duk_push_fixed_buffer(ctx, sizeof(LowOPCUA *));
     *opcua = NULL;
     duk_dup(ctx, -1);       // for root and object nodes
-    duk_put_prop_string(ctx, 1, "\xffnativeObj");
+    duk_put_prop_string(ctx, 1, "\xff""nativeObj");
 
     // Add root and objects nodes
     duk_push_object(ctx);
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2, "\xffnativeObj");
+    duk_put_prop_string(ctx, -2, "\xff""nativeObj");
 
     opcua_fill_node(ctx);
 
@@ -139,7 +139,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     // Add root and objects nodes -- objects
     duk_push_object(ctx);
     duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2, "\xffnativeObj");
+    duk_put_prop_string(ctx, -2, "\xff""nativeObj");
 
     opcua_fill_node(ctx);
 
@@ -217,7 +217,7 @@ int opcua_uaclient_destroy(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
@@ -267,10 +267,24 @@ int opcua_uaclient_node(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
+        duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    duk_size_t buf_len;
+    LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
+    if(!opcua)
+        duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
+
+    duk_pop(ctx);
     duk_push_object(ctx);
 
-    duk_get_prop_string(ctx, -2, "\xffnativeObj");
-    duk_put_prop_string(ctx, -2, "\xffnativeObj");
+    duk_get_prop_string(ctx, -2, "\xff""nativeObj");
+    duk_put_prop_string(ctx, -2, "\xff""nativeObj");
 
     opcua_fill_node(ctx);
 
@@ -291,13 +305,18 @@ int opcua_uaclient_create_subscription(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     UA_UInt32 reqID = 0;
     UA_CreateSubscriptionRequest request = UA_CreateSubscriptionRequest_default();
@@ -332,7 +351,7 @@ int opcua_uaclient_destroy_subscription(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
@@ -340,14 +359,22 @@ int opcua_uaclient_destroy_subscription(duk_context *ctx)
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
-    duk_get_prop_string(ctx, -2, "id");
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
+
+    duk_get_prop_string(ctx, -2, "\xff""id");
     if(duk_is_undefined(ctx, -1))
         duk_reference_error(ctx, "subscription is already destroyed");
+    UA_UInt32 subscriptionId = duk_require_int(ctx, -1);
+    duk_get_prop_string(ctx, -3, "\xff""itemCount");
+    if(duk_require_int(ctx, -1))
+        duk_reference_error(ctx, "subscription still holds monitored items");
 
     UA_UInt32 reqID = 0;
     UA_DeleteSubscriptionsRequest request;
     UA_DeleteSubscriptionsRequest_init(&request);
-    UA_UInt32 subscriptionId = duk_get_int(ctx, -1);
     request.subscriptionIds = &subscriptionId;
     request.subscriptionIdsSize = 1;
 
@@ -383,7 +410,7 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
@@ -391,12 +418,21 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
-    duk_get_prop_string(ctx, -2, "id");
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
+
+    duk_get_prop_string(ctx, 2, "\xff""id");
     if(duk_is_undefined(ctx, -1))
         duk_reference_error(ctx, "subscription is already destroyed");
     int subscriptionID = duk_require_int(ctx, -1);
 
-    duk_get_prop_string(ctx, 0, "monitoredItemID");
+    duk_get_prop_string(ctx, 2, "\xff""itemCount");
+    duk_push_int(ctx, duk_require_int(ctx, -1) + 1);
+    duk_put_prop_string(ctx, 2, "\xff""itemCount");
+
+    duk_get_prop_string(ctx, 0, "\xff""monitoredItemID");
     if(!duk_is_undefined(ctx, -1))
         duk_reference_error(ctx, "node is already monitored");
 
@@ -408,6 +444,8 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
     UA_UInt32 reqID = 0;
     UA_MonitoredItemCreateRequest item =
         UA_MonitoredItemCreateRequest_default(UA_NODEID_NUMERIC(namespac, node));
+    int clientHandle = ++opcua->mLastClientHandle;
+    item.requestedParameters.clientHandle = clientHandle;
     UA_CreateMonitoredItemsRequest request;
     UA_CreateMonitoredItemsRequest_init(&request);
     request.subscriptionId = subscriptionID;
@@ -434,7 +472,8 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_ADD, reqID, &UA_TYPES[UA_TYPES_CREATEMONITOREDITEMSRESPONSE], low_add_stash(low, 2), low_add_stash(low, 1), low_add_stash(low, 0));
+    // client , callback , node
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_ADD, reqID, &UA_TYPES[UA_TYPES_CREATEMONITOREDITEMSRESPONSE], low_add_stash(low, 2), low_add_stash(low, 1), low_add_stash(low, 0), clientHandle);
     return 0;
 }
 
@@ -448,7 +487,7 @@ int opcua_uaclient_subscription_remove(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
@@ -456,12 +495,17 @@ int opcua_uaclient_subscription_remove(duk_context *ctx)
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
-    duk_get_prop_string(ctx, -2, "id");
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
+
+    duk_get_prop_string(ctx, 2, "\xff""id");
     if(duk_is_undefined(ctx, -1))
         duk_reference_error(ctx, "subscription is already destroyed");
     int subscriptionID = duk_require_int(ctx, -1);
 
-    duk_get_prop_string(ctx, 0, "monitoredItemID");
+    duk_get_prop_string(ctx, 0, "\xff""monitoredItemID");
     if(duk_is_undefined(ctx, -1))
         duk_reference_error(ctx, "node is not monitored");
     UA_UInt32 monitoredItemID = duk_require_int(ctx, -1);
@@ -491,7 +535,8 @@ int opcua_uaclient_subscription_remove(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE, reqID, &UA_TYPES[UA_TYPES_DELETEMONITOREDITEMSRESPONSE], low_add_stash(low, 0), low_add_stash(low, 1));
+
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE, reqID, &UA_TYPES[UA_TYPES_DELETEMONITOREDITEMSRESPONSE], low_add_stash(low, 0), low_add_stash(low, 1), low_add_stash(low, 2));
     return 0;
 }
 
@@ -505,13 +550,18 @@ int opcua_uaclient_lookup_props(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -583,13 +633,18 @@ int opcua_uaclient_subnode(duk_context *ctx)
     }
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -688,13 +743,18 @@ int opcua_uaclient_children(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -745,13 +805,18 @@ int opcua_uaclient_read(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -803,13 +868,18 @@ int opcua_uaclient_write(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -918,13 +988,18 @@ int opcua_uaclient_call(duk_context *ctx)
     low_main_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
-    if(!duk_get_prop_string(ctx, -1, "\xffnativeObj"))
+    if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
 
     duk_size_t buf_len;
     LowOPCUA *opcua = *(LowOPCUA **)duk_require_buffer_data(ctx, -1, &buf_len);
     if(!opcua)
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
+
+    if(opcua->mConnectState != 2)
+        duk_reference_error(ctx, "OPC-UA object is not connected yet");
+    if(opcua->mDisabledState == 2)
+        duk_reference_error(ctx, "OPC-UA object threw an error, please destroy it");
 
     duk_get_prop_string(ctx, -2, "namespace");
     int namespac = duk_require_int(ctx, -1);
@@ -976,7 +1051,7 @@ static void clientExecuteRepeatedCallback(UA_Client *client, UA_ApplicationCallb
 }
 
 LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeoutMS, const char *url)
-    : LowLoopCallback(low), LowFD(low, LOWFD_TYPE_SOCKET, client->connection.sockfd), mLow(low), mClient(client), mThisIndex(thisIndex), mTimeoutMS(timeoutMS), mMutex(PTHREAD_MUTEX_INITIALIZER), mConnectState(0), mDisabledState(0), mDetachedState(0), mWriteBuffer(NULL)
+    : LowLoopCallback(low), LowFD(low, LOWFD_TYPE_SOCKET, client->connection.sockfd), mLow(low), mClient(client), mThisIndex(thisIndex), mTimeoutMS(timeoutMS), mMutex(PTHREAD_MUTEX_INITIALIZER), mConnectState(0), mDisabledState(0), mDetachedState(0), mWriteBuffer(NULL), mLastClientHandle(0)
 {
     low->run_ref++;
     client->connection.lowOPCUAData = this;
@@ -1080,7 +1155,7 @@ void LowOPCUA::DisconnectAndDetach(int callbackStashIndex)
 //  LowOPCUA::AddAsyncRequestAndUnlock
 // -----------------------------------------------------------------------------
 
-void LowOPCUA::AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_DataType *resultType, int objStashIndex, int callbackStashIndex, int objStashIndex2)
+void LowOPCUA::AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_DataType *resultType, int objStashIndex, int callbackStashIndex, int objStashIndex2, int clientHandle)
 {
     LowOPCUATask &task = mTasks[reqID];
     task.opcua = this;
@@ -1090,6 +1165,7 @@ void LowOPCUA::AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_D
     task.resultType = resultType;
     task.objStashIndex = objStashIndex;
     task.objStashIndex2 = objStashIndex2;
+    task.clientHandle = clientHandle;
     task.callbackStashIndex = callbackStashIndex;
     task.timeoutChoreIndex = low_loop_set_chore_c(mLow, 0, mTimeoutMS, OnTaskTimeout, &task);
     pthread_mutex_unlock(&mMutex);
@@ -1225,7 +1301,6 @@ UA_StatusCode LowOPCUA::OnPublishNotification(struct UA_Client *client, UA_Exten
     if(msg->content.decoded.type == &UA_TYPES[UA_TYPES_DATACHANGENOTIFICATION] && ((UA_DataChangeNotification *)msg->content.decoded.data)->monitoredItemsSize) {
         UA_DataChangeNotification *dataChangeNotification =
             (UA_DataChangeNotification *)msg->content.decoded.data;
-        pthread_mutex_lock(&opcua->mMutex);
         for(size_t j = 0; j < dataChangeNotification->monitoredItemsSize; ++j) {
             UA_MonitoredItemNotification *min = &dataChangeNotification->monitoredItems[j];
             UA_MonitoredItemNotification *n2 = (UA_MonitoredItemNotification *)low_alloc(sizeof(UA_MonitoredItemNotification));
@@ -1235,7 +1310,6 @@ UA_StatusCode LowOPCUA::OnPublishNotification(struct UA_Client *client, UA_Exten
                 opcua->mDataChangeNotifications.push(n2);
             }
         }
-        pthread_mutex_unlock(&opcua->mMutex);
         low_loop_set_callback(opcua->mLow, opcua);
     }
 /*
@@ -1284,6 +1358,7 @@ bool LowOPCUA::OnLoop()
         duk_put_prop_string(mLow->duk_ctx, -2, "open62541_statuscode");
 
         duk_call_prop(ctx, -4, 2);
+        mDisabledState = 2;
         return false;
     }
 
@@ -1296,8 +1371,8 @@ bool LowOPCUA::OnLoop()
         low_push_stash(mLow, mThisIndex, false);
         duk_push_string(ctx, "emit");
         duk_push_string(ctx, "connect");
-        duk_call_prop(ctx, -3, 1);
         mConnectState = 2;
+        duk_call_prop(ctx, -3, 1);
     }
 
     pthread_mutex_lock(&mMutex);
@@ -1374,7 +1449,7 @@ bool LowOPCUA::OnLoop()
                 duk_push_object(mLow->duk_ctx);
 
                 low_push_stash(mLow, task.objStashIndex, true);
-                duk_put_prop_string(mLow->duk_ctx, -2, "\xffnativeObj");
+                duk_put_prop_string(mLow->duk_ctx, -2, "\xff""nativeObj");
 
                 opcua_fill_node(mLow->duk_ctx);
 
@@ -1398,7 +1473,7 @@ bool LowOPCUA::OnLoop()
                     duk_push_object(mLow->duk_ctx);
 
                     low_push_stash(mLow, task.objStashIndex, false);
-                    duk_put_prop_string(mLow->duk_ctx, -2, "\xffnativeObj");
+                    duk_put_prop_string(mLow->duk_ctx, -2, "\xff""nativeObj");
 
                     opcua_fill_node(mLow->duk_ctx);
 
@@ -1512,14 +1587,20 @@ bool LowOPCUA::OnLoop()
             }
             else
             {
-                low_remove_stash(mLow, task.objStashIndex);
                 low_push_stash(mLow, task.callbackStashIndex, true);
                 duk_push_null(mLow->duk_ctx);
 
                 duk_push_object(mLow->duk_ctx);
 
-                low_push_stash(mLow, task.objStashIndex, false);
-                duk_put_prop_string(mLow->duk_ctx, -2, "\xffnativeObj");
+                duk_push_int(mLow->duk_ctx, 0);
+                duk_put_prop_string(mLow->duk_ctx, -2, "\xff""itemCount");
+
+                low_push_stash(mLow, task.objStashIndex, true);
+                duk_dup(mLow->duk_ctx, -1);
+                duk_put_prop_string(mLow->duk_ctx, -3, "\xff""client");
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""nativeObj");
+                duk_put_prop_string(mLow->duk_ctx, -3, "\xff""nativeObj");
+                duk_pop(mLow->duk_ctx);
 
                 duk_push_string(mLow->duk_ctx, "name");
                 duk_push_string(mLow->duk_ctx, "UAClientSubscription");
@@ -1527,110 +1608,162 @@ bool LowOPCUA::OnLoop()
 
                 duk_function_list_entry methods[] = {{"destroy", opcua_uaclient_destroy_subscription, 1},
                                                     {"add", opcua_uaclient_subscription_add, 2},
-                                                    {"remove", opcua_uaclient_subscription_remove, 1},
+                                                    {"remove", opcua_uaclient_subscription_remove, 2},
                                                     {NULL, NULL, 0}};
                 duk_put_function_list(mLow->duk_ctx, -1, methods);
 
                 duk_push_uint(mLow->duk_ctx, response->subscriptionId);
-                duk_put_prop_string(mLow->duk_ctx, -2, "id");
+                duk_put_prop_string(mLow->duk_ctx, -2, "\xff""id");
 
                 duk_call(mLow->duk_ctx, 2);
             }
         }
-        else if(task.type == LOWOPCTASK_TYPE_DESTROY_SUBSCRIPTION && task.callbackStashIndex)
+        else if(task.type == LOWOPCTASK_TYPE_DESTROY_SUBSCRIPTION)
         {
             UA_DeleteSubscriptionsResponse *response = (UA_DeleteSubscriptionsResponse *)task.result;
             if(!response->resultsSize)
             {
                 low_remove_stash(mLow, task.objStashIndex);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else if(response->results[0] & 0x80000000)
             {
                 low_remove_stash(mLow, task.objStashIndex);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else
             {
                 low_push_stash(mLow, task.objStashIndex, true);
-                duk_del_prop_string(mLow->duk_ctx, -1, "id");
+                duk_del_prop_string(mLow->duk_ctx, -1, "\xff""id");
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_null(mLow->duk_ctx);
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_null(mLow->duk_ctx);
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
         }
-        else if(task.type == LOWOPCTASK_TYPE_SUBSCRIPTION_ADD && task.callbackStashIndex)
+        else if(task.type == LOWOPCTASK_TYPE_SUBSCRIPTION_ADD)
         {
             UA_CreateMonitoredItemsResponse *response = (UA_CreateMonitoredItemsResponse *)task.result;
             if(!response->resultsSize)
             {
-                low_remove_stash(mLow, task.objStashIndex);
+                low_push_stash(mLow, task.objStashIndex, true);
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
+                duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
+                duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
                 low_remove_stash(mLow, task.objStashIndex2);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else if(response->results[0].statusCode & 0x80000000)
             {
-                low_remove_stash(mLow, task.objStashIndex);
+                low_push_stash(mLow, task.objStashIndex, true);
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
+                duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
+                duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
                 low_remove_stash(mLow, task.objStashIndex2);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0].statusCode));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0].statusCode));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else
             {
-                mMonitoredItems[response->results[0].monitoredItemId] = std::pair<int, int>(task.objStashIndex, task.objStashIndex2);
-                mClient->publishNotificationCallback = mDetachedState ? NULL : OnPublishNotification;
-
+                low_push_stash(mLow, task.objStashIndex, true);
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""client");
+                mMonitoredItems[task.clientHandle] = std::pair<int, int>(low_add_stash(mLow, duk_get_top_index(mLow->duk_ctx)), task.objStashIndex2);
+                if(!mClient->publishNotificationCallback && !mDetachedState)
+                {
+                    mClient->publishNotificationCallback = OnPublishNotification;
+                    pthread_mutex_lock(&mMutex);
+                    UA_Client_Subscriptions_backgroundPublish(mClient);
+                    pthread_mutex_unlock(&mMutex);
+                }
+                low_push_stash(mLow, task.objStashIndex2, false);
                 duk_push_uint(mLow->duk_ctx, response->results[0].monitoredItemId);
-                duk_put_prop_string(mLow->duk_ctx, -2, "monitoredItemID");
+                duk_put_prop_string(mLow->duk_ctx, -2, "\xff""monitoredItemID");
+                duk_push_uint(mLow->duk_ctx, task.clientHandle);
+                duk_put_prop_string(mLow->duk_ctx, -2, "\xff""clientHandle");
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_null(mLow->duk_ctx);
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_null(mLow->duk_ctx);
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
         }
-        else if(task.type == LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE && task.callbackStashIndex)
+        else if(task.type == LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE)
         {
             UA_DeleteMonitoredItemsResponse *response = (UA_DeleteMonitoredItemsResponse *)task.result;
             if(!response->resultsSize)
             {
                 low_remove_stash(mLow, task.objStashIndex);
+                low_remove_stash(mLow, task.objStashIndex2);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else if(response->results[0] & 0x80000000)
             {
                 low_remove_stash(mLow, task.objStashIndex);
+                low_remove_stash(mLow, task.objStashIndex2);
 
-                low_push_stash(mLow, task.callbackStashIndex, true);
-                duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
-                duk_call(mLow->duk_ctx, 1);
+                if(task.callbackStashIndex)
+                {
+                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
+                    duk_call(mLow->duk_ctx, 1);
+                }
             }
             else
             {
-                low_push_stash(mLow, task.objStashIndex, true);
-                duk_get_prop_string(mLow->duk_ctx, -1, "monitoredItemID");
-                int monitoredItemID = duk_require_uint(mLow->duk_ctx, -1);
+                low_push_stash(mLow, task.objStashIndex2, true);
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
+                duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
+                duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
 
-                auto iter = mMonitoredItems.find(monitoredItemID);
+                low_push_stash(mLow, task.objStashIndex, true);
+                duk_get_prop_string(mLow->duk_ctx, -1, "\xff""monitoredItemID");
+                int monitoredItemID = duk_require_uint(mLow->duk_ctx, -1);
+                duk_get_prop_string(mLow->duk_ctx, -2, "\xff""clientHandle");
+                int clientHandle = duk_require_uint(mLow->duk_ctx, -1);
+
+                auto iter = mMonitoredItems.find(clientHandle);
                 if(iter == mMonitoredItems.end())
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
-                    duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "node property was tampered with");
-                    duk_call(mLow->duk_ctx, 1);
+                    if(task.callbackStashIndex)
+                    {
+                        low_push_stash(mLow, task.callbackStashIndex, true);
+                        duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "node property was tampered with");
+                        duk_call(mLow->duk_ctx, 1);
+                    }
                 }
                 else
                 {
@@ -1638,11 +1771,14 @@ bool LowOPCUA::OnLoop()
                     low_remove_stash(mLow, iter->second.second);
                     mMonitoredItems.erase(iter);
                     mClient->publishNotificationCallback = mDetachedState || mMonitoredItems.size() == 0 ? NULL : OnPublishNotification;
-                    duk_del_prop_string(mLow->duk_ctx, -1, "monitoredItemID");
+                    duk_del_prop_string(mLow->duk_ctx, -1, "\xff""monitoredItemID");
 
-                    low_push_stash(mLow, task.callbackStashIndex, true);
-                    duk_push_null(mLow->duk_ctx);
-                    duk_call(mLow->duk_ctx, 1);
+                    if(task.callbackStashIndex)
+                    {
+                        low_push_stash(mLow, task.callbackStashIndex, true);
+                        duk_push_null(mLow->duk_ctx);
+                        duk_call(mLow->duk_ctx, 1);
+                    }
                 }
             }
         }

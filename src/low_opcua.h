@@ -56,7 +56,7 @@ struct LowOPCUATask
 {
     class LowOPCUA *opcua;
     int id, type;
-    int objStashIndex, objStashIndex2;
+    int objStashIndex, objStashIndex2, clientHandle;
     int callbackStashIndex, timeoutChoreIndex;
     void *result;
     const UA_DataType *resultType;
@@ -70,7 +70,7 @@ public:
     virtual ~LowOPCUA();
 
     void DisconnectAndDetach(int callbackStashIndex);
-    void AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_DataType *resultType, int objStaskIndex, int callbackStashIndex, int objStashIndex2 = 0);
+    void AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_DataType *resultType, int objStaskIndex, int callbackStashIndex, int objStashIndex2 = 0, int clientHandle = 0);
 
     // Not used (we do not advertise the FD, only used in web_thread)
     virtual void Read(int pos, unsigned char *data, int len, int callIndex) {}
@@ -116,6 +116,7 @@ public:
     std::map<int, LowOPCUATask> mTasks;
     pthread_mutex_t mMutex;
     int mConnectState, mDisabledState, mDetachedState, mError;
+    int mLastClientHandle;
 };
 
 #endif /* __LOW_OPCUA_H__ */
