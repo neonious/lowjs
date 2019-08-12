@@ -9,4 +9,4 @@
 	url = https://github.com/c-ares/c-ares.git
 [submodule "deps/open62541"]
 	path = deps/open62541
-	url = https://github.com/open62541/open62541
+	url = https://github.com/neonious/open62541
