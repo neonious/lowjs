@@ -413,12 +413,9 @@ void *low_web_thread_main(void *arg)
                             {
                                 auto fd = fds[i].first;
 
+                                FD_CLR(fds[i].second, &read_set);
+                                FD_CLR(fds[i].second, &write_set);
                                 fds[i].second = -1;
-                                if(fd->mFD >= 0)
-                                {
-                                    FD_CLR(fd->mFD, &read_set);
-                                    FD_CLR(fd->mFD, &write_set);
-                                }
 
                                 // Remove from web thread list
                                 pthread_mutex_lock(&low->web_thread_mutex);
@@ -519,15 +516,17 @@ void *low_web_thread_main(void *arg)
                             fds.push_back(pair<LowFD *, int>(fd, fd->mFD));
                         }
                     }
+                    else
+                    {
+                        FD_CLR(fds[fd->mPollIndex].second, &read_set);
+                        FD_CLR(fds[fd->mPollIndex].second, &write_set);
+                        fds[fd->mPollIndex].second = fd->mFD;
+                    }
 
                     if(fd->mPollEvents & POLLIN)
                         FD_SET(fd->mFD, &read_set);
-                    else
-                        FD_CLR(fd->mFD, &read_set);
                     if(fd->mPollEvents & POLLOUT)
                         FD_SET(fd->mFD, &write_set);
-                    else
-                        FD_CLR(fd->mFD, &write_set);
                 }
             }
 

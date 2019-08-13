@@ -1045,9 +1045,14 @@ int opcua_uaclient_call(duk_context *ctx)
 //  LowOPCUA::LowOPCUA
 // -----------------------------------------------------------------------------
 
-static void clientExecuteRepeatedCallback(UA_Client *client, UA_ApplicationCallback cb, void *callbackApplication, void *data)
+static void clientExecuteRepeatedCallback(LowOPCUA *opcua, UA_ApplicationCallback cb, void *callbackApplication, void *data)
 {
-    cb(callbackApplication, data);
+    int state = cb(callbackApplication, data);
+    if(opcua->mConnectState == 0 && (state & 0x80000000))
+    {
+        opcua->mError = state;
+        opcua->mConnectState = 1;
+    }
 }
 
 LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeoutMS, const char *url)
@@ -1065,9 +1070,11 @@ LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeou
     }
 
     UA_DateTime now = UA_DateTime_nowMonotonic();
-    UA_DateTime next = UA_Timer_process(&client->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, client);
+    UA_DateTime next = UA_Timer_process(&client->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, this);
     if((signed)next != -1)
         mChoreIndex = low_loop_set_chore_c(mLow, 0, (next - now) / 1000000, OnTimeout, this);
+    if(mConnectState == 1)
+        low_loop_set_callback(mLow, this);
 }
 
 
@@ -1185,7 +1192,8 @@ void LowOPCUA::OnConnect(UA_Client *client, void *userdata, UA_UInt32 requestId,
         return;
 
     UA_StatusCode state = *(UA_StatusCode *)data;
-    opcua->mError = state;
+    if(state & 0x80000000)
+        opcua->mError = state;
     opcua->mConnectState = 1;
 }
 
@@ -1209,7 +1217,7 @@ void LowOPCUA::OnTimeout(void *data)
 
     int sockfd = opcua->mClient->connection.sockfd;
     UA_DateTime now = UA_DateTime_nowMonotonic();
-    UA_DateTime next = UA_Timer_process(&opcua->mClient->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, opcua->mClient);
+    UA_DateTime next = UA_Timer_process(&opcua->mClient->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, opcua);
     if(sockfd != opcua->mClient->connection.sockfd)
     {
         sockfd = opcua->mClient->connection.sockfd;
@@ -1225,7 +1233,7 @@ void LowOPCUA::OnTimeout(void *data)
         opcua->mChoreIndex = low_loop_set_chore_c(opcua->mLow, opcua->mChoreIndex, ms, OnTimeout, data);
     }
     if(opcua->mConnectState == 1 || opcua->mDisabledState == 1)
-        opcua->OnLoop();
+        low_loop_set_callback(opcua->mLow, opcua);
     if(opcua->FD() >= 0)
         low_web_set_poll_events(opcua->mLow, opcua, opcua->mDisabledState || opcua->mDetachedState == 2 ? 0 : (opcua->mWriteBuffer || opcua->mConnectState == 0 ? POLLOUT | POLLIN | POLLERR : POLLIN | POLLERR));
 }
@@ -1376,13 +1384,14 @@ bool LowOPCUA::OnLoop()
     }
 
     pthread_mutex_lock(&mMutex);
-    for(auto iter = mTasks.begin(); iter != mTasks.end();)
+    int max = mTasks.size();
+    int n = 0;
+    auto iter = mTasks.begin();
+    for(; iter != mTasks.end() && n < max; iter++, n++)
     {
         if(iter->second.type == LOWOPCTASK_TYPE_DESTROY || !iter->second.result)
-        {
-            iter++;
             continue;
-        }
+
         LowOPCUATask task = iter->second;
 
         auto iter2 = iter;
@@ -1390,6 +1399,8 @@ bool LowOPCUA::OnLoop()
         mTasks.erase(iter2);
 
         pthread_mutex_unlock(&mMutex);
+        while(duk_get_top(mLow->duk_ctx))
+            duk_pop(mLow->duk_ctx);
 
         low_loop_clear_chore_c(mLow, task.timeoutChoreIndex);
         if(task.type == LOWOPCTASK_TYPE_LOOKUP_PROPS)
@@ -1798,7 +1809,8 @@ bool LowOPCUA::OnLoop()
 
         pthread_mutex_lock(&mMutex);
     }
-    while(mDataChangeNotifications.size())
+    max = mDataChangeNotifications.size();
+    for(int n = 0; n < max && mDataChangeNotifications.size(); n++)
     {
         UA_MonitoredItemNotification *min = mDataChangeNotifications.front();
         mDataChangeNotifications.pop();
@@ -1806,6 +1818,8 @@ bool LowOPCUA::OnLoop()
         std::map<UA_UInt32, std::pair<int, int> >::iterator iter = mMonitoredItems.find(min->clientHandle);
         if(iter != mMonitoredItems.end())
         {
+            while(duk_get_top(mLow->duk_ctx))
+                duk_pop(mLow->duk_ctx);
             low_push_stash(mLow, iter->second.first, false);
             duk_push_string(mLow->duk_ctx, "emit");
             duk_push_string(mLow->duk_ctx, "dataChanged");
@@ -1817,6 +1831,8 @@ bool LowOPCUA::OnLoop()
     }
     pthread_mutex_unlock(&mMutex);
 
+    if(mTasks.size() || mDataChangeNotifications.size())
+        low_loop_set_callback(mLow, this);
     return true;
 }
 
@@ -1927,6 +1943,7 @@ int LowOPCUA::OnSend(void *data, unsigned char *buf, int len)
             len -= size;
         }
     }
+
     while(len)
     {
         if(opcua->mWriteBuffer && opcua->mWriteBufferLastLen != LOW_OPCUA_WRITEBUFFER_SIZE)

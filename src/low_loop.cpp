@@ -183,33 +183,27 @@ bool low_loop_run(low_main_t *low)
         }
         if(low->loop_callback_first)
         {
-            while(true)
+            LowLoopCallback *callback = low->loop_callback_first;
+
+            low->loop_callback_first = callback->mNext;
+            if(!low->loop_callback_first)
+                low->loop_callback_last = NULL;
+            callback->mNext = NULL;
+
+            pthread_mutex_unlock(&low->loop_thread_mutex);
+            if(duk_safe_call(low->duk_ctx,
+                                low_loop_call_callback_safe,
+                                callback,
+                                0,
+                                1) != DUK_EXEC_SUCCESS)
             {
-                LowLoopCallback *callback = low->loop_callback_first;
-
-                low->loop_callback_first = callback->mNext;
-                if(!low->loop_callback_first)
-                    low->loop_callback_last = NULL;
-                callback->mNext = NULL;
-
-                pthread_mutex_unlock(&low->loop_thread_mutex);
-                if(duk_safe_call(low->duk_ctx,
-                                 low_loop_call_callback_safe,
-                                 callback,
-                                 0,
-                                 1) != DUK_EXEC_SUCCESS)
-                {
-                    if(!low->duk_flag_stop) // flag stop also produces error
-                        low_duk_print_error(low->duk_ctx);
-                    duk_pop(low->duk_ctx);
-
-                    return low->duk_flag_stop;
-                }
+                if(!low->duk_flag_stop) // flag stop also produces error
+                    low_duk_print_error(low->duk_ctx);
                 duk_pop(low->duk_ctx);
-                if(!low->loop_callback_first)
-                    break;
-                pthread_mutex_lock(&low->loop_thread_mutex);
+
+                return low->duk_flag_stop;
             }
+            duk_pop(low->duk_ctx);
         }
         else
             pthread_mutex_unlock(&low->loop_thread_mutex);
