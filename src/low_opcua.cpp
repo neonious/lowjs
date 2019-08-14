@@ -1069,6 +1069,7 @@ LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeou
         return;
     }
     SetFD(mClient->connection.sockfd);
+    AdvertiseFD();  // so it gets removed on reset
 
     UA_DateTime now = UA_DateTime_nowMonotonic();
     UA_DateTime next = UA_Timer_process(&client->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, this);
@@ -1273,16 +1274,19 @@ void LowOPCUA::OnTaskTimeout(void *data)
     if(task->type == LOWOPCTASK_TYPE_DESTROY)
         opcua->mDetachedState = 2;
 
-    if(task->callbackStashIndex)
+    int callback = task->callbackStashIndex;
+    low_loop_clear_chore_c(opcua->mLow, task->timeoutChoreIndex);
+    low_remove_stash(opcua->mLow, task->objStashIndex);
+    low_remove_stash(opcua->mLow, task->objStashIndex2);
+    opcua->mTasks.erase(task->id);
+
+    pthread_mutex_unlock(&opcua->mMutex);
+    if(callback)
     {
         low_push_stash(opcua->mLow, task->callbackStashIndex, true);
         duk_push_error_object(opcua->mLow->duk_ctx, DUK_ERR_ERROR, "timeout");
         duk_call(opcua->mLow->duk_ctx, 1);
     }
-    low_loop_clear_chore_c(opcua->mLow, task->timeoutChoreIndex);
-    opcua->mTasks.erase(task->id);
-
-    pthread_mutex_unlock(&opcua->mMutex);
     if(opcua->mDetachedState == 2)
         low_loop_set_callback(opcua->mLow, opcua);
     else
@@ -1807,6 +1811,7 @@ bool LowOPCUA::OnLoop()
 
         pthread_mutex_lock(&mMutex);
     }
+    bool skipped = iter != mTasks.end();
     max = mDataChangeNotifications.size();
     for(int n = 0; n < max && mDataChangeNotifications.size(); n++)
     {
@@ -1829,7 +1834,7 @@ bool LowOPCUA::OnLoop()
     }
     pthread_mutex_unlock(&mMutex);
 
-    if(mTasks.size() || mDataChangeNotifications.size())
+    if(skipped || mDataChangeNotifications.size())
         low_loop_set_callback(mLow, this);
     return true;
 }
