@@ -1062,12 +1062,13 @@ LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeou
     client->connection.lowOPCUAData = this;
 
     mError = UA_Client_connect_async(client, url, OnConnect, this);
-    if(mError != UA_STATUSCODE_GOOD)
+    if(mError != UA_STATUSCODE_GOOD || mClient->connection.sockfd <= 0)
     {
         mDisabledState = 1;
         low_loop_set_callback(mLow, this);
         return;
     }
+    SetFD(mClient->connection.sockfd);
 
     UA_DateTime now = UA_DateTime_nowMonotonic();
     UA_DateTime next = UA_Timer_process(&client->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, this);
@@ -1215,14 +1216,8 @@ void LowOPCUA::OnTimeout(void *data)
         return;
     }
 
-    int sockfd = opcua->mClient->connection.sockfd;
     UA_DateTime now = UA_DateTime_nowMonotonic();
     UA_DateTime next = UA_Timer_process(&opcua->mClient->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, opcua);
-    if(sockfd != opcua->mClient->connection.sockfd)
-    {
-        sockfd = opcua->mClient->connection.sockfd;
-        opcua->SetFD(sockfd > 0 ? sockfd : -1);
-    }
     pthread_mutex_unlock(&opcua->mMutex);
 
     if((signed)next != -1)
@@ -1387,10 +1382,13 @@ bool LowOPCUA::OnLoop()
     int max = mTasks.size();
     int n = 0;
     auto iter = mTasks.begin();
-    for(; iter != mTasks.end() && n < max; iter++, n++)
+    for(; iter != mTasks.end() && n < max; n++)
     {
         if(iter->second.type == LOWOPCTASK_TYPE_DESTROY || !iter->second.result)
+        {
+            iter++;
             continue;
+        }
 
         LowOPCUATask task = iter->second;
 
@@ -1891,7 +1889,6 @@ bool LowOPCUA::OnEvents(short events)
     mGoToLoop = false;
     if(mDetachedState != 2)
     {
-        int sockfd = mClient->connection.sockfd;
         int state = UA_Client_run_iterate(mClient, 0);
         if(state & 0x80000000)
         {
@@ -1903,11 +1900,6 @@ bool LowOPCUA::OnEvents(short events)
             low_web_set_poll_events(mLow, this, 0);
             low_loop_set_callback(mLow, this);
             return true;
-        }
-        if(sockfd != mClient->connection.sockfd)
-        {
-            sockfd = mClient->connection.sockfd;
-            SetFD(sockfd > 0 ? sockfd : -1);
         }
     }
 
