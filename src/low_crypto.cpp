@@ -119,8 +119,6 @@ duk_ret_t low_crypto_hash_digest(duk_context *ctx)
     auto buffer = low_push_buffer(ctx, len);
 
     low->cryptoHashes[index]->Digest((unsigned char *)buffer, len);
-
-    duk_push_buffer_object(ctx, -1, 0, len, DUK_BUFOBJ_NODEJS_BUFFER);
     return 1;
 }
 
