@@ -16,18 +16,8 @@
 LowSignalHandler::LowSignalHandler(low_main_t *low, int signal)
     : LowLoopCallback(low), mLow(low), mSignal(signal)
 {
-    low_loop_set_callback(low, this);
-}
-
-// -----------------------------------------------------------------------------
-//  LowSignalHandler::OnLoop
-// -----------------------------------------------------------------------------
-
-bool LowSignalHandler::OnLoop()
-{
     const char *name;
-
-    switch(mSignal)
+    switch(signal)
     {
     case SIGUSR1:
         name = "SIGUSR1";
@@ -51,11 +41,34 @@ bool LowSignalHandler::OnLoop()
         name = "SIGHUP";
         break;
     default:
-        return false;
+        name = NULL;
     }
+    mName = name;
+
+    low_loop_set_callback(low, this);
+}
+
+// -----------------------------------------------------------------------------
+//  LowSignalHandler::LowSignalHandler
+// -----------------------------------------------------------------------------
+
+LowSignalHandler::LowSignalHandler(low_main_t *low, const char *name)
+    : LowLoopCallback(low), mLow(low), mName(name), mSignal(0)
+{
+    low_loop_set_callback(low, this);
+}
+
+// -----------------------------------------------------------------------------
+//  LowSignalHandler::OnLoop
+// -----------------------------------------------------------------------------
+
+bool LowSignalHandler::OnLoop()
+{
+    if(!mName)
+        return false;
 
     low_push_stash(mLow, mLow->signal_call_id, false);
-    duk_push_string(mLow->duk_ctx, name);
+    duk_push_string(mLow->duk_ctx, mName);
     duk_call(mLow->duk_ctx, 1);
     if(!duk_require_boolean(mLow->duk_ctx, -1) &&
        (mSignal == SIGTERM || mSignal == SIGINT || mSignal == SIGHUP))
