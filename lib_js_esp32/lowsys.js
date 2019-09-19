@@ -17,7 +17,7 @@ module.exports = {
     codeMAC: config.codeMAC,
 
     partitions: {},
-//    setSettings: native.setSettings,
+    setSettings: native.setSettings,
 
     /**
      * Restarts the device into the Over-The-Air updater. Throws if no update is available (in which
@@ -128,14 +128,12 @@ Object.defineProperty(module.exports, 'status', {
     }
 });
 
-/*
 Object.defineProperty(module.exports, 'settings', {
     enumerable: true,
     get: function () {
         return native.getSettings();
     }
 });
-*/
 
 /**
  * An object holding information about all available parititons
