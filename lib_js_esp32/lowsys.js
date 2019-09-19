@@ -17,7 +17,19 @@ module.exports = {
     codeMAC: config.codeMAC,
 
     partitions: {},
-    setSettings: native.setSettings,
+
+    /**
+     * Allows to set one or more of the low.js settings.
+     * For all properties which can be set, see https://www.lowjs.org/documentation/lowjs-settings.html.
+     * The returned object holds strings indicating the error for the settings which could not be set. For example {code: {auto_start: 'INVALID'}} if a Number is tried to be set instead of a Boolean here.
+     * @function setSettings
+     * @param {Object} settings The settings to set, for example: {code: {auto_start: false}}
+     * @param {Boolean} [onlyValidate=false] If true, settings are not set. Can be used to check if all settings would be set or if any one of the settings to be set would return an error.
+     * @return {Object}
+     */
+    setSettings: (settings) => {
+        native.setSettings(JSON.stringify(settings));
+    },
 
     /**
      * Restarts the device into the Over-The-Air updater. Throws if no update is available (in which
@@ -129,10 +141,15 @@ Object.defineProperty(module.exports, 'status', {
     }
 });
 
+/**
+ * The settings tree of low.js. For all properties which can be read, see https://www.lowjs.org/documentation/lowjs-settings.html.
+ * To write new settings, call setSettings
+ * @name settings
+ */
 Object.defineProperty(module.exports, 'settings', {
     enumerable: true,
     get: function () {
-        return native.getSettings();
+        return JSON.parse(native.getSettings());
     }
 });
 

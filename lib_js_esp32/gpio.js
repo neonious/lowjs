@@ -188,7 +188,7 @@ function setPWM(index, value) {
             return;
         }
 
-        let val = pwmPins.indexOf(-1);
+        val = pwmPins.indexOf(-1);
         if (val >= 0) {
             pwmPins[val] = index;
             pwmDuty[val] = value;

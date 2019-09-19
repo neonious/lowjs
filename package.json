@@ -20,7 +20,7 @@
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
     "babel-runtime": "^6.26.0",
-    "jsdoc": "^3.5.5",
+    "jsdoc": "^3.6.3",
     "regenerator-runtime": "^0.12.1"
   }
 }
