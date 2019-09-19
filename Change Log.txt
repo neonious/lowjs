@@ -1,0 +1,305 @@
+================================================================================
+= neonious one + low.js for ESP32 Change Log								   =
+= 																			   =
+= Now part of the lowjs repo to show progress in the whole project			   =
+================================================================================
+
+
+Version 20190919
+
+You can now get and set low.js settings from the user program via
+lowsync.settings / lowsync.getSettings.
+
+
+Version 20190908
+
+Upgrade only for plain ESP32-WROVER boards, not for neonious one:
+
+low.js for ESP32 supports ESP32-WROVER's with more than 4 MB of Flash (a bug
+prevented this) neonious IDE + debugger and Over-The-Air updating for low.js is
+now supported on any ESP32-WROVER board with 16 MB of Flash or more, not only on
+the neonious one! Required paid license.
+
+
+Version 20190814
+
+Native, fast OPC-UA Client module to interface industry bus controllers added!
+See the documentation for more information For convenience, the ws module (for
+WebSockets) is now preloaded after factory reset, can be uninstalled Only on
+neonious one: The example program preloaded now shows a chat box to showcase
+WebSockets. Reset to factory after updating to load it Changes in lowsys.status
+are now notified by emitting a lowsysStatusChange event on the process module
+
+
+Version 20190728
+
+Support for up to 128 instead of only 16 sockets Fix for RangeError when using
+fall/rise GPIO events Only on neonious one: Fix for a bug which froze LPC822
+co-processor and thus made pins unusable Only on neonious one: Fixed swapped ADC
+pins 15 and 17
+
+
+Version 20190703
+
+Support for the mqtt module (add
+require('mqtt-packet').writeToStream.cacheNumbers = false; to the top of your
+main program file so the module does not use all RAM) Better error messages if a
+module is too large for the microcontroller (if it happens, consider switching
+from plain ESP32-WROVER to neonious one) Small fix for setImmediate and
+process.nextTick
+
+
+Version 20190619
+
+https.request support! TLS options other than one certificate are not supported
+yet, but the basic feature is working! http/https upgrade for clients
+implemented => WebSocket connections to outside world possible lowsync 1.0.22:
+install/uninstall commands allow you to install npm packages on plain
+ESP32-WROVER. Better option than syncing node_modules directory because modules
+installed via install/uninstall load much faster
+
+
+Version 20190619
+
+https.request support! TLS options other than one certificate are not supported
+yet, but the basic feature is working! http/https upgrade for clients
+implemented => WebSocket connections to outside world possible lowsync 1.0.22:
+install/uninstall commands allow you to install npm packages on plain
+ESP32-WROVER. Better option than syncing node_modules directory because modules
+installed via install/uninstall load much faster
+
+
+Version 20190618
+
+Module axios works Unhandled promise reject now shows correct stack frame, by
+rethrowing original error with message prefixed by "unhandled promise" instead
+of throwing new error Stability fixes (for example stack compression when
+compiling JavaScript files)
+
+
+Version 20190613
+
+Added os.freemem(), os.totalmem(), os.uptime() Fixed a bug which resulted into a
+corrupt file system after a high write load Fixed memory leak with fs.*Sync
+functions
+
+
+Version 20190603
+
+Revert of optimization in 20190602 which results in Out Of Memory after a few
+days (NOT reverting deadlock fix however) Also done, not in low.js itself:
+
+lowsync 1.0.21 in npm: Does not upload files/folders with . prefix anymore
+(.git, .vscode, etc.) lowsync 1.0.21 in npm: Fix with exclude configuration
+setting Updated all lowsync installation instructions so it works perfectly
+under Linux and macOS
+
+
+Version 20190602
+
+Support for process.versions, lowsys.updateVersion and lowsys.updateNow() Fixed
+deadlock in low memory handling Fixed bug in SPIFFS file system by updating
+library
+
+
+Version 2019-05-21
+
+Fix: CPU load now accurate. Simple setInterval loops now show 1% CPU usage
+instead of 50% CPU usage or more. Fix: Even code in tight loops can now be
+paused/stopped Fix: Debugger connection more stable
+
+
+Version 2019-05-16
+
+Fix: data thread has higher priority than code thread, makes console.log output
+even at 100 % CPU usage Optimized SPI flash on neonious one: Less blocking and
+now utilized read-on-write
+
+
+Version 2019-05-14
+
+Fix: gpio pin.getValue works together with rise and fall events Fix on neonious
+one: only gpio.OUTPUT_OPENDRAIN and not gpio.OUTPUT now allowed on correct pins
+4 and 5, not 3 and 4 Fix on neonious one: it now takes at least 1 sec of
+pressing the user button to disable auto run, also after a factory reset, the
+user program runs even though the user button was pressed
+
+
+Version 2019-05-06 / v2
+
+Fixed typo in CAN module: trasmit() => transmit()
+
+
+Version 2019-05-06
+
+Added fully featured CAN interface module (see can module documentation and
+example can_self_test.js) Added process.exit, lowsys.restart, process events
+exit and beforeExit, lowsys.gc Small fixes to low.js (see lowjs commits for more
+information)
+
+
+Version 2019-04-18
+
+Added important features for using the neonious one in production settings:
+
+A watchdog with software (JavaScript engine) and hardware (ESP32) mode A flag to
+restart the user program on a fatal exception A flag to allow the IDE to
+automatically save the edited files when starting the user program For all
+three, see the low.js Settings documentation for more information.
+
+Also, if your program blocks the whole microcontroller and you cannot even
+access the IDE, please report the problem as an GitHub issue, as this should not
+happen, no matter what code you write.
+
+In case it does happen, however, you can now disable auto start of your program
+by keeping the User button pressed when tapping the Reset button and then
+directly releasing the User button (otherwise you will reset the network
+settings if you wait 5 seconds, see documentation). This will allow you to enter
+the neonious one IDE even if your program blocks the whole microcontroller.
+
+
+Version 2019-04-10
+
+Fixes in GPIO handling so timing is better and DHT11 can be supported (see
+dhtll.js)
+
+
+Version 2019-03-30
+
+lowsync monitor now only shows output of current program run, use lowsync
+monitor --global=true to see the whole past better handling of low socket
+szenarios fix for fs.*Sync methods added Array.prototype.fill and
+Buffer.from(..., 'hex'/'base64')
+
+
+Version 2019-03-13
+
+Added lowsys.setSystemTime, used in NMEA GPS driver (nmea_gps.js) Fixed crash
+which happens when too many HTTP sockets are opened
+
+
+Version 2019-03-04
+
+Complete workaround to ESP-IDF issue issue #2892, low.js now stable UDP/dgram
+support High precision timestamps added to GPIO rise and fall events to be able
+to interface modules like the HC-SR04 distance sensor (see example here)
+
+
+Version 2019-02-06
+
+I2C on LPC822 pins npm package manager Support for upgrade of 4 MB file system
+to 12 MB file system (see documentation) Bug fixes
+
+
+Version 2019-01-30 / bugfix release
+
+Bugfix: Rewritten stack compression for stability Bugfix: fs.access working
+
+
+Version 2019-01-28 / bugfix release
+
+Bugfix in low.js: Crash happened if too much data was written via HTTP Bugfix in
+low.js: UART module now working Bugfix: Disabling Ethernet could cause a crash
+Bugfix: Too much stack usage could cause a crash Bugfix: No longer long wait
+time at boot if many files exist
+
+
+Version 2019-01-10
+
+Some low.js fixes (see GitHub commits for details) First version of simple JIT
+compiler (will be explained in blog soon) Fixed a bug which made one pin
+unresponsive
+
+
+Version 2018-12-27
+
+Some low.js fixes (see GitHub commits for details) Can be accessed via
+http://neonious.one/ after factory reset (simple DNS server added), no
+certificate warnings anymore Faster, now using dlmalloc for internal RAM, too
+
+
+Version 2018-12-18
+
+Support for
+
+fs.constants fs.access fs.rmdir fs.mkdir fs.readdir fs.appendFile and all sync
+versions of these methods.
+
+
+Version 2018-12-08
+
+Fixed promises and async/await
+
+
+Version 2018-12-01
+
+Support for I2C on ESP32 pins No stack limit at all with any recursive native
+calls, now only limited by heap Working Array.prototype.values /
+Array.prototype[Symbol.iterator] Support for mounting SD cards into filesystem
+Support for accessing memory above 4 MB (for example when using ESP-WROVER-B
+with 8 MB PSRAM). Due to ESP32's limitation of accessing only 4 MB directly,
+this is realized with require('lowsys').himemRead/himemWrite. neonious IDE
+session does not expire while being used The documentation will be updated in
+the next week.
+
+
+Version 2018-11-26
+
+Better support for ES6+ constructs
+
+
+Version 2018-11-22
+
+Support for UART and SPI on ESP32 pins (high speed!) Stack no longer limits
+require(...) chains Fixed crash when stack limit is hit
+
+
+Version 2018-11-19
+
+Small, but important bug fixes.
+
+
+Version 2018-11-15
+
+Garbage collector now already runs early enough to not hit memory full when it
+actually is not Memory full situation is handled well, no crash of device
+anymore Improved flacky Over-The-Air updater
+
+
+Version 2018-11-13
+
+Fixed the Ethernet port: now fast and stable Optimizations for speed, much
+faster network in general Small update for the ESP32 peripherials API, check the
+documentation for changes Bug fixes
+
+
+Version 1.2.0 / November 2nd, 2018
+
+Support for HTTP/HTTS server 'upgrade' event => WebSockets module works
+crypto.createHash / crypto.createHMac, resulting object supports update and
+digest Error.prepareStackTrace / Error.captureStackTrace fs.unlink / fs.rename /
+fs.unlinkSync / fs.renameSync Buffer.toString('hex') / Buffer.toString('base64')
+Faster network thanks to newer ESP-IDF version Many bugfixes
+
+
+Version 1.1.2 / September 26th, 2018
+
+implemented fs.createReadStream / fs.createWriteStream implemented
+process.hrtime fixed crash which could happen on socket error, reproducable by
+just reloading the website served by the program again and again really fast
+worked around the bug that GPIO / LEDs became unresponsive after a few reboots
+until power is cut off. This work around makes pin 6 unusable right now. It will
+be usable again soon after the issue https://community.nxp.com/thread/475108 is
+resolved. This is now a top priority issue for us which we will hopefully fix
+soon.
+
+
+Version 1.1.0 / September 10th, 2018
+
+complete rewrite based on the newly created low.js. Numerous additional
+features.
+
+
+Version 1.0.0 / June 2nd, 2018
+
+first released version
