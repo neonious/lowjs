@@ -115,6 +115,7 @@ Object.defineProperty(module.exports, 'updateVersion', {
 
  /**
  * An object holding status information
+ * Every change of this object can be detected by the user program by adding an event handler for lowsysStatusChanged to process ( process.on('lowsysStatusChange', () => { ... }); )
  * @property {String} status.eth Status of Ethernet interface
  * @property {String} status.wifi Status of Wifi interface
  * @property {String} status.time Status of requesting time from time server
