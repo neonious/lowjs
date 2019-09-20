@@ -7,8 +7,11 @@
 
 Version 20190920
 
-You can now get and set low.js settings from the user program via
-lowsync.settings / lowsync.getSettings.
+- You can now get and set low.js settings from the user program via
+ lowsync.settings / lowsync.getSettings.
+
+- Also fixed a problem where the IP of the device is 192.168.4.1 when in access
+  point mode, no matter what IP was set in the settings.
 
 
 Version 20190908
