@@ -5,7 +5,7 @@
 ================================================================================
 
 
-Version 20190919
+Version 20190920
 
 You can now get and set low.js settings from the user program via
 lowsync.settings / lowsync.getSettings.
