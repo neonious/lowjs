@@ -5,6 +5,11 @@
 ================================================================================
 
 
+Version 20190921
+
+- Fixed deadlock introduced by 20190920
+
+
 Version 20190920
 
 - You can now get and set low.js settings from the user program via
