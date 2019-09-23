@@ -5,9 +5,20 @@
 ================================================================================
 
 
+Version 20190923
+
+Fixed problem introduced in 20190920 by upgrading to a newer TypeScript
+version. Update from 20190920 to newer version through IDE did not always work.
+
+In case you have this problem, please run the following script from the IDE
+(run file) to update instead of pressing the Update button:
+
+require('lowsys').updateNow();
+
+
 Version 20190921
 
-- Fixed deadlock introduced by 20190920
+Fixed deadlock introduced by 20190920
 
 
 Version 20190920
