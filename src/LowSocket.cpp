@@ -82,7 +82,10 @@ LowSocket::LowSocket(low_main_t *low,
         return;
     }
     else if(mTLSContext)
+    {
         low_web_set_poll_events(mLow, this, POLLOUT);
+        AdvertiseFD();
+    }
     else
     {
         mConnected = true;

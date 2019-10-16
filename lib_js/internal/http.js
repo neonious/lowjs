@@ -127,7 +127,7 @@ class IncomingMessage extends stream.Readable {
     constructor() {
         super({
             read(size) {
-                if (this.connection.destroyed)
+                if (!this.connection || this.connection.destroyed)
                     return;
                 if (this._isServer && this._httpMain.headersSent) {
                     this.push(null);
@@ -139,6 +139,9 @@ class IncomingMessage extends stream.Readable {
                 this.connection._updateRef();
 
                 native.httpRead(this.connection._socketFD, buf, (err, bytesRead, bytesReadSocket, trailers, reuse) => {
+                    if (!this.connection)
+                        return;
+
                     this.connection._socketReading = false;
                     this.connection._updateRef();
                     if (err) {
@@ -210,7 +213,7 @@ class ServerResponse extends stream.Writable {
     constructor() {
         super({
             write(chunk, encoding, callback) {
-                if (this.connection.destroyed)
+                if (!this.connection || this.connection.destroyed)
                     return;
 
                 this.connection.bufferSize = this.connection.writableLength;
@@ -220,6 +223,9 @@ class ServerResponse extends stream.Writable {
                 if (!this.headersSent)
                     this._sendHeaders();
                 native.httpWrite(this.connection._socketFD, chunk, (err, bytesWrittenSocket) => {
+                    if (!this.connection)
+                        return;
+
                     this.connection._socketWriting = false;
                     this.connection._updateRef();
                     this.connection.bufferSize = this.connection.writableLength;
@@ -232,7 +238,7 @@ class ServerResponse extends stream.Writable {
                 });
             },
             final(callback) {
-                if (this.connection.destroyed)
+                if (!this.connection || this.connection.destroyed)
                     return;
 
                 if (!this.headersSent)
@@ -647,17 +653,12 @@ class ClientRequest extends stream.Writable {
         this._agentOptions = options;
 
         if(socket._httpSetup != this) {
-            let inError = false;
             let cleanup = (err) => {
                 if(socket._httpSetup != this)
                     return;
 
-                if(inError) {
+                if(err)
                     socket.destroy(err);
-                    return;
-                }
-                inError = true;
-
                 if (this.agent && this._agentOptions) {
                     this.agent.removeSocket(socket, this._agentOptions);
                     this.agent = null;
