@@ -247,8 +247,12 @@ duk_ret_t low_net_connect(duk_context *ctx)
         duk_dup(ctx, 4);
         low_push_error(low, err, syscall);
         duk_call(ctx, 1);
+
+        return 0;
     }
-    return 0;
+
+    duk_push_int(ctx, socket->FD());
+    return 1;
 }
 
 // -----------------------------------------------------------------------------

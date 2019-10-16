@@ -24,7 +24,7 @@ class Socket extends stream.Duplex {
                 if (this._socketHTTPWrapped)
                     throw new Error("socket is an http stream, writing not allowed");
 
-                if (this._socketFD === undefined) {
+                if (this.connecting) {
                     this._waitConnect = size;
                     this._updateRef();
                     return;
@@ -93,8 +93,8 @@ class Socket extends stream.Duplex {
                 }
 
                 native.close(this._socketFD, (err2) => {
-                    if (err || err2) {
-                        callback(err || err2);
+                    if (err2) {
+                        callback(err2);
                         return;
                     }
 
@@ -103,7 +103,7 @@ class Socket extends stream.Duplex {
                         if (--this._socketServer.connections == 0 && !this._socketServer.listening)
                             this._socketServer.emit('close');
                     }
-                    callback();
+                    callback(err);
                 });
             }
         });
@@ -165,7 +165,7 @@ class Socket extends stream.Duplex {
     }
     _connect(options, family, address, callback) {
         this._updateRef();
-        native.connect(family, address, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
+        this._socketFD = native.connect(family, address, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
             if (err) {
                 this.connecting = false;
                 this._updateRef();

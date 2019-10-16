@@ -142,7 +142,7 @@ class IncomingMessage extends stream.Readable {
                     this.connection._socketReading = false;
                     this.connection._updateRef();
                     if (err) {
-                        this.destroy(err);
+                        this.connection.emit('error', err);
                         return;
                     }
 
@@ -181,7 +181,6 @@ class IncomingMessage extends stream.Readable {
                                 } else
                                     this._httpMain.agent.removeSocket(socket, this._httpMain._agentOptions);
                             }
-                            this.destroy();
                         }
                         return;
                     }
@@ -225,7 +224,7 @@ class ServerResponse extends stream.Writable {
                     this.connection._updateRef();
                     this.connection.bufferSize = this.connection.writableLength;
                     if (err)
-                        this.destroy(err);
+                        this.connection.emit('error', err);
                     else {
                         this.connection.bytesWritten += bytesWrittenSocket;
                         callback();
@@ -240,13 +239,16 @@ class ServerResponse extends stream.Writable {
                     this._sendHeaders();
                 native.httpWrite(this.connection._socketFD, null, (err) => {
                     if (err)
-                        this.destroy(err);
+                        this.connection.emit('error', err);
 
                     callback();
                 });
             },
             destroy(err, callback) {
-                this.connection.destroy(err, callback);
+                if(this.connection)
+                    this.connection.destroy(err, callback);
+                else
+                    callback(err);
             }
         });
     }
@@ -467,7 +469,7 @@ class ClientRequest extends stream.Writable {
                     this.connection._updateRef();
                     this.connection.bufferSize = this.connection.writableLength;
                     if (err)
-                        this.destroy(err);
+                        this.connection.emit('error', err);
                     else {
                         this.connection.bytesWritten += bytesWrittenSocket;
                         callback(err);
@@ -486,7 +488,7 @@ class ClientRequest extends stream.Writable {
                     this._sendHeaders();
                 native.httpWrite(this.connection._socketFD, null, (err) => {
                     if (err)
-                        this.destroy(err);
+                        this.connection.emit('error', err);
 
                     callback();
                 });
@@ -619,12 +621,6 @@ class ClientRequest extends stream.Writable {
                 Buffer.from(options.auth).toString('base64');
         }
 
-        this.on('agentRemove', () => {
-            if (this.agent && this._agentOptions) {
-                this.agent.removeSocket(this, this._agentOptions);
-                this.agent = null;
-            }
-        });
         // Initiate connection
         if (this.agent)
             this.agent.addRequest(this, options);
@@ -649,14 +645,35 @@ class ClientRequest extends stream.Writable {
 
     _onSocket(socket, options) {
         this._agentOptions = options;
-        if (this.agent)
-            socket.setTimeout(this.agent.timeout);
 
-        if (!socket._socketFD) {
+        if(socket._httpSetup != this) {
+            let inError = false;
+            let cleanup = (err) => {
+                if(socket._httpSetup != this)
+                    return;
+
+                if(inError) {
+                    socket.destroy(err);
+                    return;
+                }
+                inError = true;
+
+                if (this.agent && this._agentOptions) {
+                    this.agent.removeSocket(socket, this._agentOptions);
+                    this.agent = null;
+                }
+            }
+
+            socket._httpSetup = this;
+            socket.once('close', cleanup);
+            socket.once('agentRemove', cleanup);
+            socket.once('error', cleanup);
+        }
+
+        if (socket.connecting) {
             socket.once('connect', () => {
                 this._onSocket(socket, options);
             });
-
             return;
         }
 
@@ -674,7 +691,7 @@ class ClientRequest extends stream.Writable {
 
         native.httpGetRequest(socket._socketFD, (error, data, bytesRead) => {
             if (error) {
-                this.destroy(error);
+                socket.emit('error', error);
                 return;
             }
 

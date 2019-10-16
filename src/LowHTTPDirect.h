@@ -96,7 +96,7 @@ class LowHTTPDirect
 
     LowHTTPDirect_ParamData *mParamFirst, *mParamLast;
     unsigned char *mParamCurrent;
-    int mParamStart, mParamPos, mParamPosNonSpace;
+    int mParamStart, mChunkedParamStart, mParamPos, mParamPosNonSpace;
 
     char mChunkedHeaderLine[10];
     bool mIsContentLengthHeader, mIsTransferEncodingHeader;

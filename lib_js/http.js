@@ -3,6 +3,8 @@
 // todo: keepAlive and keepAliveMsecs not used everywhere
 
 let httpInternal = require('internal/http');
+
+let url = require('url');
 let net = require('net');
 
 const {
@@ -97,7 +99,6 @@ class Agent {
                 if (this.sockets[name])
                     count += this.sockets[name].length;
 
-                this.removeSocket(socket, options, name);
                 if (count > this.maxSockets || freeLen >= this.maxFreeSockets) {
                     socket.destroy();
                 } else if (this.keepSocketAlive(socket)) {
@@ -205,6 +206,30 @@ class Agent {
 let globalAgent = new Agent();
 
 function request(options, cb) {
+    if (typeof options === 'string') {
+        var urlStr = options;
+        /*            try {
+                        options = urlToOptions(new URL(urlStr));
+                    } catch (err) {
+        */ options = url.parse(urlStr);
+        /*                if (!options.hostname) {
+                            throw err;
+                        }
+                        if (!urlWarningEmitted && !process.noDeprecation) {
+                            urlWarningEmitted = true;
+                            process.emitWarning(
+                                `The provided URL ${urlStr} is not a valid URL, and is supported ` +
+                                'in the http module solely for compatibility.',
+                                'DeprecationWarning', 'DEP0109');
+                        }
+                    }
+                } else if (options && options[searchParamsSymbol] &&
+                    options[searchParamsSymbol][searchParamsSymbol]) {
+                    // url.URL instance
+                    options = urlToOptions(options);
+                } else {
+                    options = util._extend({}, options);
+                */ }
     if (options.agent === false)
         options.agent = new Agent(options);
     else if (options.agent === null || options.agent === undefined) {

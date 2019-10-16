@@ -86,6 +86,8 @@ LowSocket::LowSocket(low_main_t *low,
     else
     {
         mConnected = true;
+        AdvertiseFD();
+
         if(mAcceptConnectCallID)
             low_loop_set_callback(mLow, this);
 
@@ -267,6 +269,8 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
         syscall = "socket";
         return false;
     }
+    AdvertiseFD();
+
     if(InitSocket(remoteAddr))
     {
         if(connect(FD(), remoteAddr, remoteAddrLen) < 0)
@@ -348,7 +352,6 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
             mClosed = true;
 
         mReadData = NULL;
-
         duk_dup(mLow->duk_ctx, callIndex);
         if(len >= 0)
         {
@@ -954,8 +957,6 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
     }
     else if(mConnected)
     {
-        AdvertiseFD();
-
         if(onStash)
             low_push_stash(mLow, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
         else
