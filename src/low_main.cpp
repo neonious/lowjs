@@ -19,6 +19,7 @@
 #include "low_config.h"
 #include "low_system.h"
 
+#include "low_native_api.h"
 #include "low_opcua.h"
 
 #include "duktape.h"
@@ -650,7 +651,7 @@ bool low_lib_init(low_main_t *low)
     }
     duk_pop(low->duk_ctx);
 
-    return low_register_opcua(low);     // 100% native module
+    return low_register_native_api(low) && low_register_opcua(low);     // 100% native modules
 }
 
 // -----------------------------------------------------------------------------

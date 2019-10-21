@@ -10,3 +10,6 @@
 [submodule "deps/open62541"]
 	path = deps/open62541
 	url = https://github.com/neonious/open62541
+[submodule "examples/native/low_native_api"]
+	path = examples/native/low_native_api
+	url = https://www.github.com/neonious/low_native_api

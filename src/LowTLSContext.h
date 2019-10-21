@@ -15,6 +15,7 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/x509.h"
+#include "mbedtls/x509_crt.h"
 
 using namespace std;
 

@@ -801,11 +801,15 @@ bool low_module_resolve_c(duk_context *ctx,
 {
     struct stat st;
 
-    // lib: may get native
-    if(strcmp(module_id, "native") == 0 && parent_id && memcmp(parent_id, "lib:", 4) == 0)
+    if(strcmp(module_id, "native") == 0)
     {
-        strcpy(res_id, "lib:native");
-        return true;
+        if(parent_id && memcmp(parent_id, "lib:", 4) == 0)
+        {
+            strcpy(res_id, "lib:native");
+            return true;
+        }
+        else
+            return false;
     }
 
     bool is_not_absolute_path = false;

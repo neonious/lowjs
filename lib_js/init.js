@@ -5,6 +5,19 @@
 // See test/bugs/native_Reflect_construct.js for more information
 delete Reflect.construct;
 
+// Required with newest Duktape version
+if (typeof global === 'undefined') {
+    (function () {
+        var global = new Function('return this;')();
+        Object.defineProperty(global, 'global', {
+            value: global,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        });
+    })();
+}
+
 let native = require('native');
 let events = require('events');
 

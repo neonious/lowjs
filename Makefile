@@ -1,10 +1,10 @@
 FLAGS = -O3 -DLOW_VERSION="\"`git show -s --format=%cd --date=format:%Y%m%d`_`git rev-parse --short HEAD`\""
 
 C = gcc
-CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include
+CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include
 
 CXX = g++
-CXXFLAGS = $(FLAGS) -Iinclude -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
+CXXFLAGS = $(FLAGS) -Iinclude -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
 
 LD = g++
 LDFLAGS = $(FLAGS) -lm -lpthread deps/open62541/build/bin/libopen62541.a
@@ -17,9 +17,6 @@ endif
 
 OBJECTS_LOW =							\
 	app/main.o
-OBJECTS_LOW_WITH_NATIVE_MODULE =							\
-	examples/low_with_native_module/main.o		\
-	examples/low_with_native_module/native_adder.o
 OBJECTS =							\
 	deps/duktape/src-low/duktape.o		\
 	src/low_main.o					\
@@ -51,22 +48,20 @@ OBJECTS =							\
 	src/LowDNSWorker.o				\
 	src/LowDNSResolver.o			\
 	src/LowTLSContext.o				\
+	src/low_native_api.o			\
 	src/low_opcua.o
 
 all: bin/low lib/BUILT
 
 clean:
-	rm -rf */*.o */*.d examples/low_with_native_module/*.o examples/low_with_native_module/*.d bin/* deps/duktape/src-low lib lib_js/build node_modules util/dukc test/duk_crash
+	rm -rf */*.o */*.d bin/* deps/duktape/src-low lib lib_js/build node_modules util/dukc test/duk_crash
 	cd deps/c-ares && make clean
 	cd deps/mbedtls && make clean
 	cd deps/open62541 && rm -rf build
 
 bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
-	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
-bin/low_with_native_module: $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) deps/mbedtls/programs/test/benchmark deps/open62541/build/bin/libopen62541.a
-	mkdir -p bin
-	 $(LD) -o bin/low_with_native_module deps/mbedtls/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW_WITH_NATIVE_MODULE) $(LDFLAGS)
+	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/.libs/libcares.a $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
 util/dukc: deps/duktape/src-low/duktape.o util/dukc.o
 	 $(LD) -o util/dukc deps/duktape/src-low/duktape.o util/dukc.o $(LDFLAGS)
 
@@ -80,10 +75,10 @@ deps/duktape/src-low/duktape.o: deps/duktape/src-low/duktape.c Makefile
 	$(CXX) $(CXXFLAGS) -MMD -o $@ -c $<
 %.o : %.c Makefile
 	$(C) $(CFLAGS) -MMD -o $@ -c $<
-%.o : %.cpp Makefile deps/c-ares/libcares.la deps/open62541/build/bin/libopen62541.a
+%.o : %.cpp Makefile deps/c-ares/.libs/libcares.a deps/open62541/build/bin/libopen62541.a
 	$(CXX) $(CXXFLAGS) -MMD -o $@ -c $<
 
--include $(OBJECTS:.o=.d) $(OBJECTS_LOW:.o=.d) $(OBJECTS_LOW_WITH_NATIVE_MODULE:.o=.d)
+-include $(OBJECTS:.o=.d) $(OBJECTS_LOW:.o=.d)
 
 lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
 	rm -rf lib lib_js/build
@@ -123,7 +118,7 @@ deps/c-ares/configure:
 	cd deps/c-ares && . ./buildconf
 deps/c-ares/Makefile: deps/c-ares/configure
 	cd deps/c-ares && ./configure
-deps/c-ares/libcares.la: deps/c-ares/Makefile
+deps/c-ares/.libs/libcares.a: deps/c-ares/Makefile
 	cd deps/c-ares && make
 
 deps/mbedtls/programs/test/benchmark:
