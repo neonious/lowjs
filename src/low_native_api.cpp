@@ -473,7 +473,7 @@ range_error:
     *err = "File is a valid ELF file for this machine, but corrupt.";
     return NULL;
 #else
-    *err = "Native modules are not yet supported on this architecture."
+    *err = "Native modules are not yet supported on this architecture.";
     return NULL;
 #endif
 }
