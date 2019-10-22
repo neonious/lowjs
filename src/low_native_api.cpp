@@ -27,7 +27,7 @@
 #define ELF_R_SYM   ELF64_R_SYM
 #define ELF_R_TYPE  ELF64_R_TYPE
 #elif defined(__i386__)
-#include <sys/elf64.h>
+#include <sys/elf32.h>
 
 #define Elf_Ehdr    Elf32_Ehdr
 #define Elf_Phdr    Elf32_Phdr
