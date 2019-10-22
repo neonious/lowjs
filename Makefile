@@ -61,7 +61,7 @@ clean:
 
 bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
-	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/.libs/libcares.a $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
+	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
 util/dukc: deps/duktape/src-low/duktape.o util/dukc.o
 	 $(LD) -o util/dukc deps/duktape/src-low/duktape.o util/dukc.o $(LDFLAGS)
 
