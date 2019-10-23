@@ -54,6 +54,14 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"realloc", (uintptr_t)realloc},
     {"free", (uintptr_t)free},
 
+    {"memcmp", (uintptr_t)memcmp},
+    {"memcpy", (uintptr_t)memcpy},
+    {"memmove", (uintptr_t)memmove},
+    {"memset", (uintptr_t)memset},
+
+    {"strcpy", (uintptr_t)strcpy},
+    {"sprintf", (uintptr_t)sprintf},
+
     {"open", (uintptr_t)open},
     {"creat", (uintptr_t)creat},
     {"close", (uintptr_t)close},
@@ -270,7 +278,7 @@ int native_api_load(duk_context *ctx)
 //  native_api_load_sync
 // -----------------------------------------------------------------------------
 
-static void *elf_load(char *elf_start, unsigned int size, const char **err)
+static void *elf_load(char *elf_start, unsigned int size, const char **err, bool *err_malloc)
 {
 #if defined(__x86_64__) || defined(__i386__)
     Elf_Ehdr *hdr;
@@ -404,7 +412,9 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err)
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
                     {
                         munmap(exec, exec_size);
-                        *err = "File asks for an external symbol which low.js does not know of.";
+			*err = (char *)low_alloc(80 + strlen(sym));
+			sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+			*err_malloc = true;
                         return NULL;
                     }
 
@@ -429,7 +439,9 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err)
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
                     {
                         munmap(exec, exec_size);
-                        *err = "File asks for an external symbol which low.js does not know of.";
+			*err = (char *)low_alloc(80 + strlen(sym));
+			sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+			*err_malloc = true;
                         return NULL;
                     }
 
@@ -461,7 +473,7 @@ range_error:
     *err = "File is a valid ELF file for this machine, but corrupt.";
     return NULL;
 #else
-    *err = "Native modules are not yet supported on this architecture."
+    *err = "Native modules are not yet supported on this architecture.";
     return NULL;
 #endif
 }
@@ -498,11 +510,22 @@ int native_api_load_sync(duk_context *ctx)
     close(fd);
 
     const char *err;
-    int (*module_main)(duk_context *) = (int (*)(duk_context *))elf_load((char *)data, len, &err);
+    bool err_malloc = false;
+
+    int (*module_main)(duk_context *) = (int (*)(duk_context *))elf_load((char *)data, len, &err, &err_malloc);
     free(data);
 
     if(!module_main)
-        duk_generic_error(ctx, err);
+    {
+	if(err_malloc)
+	{
+		const char *err2 = duk_push_string(ctx, err);
+		low_free((void *)err);
+	        duk_generic_error(ctx, err2);
+	}
+	else
+	        duk_generic_error(ctx, err);
+	}
 
     return module_main(ctx);
 }
