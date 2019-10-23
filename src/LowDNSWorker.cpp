@@ -52,7 +52,7 @@ bool LowDNSWorker::Lookup(const char *host, int family, int hints,
     mFamily = family;
     mHints = hints;
     mLookupService = false;
-    mCallID = low_add_stash(mLow, callIndex);
+    mCallID = low_add_stash(mLow->duk_ctx, callIndex);
     if(!mCallID)
         return false;
 
@@ -78,7 +78,7 @@ bool LowDNSWorker::LookupService(const char *ip, int port, int callIndex)
     strcpy(mIP, ip);
     mPort = port;
     mLookupService = true;
-    mCallID = low_add_stash(mLow, callIndex);
+    mCallID = low_add_stash(mLow->duk_ctx, callIndex);
     if(!mCallID)
         return false;
 
@@ -97,13 +97,13 @@ bool LowDNSWorker::OnLoop()
     {
         if (mError)
         {
-            low_push_stash(mLow, mCallID, true);
+            low_push_stash(mLow->duk_ctx, mCallID, true);
             low_push_error(mLow, mError, "getnameinfo");
             duk_call(mLow->duk_ctx, 1);
         }
         else
         {
-            low_push_stash(mLow, mCallID, true);
+            low_push_stash(mLow->duk_ctx, mCallID, true);
             duk_push_null(mLow->duk_ctx);
             duk_push_string(mLow->duk_ctx, mHost);
             duk_push_string(mLow->duk_ctx, mService);
@@ -126,13 +126,13 @@ bool LowDNSWorker::OnLoop()
 
         if (mError)
         {
-            low_push_stash(mLow, mCallID, true);
+            low_push_stash(mLow->duk_ctx, mCallID, true);
             low_push_error(mLow, mError, "getaddrinfo");
             duk_call(mLow->duk_ctx, 1);
         }
         else
         {
-            low_push_stash(mLow, mCallID, true);
+            low_push_stash(mLow->duk_ctx, mCallID, true);
             duk_push_null(mLow->duk_ctx);
             duk_push_array(mLow->duk_ctx);
             int arr_len = 0;

@@ -219,7 +219,7 @@ duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
 {
     int *args = (int *)udata;
 
-    low_push_stash(duk_get_low_context(ctx), args[0], args[1]);
+    low_push_stash(ctx, args[0], args[1]);
     duk_call(ctx, 0);
     return 0;
 }
@@ -251,8 +251,7 @@ duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata)
 
 duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata)
 {
-    low_main_t *low = duk_get_low_context(ctx);
-    low_push_stash(low, low->signal_call_id, false);
+    low_push_stash(ctx, duk_get_low_context(ctx)->signal_call_id, false);
     duk_push_string(ctx, udata == NULL ? "beforeExit" : "exit");
     duk_call(ctx, 1);
     return 0;
@@ -266,7 +265,7 @@ duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata)
 duk_ret_t low_loop_set_chore(duk_context *ctx)
 {
     low_main_t *low = duk_get_low_context(ctx);
-    int index = low_add_stash(low, 0);
+    int index = low_add_stash(ctx, 0);
 
     int delay = duk_require_int(ctx, 1);
     if(delay < 0)
@@ -305,7 +304,7 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
     if(iter->second.ref)
         low->run_ref--;
     low->chores.erase(iter);
-    low_remove_stash(low, index);
+    low_remove_stash(ctx, index);
 
     return 0;
 }

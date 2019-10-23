@@ -29,7 +29,7 @@ LowFile::LowFile(low_main_t *low, const char *path, int flags, int callID) :
 {
     if(callID)
     {
-        mCallID = low_add_stash(mLow, callID);
+        mCallID = low_add_stash(mLow->duk_ctx, callID);
         if(mCallID)
             mLow->run_ref++;
     }
@@ -72,7 +72,7 @@ LowFile::~LowFile()
         low_free(mPath);
     if(mCallID)
     {
-        low_remove_stash(mLow, mCallID);
+        low_remove_stash(mLow->duk_ctx, mCallID);
         mLow->run_ref--;
     }
 }
@@ -100,7 +100,7 @@ void LowFile::Read(int pos, unsigned char *data, int len, int callIndex)
 
     if(callIndex != -1)
     {
-        mCallID = low_add_stash(mLow, callIndex);
+        mCallID = low_add_stash(mLow->duk_ctx, callIndex);
         if(mCallID)
             mLow->run_ref++;
     }
@@ -138,7 +138,7 @@ void LowFile::Write(int pos, unsigned char *data, int len, int callIndex)
 
     if(callIndex != -1)
     {
-        mCallID = low_add_stash(mLow, callIndex);
+        mCallID = low_add_stash(mLow->duk_ctx, callIndex);
         if(mCallID)
             mLow->run_ref++;
     }
@@ -176,7 +176,7 @@ void LowFile::FStat(int callIndex)
 
     if(callIndex != -1)
     {
-        mCallID = low_add_stash(mLow, callIndex);
+        mCallID = low_add_stash(mLow->duk_ctx, callIndex);
         if(mCallID)
             mLow->run_ref++;
     }
@@ -218,7 +218,7 @@ bool LowFile::Close(int callIndex)
 
     if(callIndex != -1)
     {
-        mCallID = low_add_stash(mLow, callIndex);
+        mCallID = low_add_stash(mLow->duk_ctx, callIndex);
         if(mCallID)
             mLow->run_ref++;
     }
@@ -341,6 +341,8 @@ bool LowFile::OnLoop()
 
 bool LowFile::FinishPhase()
 {
+    duk_context *ctx = mLow->duk_ctx;
+
     if(mPhase == LOWFILE_PHASE_READY)
         return true;
     if(!mDataDone)
@@ -366,47 +368,47 @@ bool LowFile::FinishPhase()
             case LOWFILE_PHASE_OPENING:
                 if(mError)
                 {
-                    low_push_stash(mLow, callID, true);
+                    low_push_stash(ctx, callID, true);
                     low_push_error(mLow, mError, mSyscall);
-                    duk_call(mLow->duk_ctx, 1);
+                    duk_call(ctx, 1);
                     return true;
                 }
                 else
                 {
-                    low_push_stash(mLow, callID, true);
-                    duk_push_null(mLow->duk_ctx);
-                    duk_push_int(mLow->duk_ctx, FD());
-                    duk_call(mLow->duk_ctx, 2);
+                    low_push_stash(ctx, callID, true);
+                    duk_push_null(ctx);
+                    duk_push_int(ctx, FD());
+                    duk_call(ctx, 2);
                 }
                 break;
 
             case LOWFILE_PHASE_READING:
             case LOWFILE_PHASE_WRITING:
-                low_push_stash(mLow, callID, true);
+                low_push_stash(ctx, callID, true);
                 if(mError)
                 {
                     low_push_error(mLow, mError, mSyscall);
-                    duk_call(mLow->duk_ctx, 1);
+                    duk_call(ctx, 1);
                 }
                 else
                 {
-                    duk_push_null(mLow->duk_ctx);
-                    duk_push_int(mLow->duk_ctx, mLen);
-                    duk_call(mLow->duk_ctx, 2);
+                    duk_push_null(ctx);
+                    duk_push_int(ctx, mLen);
+                    duk_call(ctx, 2);
                 }
                 break;
 
             case LOWFILE_PHASE_FSTAT:
-                low_push_stash(mLow, callID, true);
+                low_push_stash(ctx, callID, true);
                 if(mError)
                 {
                     low_push_error(mLow, mError, mSyscall);
-                    duk_call(mLow->duk_ctx, 1);
+                    duk_call(ctx, 1);
                 }
                 else
                 {
-                    duk_push_null(mLow->duk_ctx);
-                    duk_push_object(mLow->duk_ctx);
+                    duk_push_null(ctx);
+                    duk_push_object(ctx);
 
 #define applyStat(name) {#name, (double)mStat.st_##name}
                     duk_number_list_entry numberList[] = {
@@ -425,25 +427,25 @@ bool LowFile::FinishPhase()
                       {"ctimeMs", mStat.st_ctime * 1000.0},
                       {NULL, 0.0}};
 
-                    duk_put_number_list(mLow->duk_ctx, -1, numberList);
-                    duk_call(mLow->duk_ctx, 2);
+                    duk_put_number_list(ctx, -1, numberList);
+                    duk_call(ctx, 2);
                 }
                 break;
 
             case LOWFILE_PHASE_CLOSING:
-                low_push_stash(mLow, callID, true);
+                low_push_stash(ctx, callID, true);
                 if(mError)
                     low_push_error(mLow, mError, mSyscall);
                 else
-                    duk_push_null(mLow->duk_ctx);
-                duk_call(mLow->duk_ctx, 1);
+                    duk_push_null(ctx);
+                duk_call(ctx, 1);
                 return true;
         }
     }
     else if(mError)
     {
         low_push_error(mLow, mError, mSyscall);
-        duk_throw(mLow->duk_ctx);
+        duk_throw(ctx);
     }
 
     return true;

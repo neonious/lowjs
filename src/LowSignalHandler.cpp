@@ -67,7 +67,7 @@ bool LowSignalHandler::OnLoop()
     if(!mName)
         return false;
 
-    low_push_stash(mLow, mLow->signal_call_id, false);
+    low_push_stash(mLow->duk_ctx, mLow->signal_call_id, false);
     duk_push_string(mLow->duk_ctx, mName);
     duk_call(mLow->duk_ctx, 1);
     if(!duk_require_boolean(mLow->duk_ctx, -1) &&

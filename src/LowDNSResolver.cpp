@@ -263,9 +263,9 @@ LowDNSResolver_Query::~LowDNSResolver_Query()
     mLow->resolvers_active--;
 
     if(mRefID)
-        low_remove_stash(mLow, mRefID);
+        low_remove_stash(mLow->duk_ctx, mRefID);
     if(mCallID)
-        low_remove_stash(mLow, mCallID);
+        low_remove_stash(mLow->duk_ctx, mCallID);
 }
 
 // -----------------------------------------------------------------------------
@@ -301,9 +301,9 @@ void LowDNSResolver_Query::Resolve(const char *hostname, const char *type,
         duk_reference_error(mLow->duk_ctx, "unknown dns type");
     mTTL = ttl;
 
-    mRefID = low_add_stash(mLow, refIndex); // put Resolver object on stash so
+    mRefID = low_add_stash(mLow->duk_ctx, refIndex); // put Resolver object on stash so
                                             // it does not get garbage collected
-    mCallID = low_add_stash(mLow, callIndex);
+    mCallID = low_add_stash(mLow->duk_ctx, callIndex);
 
     ares_query(mChannel, hostname, ns_c_in, mDNSType, CallbackStatic, this);
     // Make web thread start checking c-ares FDs
@@ -358,13 +358,13 @@ bool LowDNSResolver_Query::OnLoop()
 {
     if(mError)
     {
-        low_push_stash(mLow, mCallID, true);
+        low_push_stash(mLow->duk_ctx, mCallID, true);
         low_push_error(mLow, mError, mSyscall);
         duk_call(mLow->duk_ctx, 1);
     }
     else
     {
-        low_push_stash(mLow, mCallID, false);
+        low_push_stash(mLow->duk_ctx, mCallID, false);
         duk_push_null(mLow->duk_ctx);
         if(mDNSType != ns_t_soa)
             duk_push_array(mLow->duk_ctx);
@@ -382,7 +382,7 @@ bool LowDNSResolver_Query::OnLoop()
                 aAddrs = (struct ares_addrttl *)mDataFree;
                 if(!aAddrs)
                 {
-                    low_push_stash(mLow, mCallID, false);
+                    low_push_stash(mLow->duk_ctx, mCallID, false);
                     low_push_error(mLow, LOW_ENOMEM, "realloc");
                     duk_call(mLow->duk_ctx, 1);
                     return false;
@@ -397,7 +397,7 @@ bool LowDNSResolver_Query::OnLoop()
                         count = 0;
                     else
                     {
-                        low_push_stash(mLow, mCallID, false);
+                        low_push_stash(mLow->duk_ctx, mCallID, false);
                         low_push_error(mLow, LowDNSResolver::AresErr(status),
                                        "ares_parse_a_reply");
                         duk_call(mLow->duk_ctx, 1);
@@ -450,7 +450,7 @@ bool LowDNSResolver_Query::OnLoop()
                 aaaaAddrs = (struct ares_addr6ttl *)mDataFree;
                 if(!aaaaAddrs)
                 {
-                    low_push_stash(mLow, mCallID, false);
+                    low_push_stash(mLow->duk_ctx, mCallID, false);
                     low_push_error(mLow, LOW_ENOMEM, "realloc");
                     duk_call(mLow->duk_ctx, 1);
                     return false;
@@ -465,7 +465,7 @@ bool LowDNSResolver_Query::OnLoop()
                         count = 0;
                     else
                     {
-                        low_push_stash(mLow, mCallID, false);
+                        low_push_stash(mLow->duk_ctx, mCallID, false);
                         low_push_error(mLow, LowDNSResolver::AresErr(status),
                                        "ares_parse_aaaa_reply");
                         duk_call(mLow->duk_ctx, 1);
@@ -532,7 +532,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_a_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -566,7 +566,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_mx_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -608,7 +608,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_naptr_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -641,7 +641,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_ns_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -675,7 +675,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_ptr_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -803,7 +803,7 @@ bool LowDNSResolver_Query::OnLoop()
             if(status != ARES_SUCCESS &&
                (status != ARES_ENODATA || mDNSType != ns_t_any))
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_soa_reply (modified)");
                 duk_call(mLow->duk_ctx, 1);
@@ -841,7 +841,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_srv_reply");
                 duk_call(mLow->duk_ctx, 1);
@@ -900,7 +900,7 @@ bool LowDNSResolver_Query::OnLoop()
             }
             else if(status != ARES_ENODATA || mDNSType != ns_t_any)
             {
-                low_push_stash(mLow, mCallID, false);
+                low_push_stash(mLow->duk_ctx, mCallID, false);
                 low_push_error(mLow, LowDNSResolver::AresErr(status),
                                "ares_parse_txt_reply_ext");
                 duk_call(mLow->duk_ctx, 1);
@@ -947,9 +947,9 @@ LowDNSResolver_GetHostByAddr::~LowDNSResolver_GetHostByAddr()
     mLow->resolvers_active--;
 
     if(mRefID)
-        low_remove_stash(mLow, mRefID);
+        low_remove_stash(mLow->duk_ctx, mRefID);
     if(mCallID)
-        low_remove_stash(mLow, mCallID);
+        low_remove_stash(mLow->duk_ctx, mCallID);
 }
 
 // -----------------------------------------------------------------------------
@@ -975,9 +975,9 @@ int LowDNSResolver_GetHostByAddr::Resolve(const char *hostname, int refIndex,
     if(inet_pton(family, hostname, addr) != 1)
         return errno;
 
-    mRefID = low_add_stash(mLow, refIndex); // put Resolver object on stash so
+    mRefID = low_add_stash(mLow->duk_ctx, refIndex); // put Resolver object on stash so
                                             // it does not get garbage collected
-    mCallID = low_add_stash(mLow, callIndex);
+    mCallID = low_add_stash(mLow->duk_ctx, callIndex);
 
     ares_gethostbyaddr(mChannel, addr, family == AF_INET ? 4 : 16, family,
                        CallbackStatic, this);
@@ -1055,13 +1055,13 @@ bool LowDNSResolver_GetHostByAddr::OnLoop()
 {
     if(mError)
     {
-        low_push_stash(mLow, mCallID, true);
+        low_push_stash(mLow->duk_ctx, mCallID, true);
         low_push_error(mLow, mError, mSyscall);
         duk_call(mLow->duk_ctx, 1);
     }
     else
     {
-        low_push_stash(mLow, mCallID, false);
+        low_push_stash(mLow->duk_ctx, mCallID, false);
         duk_push_null(mLow->duk_ctx);
         duk_push_array(mLow->duk_ctx);
         for(int i = 0; mResult[i]; i++)

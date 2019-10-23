@@ -145,13 +145,13 @@ LowSocket::~LowSocket()
     if(mAcceptConnectCallID)
     {
         if(mType == LOWSOCKET_TYPE_CONNECTED)
-            low_remove_stash(mLow, mAcceptConnectCallID);
+            low_remove_stash(mLow->duk_ctx, mAcceptConnectCallID);
     }
 
     if(mReadCallID)
-        low_remove_stash(mLow, mReadCallID);
+        low_remove_stash(mLow->duk_ctx, mReadCallID);
     if(mWriteCallID)
-        low_remove_stash(mLow, mWriteCallID);
+        low_remove_stash(mLow->duk_ctx, mWriteCallID);
     if(FD() >= 0 && mType != LOWSOCKET_TYPE_STDINOUT)
         close(FD());
     SetFD(-1);
@@ -311,7 +311,7 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
         else
         {
             mAcceptConnectCallID =
-              callIndex != -1 ? low_add_stash(mLow, callIndex) : 0;
+              callIndex != -1 ? low_add_stash(mLow->duk_ctx, callIndex) : 0;
             low_web_set_poll_events(mLow, this, POLLOUT);
 
             return true;
@@ -370,7 +370,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     }
     else
     {
-        mReadCallID = low_add_stash(mLow, callIndex);
+        mReadCallID = low_add_stash(mLow->duk_ctx, callIndex);
 
         short events =
           mClosed ? 0
@@ -440,7 +440,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     }
     else
     {
-        mWriteCallID = low_add_stash(mLow, callIndex);
+        mWriteCallID = low_add_stash(mLow->duk_ctx, callIndex);
 
         short events =
           ((mReadData && !mReadPos) || mDirectReadEnabled ? POLLIN : 0) |
@@ -502,7 +502,7 @@ bool LowSocket::Close(int callIndex)
         return true;
 
     if(callIndex != -1)
-        mCloseCallID = low_add_stash(mLow, callIndex);
+        mCloseCallID = low_add_stash(mLow->duk_ctx, callIndex);
 
     mDestroyed = true;
     if(mCloseCallID)
@@ -815,13 +815,15 @@ bool LowSocket::OnEvents(short events)
 
 bool LowSocket::OnLoop()
 {
+    duk_context *ctx = mLow->duk_ctx;
+
     if(mDestroyed)
     {
         if(mCloseCallID)
         {
-            low_push_stash(mLow, mCloseCallID, true);
-            duk_push_null(mLow->duk_ctx);
-            duk_call(mLow->duk_ctx, 1);
+            low_push_stash(ctx, mCloseCallID, true);
+            duk_push_null(ctx);
+            duk_call(ctx, 1);
         }
         return false;
     }
@@ -832,9 +834,9 @@ bool LowSocket::OnLoop()
         {
             if(mCloseCallID)
             {
-                low_push_stash(mLow, mCloseCallID, true);
-                duk_push_null(mLow->duk_ctx);
-                duk_call(mLow->duk_ctx, 1);
+                low_push_stash(ctx, mCloseCallID, true);
+                duk_push_null(ctx);
+                duk_call(ctx, 1);
             }
             return false;
         }
@@ -843,9 +845,9 @@ bool LowSocket::OnLoop()
     {
         if(mCloseCallID)
         {
-            low_push_stash(mLow, mCloseCallID, true);
-            duk_push_null(mLow->duk_ctx);
-            duk_call(mLow->duk_ctx, 1);
+            low_push_stash(ctx, mCloseCallID, true);
+            duk_push_null(ctx);
+            duk_call(ctx, 1);
         }
         return false;
     }
@@ -860,17 +862,17 @@ bool LowSocket::OnLoop()
         int callID = mReadCallID;
         mReadCallID = 0;
 
-        low_push_stash(mLow, callID, true);
+        low_push_stash(ctx, callID, true);
         if(mReadPos >= 0)
         {
-            duk_push_null(mLow->duk_ctx);
-            duk_push_int(mLow->duk_ctx, mReadPos);
-            duk_call(mLow->duk_ctx, 2);
+            duk_push_null(ctx);
+            duk_push_int(ctx, mReadPos);
+            duk_call(ctx, 2);
         }
         else
         {
             PushError(0);
-            duk_call(mLow->duk_ctx, 1);
+            duk_call(ctx, 1);
         }
     }
     if(mWriteData && mWritePos)
@@ -880,17 +882,17 @@ bool LowSocket::OnLoop()
         int callID = mWriteCallID;
         mWriteCallID = 0;
 
-        low_push_stash(mLow, callID, true);
+        low_push_stash(ctx, callID, true);
         if(mWritePos > 0)
         {
-            duk_push_null(mLow->duk_ctx);
-            duk_push_int(mLow->duk_ctx, mWritePos);
-            duk_call(mLow->duk_ctx, 2);
+            duk_push_null(ctx);
+            duk_push_int(ctx, mWritePos);
+            duk_call(ctx, 2);
         }
         else
         {
             PushError(1);
-            duk_call(mLow->duk_ctx, 1);
+            duk_call(ctx, 1);
         }
     }
 
@@ -906,6 +908,8 @@ bool LowSocket::OnLoop()
 
 bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
 {
+    duk_context *ctx = mLow->duk_ctx;
+
     char localHost[INET6_ADDRSTRLEN];
     int localPort;
 
@@ -950,33 +954,33 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
     if(mAcceptConnectError)
     {
         if(onStash)
-            low_push_stash(mLow, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
+            low_push_stash(ctx, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
         else
-            duk_dup(mLow->duk_ctx, callIndex);
+            duk_dup(ctx, callIndex);
         PushError(2);
-        duk_call(mLow->duk_ctx, 1);
+        duk_call(ctx, 1);
 
         return false;
     }
     else if(mConnected)
     {
         if(onStash)
-            low_push_stash(mLow, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
+            low_push_stash(ctx, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
         else
-            duk_dup(mLow->duk_ctx, callIndex);
-        duk_push_null(mLow->duk_ctx);
-        duk_push_int(mLow->duk_ctx, FD());
-        duk_push_int(mLow->duk_ctx, mNodeFamily);
+            duk_dup(ctx, callIndex);
+        duk_push_null(ctx);
+        duk_push_int(ctx, FD());
+        duk_push_int(ctx, mNodeFamily);
         if(mNodeFamily)
         {
-            duk_push_string(mLow->duk_ctx, localHost);
-            duk_push_int(mLow->duk_ctx, localPort);
-            duk_push_string(mLow->duk_ctx, mRemoteHost);
-            duk_push_int(mLow->duk_ctx, mRemotePort);
-            duk_call(mLow->duk_ctx, 7);
+            duk_push_string(ctx, localHost);
+            duk_push_int(ctx, localPort);
+            duk_push_string(ctx, mRemoteHost);
+            duk_push_int(ctx, mRemotePort);
+            duk_call(ctx, 7);
         }
         else
-            duk_call(mLow->duk_ctx, 3);
+            duk_call(ctx, 3);
     }
 
     return true;
@@ -1224,18 +1228,20 @@ void LowSocket::PushError(int call)
 
     if(error && ssl)
     {
+        duk_context *ctx = mLow->duk_ctx;
+
         char code[32], message[256];
         mbedtls_strerror(error, message, sizeof(message));
         strerror_r(error, message, sizeof(message) - 16 - strlen(syscall));
         sprintf(message + strlen(message), " (at %s)", syscall);
-        duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, message);
+        duk_push_error_object(ctx, DUK_ERR_ERROR, message);
         sprintf(code, "ERR_MBEDTLS_%X", -error);
-        duk_push_string(mLow->duk_ctx, code);
-        duk_put_prop_string(mLow->duk_ctx, -2, "code");
-        duk_push_int(mLow->duk_ctx, -error);
-        duk_put_prop_string(mLow->duk_ctx, -2, "errno");
-        duk_push_string(mLow->duk_ctx, syscall);
-        duk_put_prop_string(mLow->duk_ctx, -2, "syscall");
+        duk_push_string(ctx, code);
+        duk_put_prop_string(ctx, -2, "code");
+        duk_push_int(ctx, -error);
+        duk_put_prop_string(ctx, -2, "errno");
+        duk_push_string(ctx, syscall);
+        duk_put_prop_string(ctx, -2, "syscall");
     }
     else
         low_push_error(mLow, error, syscall);

@@ -48,7 +48,7 @@ LowServerSocket::~LowServerSocket()
         close(FD());
 
     if (mAcceptCallID)
-        low_remove_stash(mLow, mAcceptCallID);
+        low_remove_stash(mLow->duk_ctx, mAcceptCallID);
     if (mSecureContext)
         mSecureContext->DecRef();
 }
@@ -118,7 +118,7 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
     SetFD(fd);
     AdvertiseFD();
 
-    mAcceptCallID = low_add_stash(mLow, callIndex);
+    mAcceptCallID = low_add_stash(mLow->duk_ctx, callIndex);
     low_web_set_poll_events(mLow, this, POLLIN);
     return true;
 }

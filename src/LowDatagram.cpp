@@ -39,11 +39,11 @@ LowDatagram::~LowDatagram()
         close(FD());
 
     if (mMessageCallID)
-        low_remove_stash(mLow, mMessageCallID);
+        low_remove_stash(mLow->duk_ctx, mMessageCallID);
     if (mSendCallID)
-        low_remove_stash(mLow, mSendCallID);
+        low_remove_stash(mLow->duk_ctx, mSendCallID);
     if (mSendBufferID)
-        low_remove_stash(mLow, mSendBufferID);
+        low_remove_stash(mLow->duk_ctx, mSendBufferID);
 }
 
 
@@ -104,7 +104,7 @@ bool LowDatagram::Bind(struct sockaddr *addr, int addrLen, int callIndex, int &e
     SetFD(fd);
     AdvertiseFD();
 
-    mMessageCallID = low_add_stash(mLow, callIndex);
+    mMessageCallID = low_add_stash(mLow->duk_ctx, callIndex);
     low_web_set_poll_events(mLow, this, POLLIN);
     return true;
 }
@@ -174,8 +174,8 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
     }
     else
     {
-        mSendBufferID = low_add_stash(mLow, bufferIndex);
-        mSendCallID = low_add_stash(mLow, callIndex);
+        mSendBufferID = low_add_stash(mLow->duk_ctx, bufferIndex);
+        mSendCallID = low_add_stash(mLow->duk_ctx, callIndex);
         low_web_set_poll_events(mLow, this, POLLIN | POLLOUT);
     }
 }
@@ -263,7 +263,7 @@ bool LowDatagram::OnLoop()
             }
         }
 
-        low_push_stash(mLow, mMessageCallID, false);
+        low_push_stash(mLow->duk_ctx, mMessageCallID, false);
         if(mRecvLen == -1)
         {
             low_push_error(mLow, mRecvErr, syscall);
@@ -301,9 +301,9 @@ bool LowDatagram::OnLoop()
     }
     if(!mSendData && mSendCallID)
     {
-        low_push_stash(mLow, mSendCallID, true);
+        low_push_stash(mLow->duk_ctx, mSendCallID, true);
         mSendCallID = 0;
-        low_remove_stash(mLow, mSendBufferID);
+        low_remove_stash(mLow->duk_ctx, mSendBufferID);
         mSendBufferID = 0;
 
         if(mSendLen == -1)

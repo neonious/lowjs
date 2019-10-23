@@ -109,7 +109,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
 
     int timeout = duk_get_prop_string(ctx, 0, "timeout_ms") ? duk_require_int(ctx, -1) : 30000;
 
-    int thisIndex = low_add_stash(low, 1);
+    int thisIndex = low_add_stash(low->duk_ctx, 1);
 
     duk_function_list_entry methods[] = {{"node", opcua_uaclient_node, 2},
                                          {"createSubscription", opcua_uaclient_create_subscription, 1},
@@ -154,7 +154,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     UA_Client *client = UA_Client_new();
     if(!client)
     {
-        low_remove_stash(low, thisIndex);
+        low_remove_stash(low->duk_ctx, thisIndex);
 
         low_push_error(low, ENOMEM, "malloc");
         duk_throw(ctx);
@@ -164,7 +164,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     auto config = UA_Client_getConfig(client);
     if(UA_ClientConfig_setDefault(config) != UA_STATUSCODE_GOOD)
     {
-        low_remove_stash(low, thisIndex);
+        low_remove_stash(low->duk_ctx, thisIndex);
         UA_Client_delete(client);
 
         low_push_error(low, ENOMEM, "malloc");
@@ -178,7 +178,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
         UA_UserNameIdentityToken* identityToken = UA_UserNameIdentityToken_new();
         if(!identityToken)
         {
-            low_remove_stash(low, thisIndex);
+            low_remove_stash(low->duk_ctx, thisIndex);
             UA_Client_delete(client);
 
             low_push_error(low, ENOMEM, "malloc");
@@ -198,7 +198,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     *opcua = new(low_new) LowOPCUA(low, client, thisIndex, config->timeout, url);
     if(!*opcua)
     {
-        low_remove_stash(low, thisIndex);
+        low_remove_stash(low->duk_ctx, thisIndex);
         UA_Client_delete(client);
 
         low_push_error(low, ENOMEM, "malloc");
@@ -228,7 +228,7 @@ int opcua_uaclient_destroy(duk_context *ctx)
     LowOPCUA *obj = *opcua;
     *opcua = NULL;
 
-    obj->DisconnectAndDetach(low_add_stash(low, 0));
+    obj->DisconnectAndDetach(low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -337,7 +337,7 @@ int opcua_uaclient_create_subscription(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CREATE_SUBSCRIPTION, reqID, &UA_TYPES[UA_TYPES_CREATESUBSCRIPTIONRESPONSE], low_add_stash(low, 1), low_add_stash(low, 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CREATE_SUBSCRIPTION, reqID, &UA_TYPES[UA_TYPES_CREATESUBSCRIPTIONRESPONSE], low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -396,7 +396,7 @@ int opcua_uaclient_destroy_subscription(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_DESTROY_SUBSCRIPTION, reqID, &UA_TYPES[UA_TYPES_DELETESUBSCRIPTIONSRESPONSE], low_add_stash(low, 1), low_add_stash(low, 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_DESTROY_SUBSCRIPTION, reqID, &UA_TYPES[UA_TYPES_DELETESUBSCRIPTIONSRESPONSE], low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -473,7 +473,7 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
         return 0;
     }
     // client , callback , node
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_ADD, reqID, &UA_TYPES[UA_TYPES_CREATEMONITOREDITEMSRESPONSE], low_add_stash(low, 2), low_add_stash(low, 1), low_add_stash(low, 0), clientHandle);
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_ADD, reqID, &UA_TYPES[UA_TYPES_CREATEMONITOREDITEMSRESPONSE], low_add_stash(low->duk_ctx, 2), low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 0), clientHandle);
     return 0;
 }
 
@@ -536,7 +536,7 @@ int opcua_uaclient_subscription_remove(duk_context *ctx)
         return 0;
     }
 
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE, reqID, &UA_TYPES[UA_TYPES_DELETEMONITOREDITEMSRESPONSE], low_add_stash(low, 0), low_add_stash(low, 1), low_add_stash(low, 2));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBSCRIPTION_REMOVE, reqID, &UA_TYPES[UA_TYPES_DELETEMONITOREDITEMSRESPONSE], low_add_stash(low->duk_ctx, 0), low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 2));
     return 0;
 }
 
@@ -605,7 +605,7 @@ int opcua_uaclient_lookup_props(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_LOOKUP_PROPS, reqID, &UA_TYPES[UA_TYPES_READRESPONSE], low_add_stash(low, 1), low_add_stash(low, 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_LOOKUP_PROPS, reqID, &UA_TYPES[UA_TYPES_READRESPONSE], low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -729,7 +729,7 @@ int opcua_uaclient_subnode(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBNODE, reqID, &UA_TYPES[UA_TYPES_TRANSLATEBROWSEPATHSTONODEIDSRESPONSE], low_add_stash(low, 3), low_add_stash(low, 1));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_SUBNODE, reqID, &UA_TYPES[UA_TYPES_TRANSLATEBROWSEPATHSTONODEIDSRESPONSE], low_add_stash(low->duk_ctx, 3), low_add_stash(low->duk_ctx, 1));
     return 0;
 }
 
@@ -791,7 +791,7 @@ int opcua_uaclient_children(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CHILDREN, reqID, &UA_TYPES[UA_TYPES_BROWSERESPONSE], low_add_stash(low, 2), low_add_stash(low, 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CHILDREN, reqID, &UA_TYPES[UA_TYPES_BROWSERESPONSE], low_add_stash(low->duk_ctx, 2), low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -854,7 +854,7 @@ int opcua_uaclient_read(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_READ, reqID, &UA_TYPES[UA_TYPES_READRESPONSE], low_add_stash(low, 2), low_add_stash(low, hasAttribute ? 1 : 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_READ, reqID, &UA_TYPES[UA_TYPES_READRESPONSE], low_add_stash(low->duk_ctx, 2), low_add_stash(low->duk_ctx, hasAttribute ? 1 : 0));
     return 0;
 }
 
@@ -974,7 +974,7 @@ int opcua_uaclient_write(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_WRITE, reqID, &UA_TYPES[UA_TYPES_WRITERESPONSE], 0, low_add_stash(low, hasAttribute ? 3 : 2));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_WRITE, reqID, &UA_TYPES[UA_TYPES_WRITERESPONSE], 0, low_add_stash(low->duk_ctx, hasAttribute ? 3 : 2));
     return 0;
 }
 
@@ -1036,7 +1036,7 @@ int opcua_uaclient_call(duk_context *ctx)
         low_loop_set_callback(low, opcua);
         return 0;
     }
-    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CALL, reqID, &UA_TYPES[UA_TYPES_CALLRESPONSE], low_add_stash(low, 1), low_add_stash(low, 0));
+    opcua->AddAsyncRequestAndUnlock(LOWOPCTASK_TYPE_CALL, reqID, &UA_TYPES[UA_TYPES_CALLRESPONSE], low_add_stash(low->duk_ctx, 1), low_add_stash(low->duk_ctx, 0));
     return 0;
 }
 
@@ -1108,23 +1108,23 @@ LowOPCUA::~LowOPCUA()
         if(iter->second.type == LOWOPCTASK_TYPE_DESTROY && iter->second.callbackStashIndex)
             callDestroy = iter->second.callbackStashIndex;
         else
-            low_remove_stash(mLow, iter->second.callbackStashIndex);
-        low_remove_stash(mLow, iter->second.objStashIndex);
-        low_remove_stash(mLow, iter->second.objStashIndex2);
+            low_remove_stash(mLow->duk_ctx, iter->second.callbackStashIndex);
+        low_remove_stash(mLow->duk_ctx, iter->second.objStashIndex);
+        low_remove_stash(mLow->duk_ctx, iter->second.objStashIndex2);
         low_loop_clear_chore_c(mLow, iter->second.timeoutChoreIndex);
     }
     for(auto iter = mMonitoredItems.begin(); iter != mMonitoredItems.end(); iter++)
     {
-        low_remove_stash(mLow, iter->second.first);
-        low_remove_stash(mLow, iter->second.second);
+        low_remove_stash(mLow->duk_ctx, iter->second.first);
+        low_remove_stash(mLow->duk_ctx, iter->second.second);
     }
 
-    low_remove_stash(mLow, mThisIndex);
+    low_remove_stash(mLow->duk_ctx, mThisIndex);
     mLow->run_ref--;
 
     if(callDestroy)
     {
-        low_push_stash(mLow, callDestroy, true);
+        low_push_stash(mLow->duk_ctx, callDestroy, true);
         duk_push_null(mLow->duk_ctx);
         duk_call(mLow->duk_ctx, 1);
     }
@@ -1276,14 +1276,14 @@ void LowOPCUA::OnTaskTimeout(void *data)
 
     int callback = task->callbackStashIndex;
     low_loop_clear_chore_c(opcua->mLow, task->timeoutChoreIndex);
-    low_remove_stash(opcua->mLow, task->objStashIndex);
-    low_remove_stash(opcua->mLow, task->objStashIndex2);
+    low_remove_stash(opcua->mLow->duk_ctx, task->objStashIndex);
+    low_remove_stash(opcua->mLow->duk_ctx, task->objStashIndex2);
     opcua->mTasks.erase(task->id);
 
     pthread_mutex_unlock(&opcua->mMutex);
     if(callback)
     {
-        low_push_stash(opcua->mLow, task->callbackStashIndex, true);
+        low_push_stash(opcua->mLow->duk_ctx, task->callbackStashIndex, true);
         duk_push_error_object(opcua->mLow->duk_ctx, DUK_ERR_ERROR, "timeout");
         duk_call(opcua->mLow->duk_ctx, 1);
     }
@@ -1356,7 +1356,7 @@ bool LowOPCUA::OnLoop()
     if((mConnectState == 1 && (mError & 0x80000000) && mDisabledState != 2) || mDisabledState == 1)
     {
         duk_context *ctx = low_get_duk_context(mLow);
-        low_push_stash(mLow, mThisIndex, false);
+        low_push_stash(mLow->duk_ctx, mThisIndex, false);
         duk_push_string(ctx, "emit");
         duk_push_string(ctx, "error");
 
@@ -1375,7 +1375,7 @@ bool LowOPCUA::OnLoop()
     if(mConnectState == 1)
     {
         duk_context *ctx = low_get_duk_context(mLow);
-        low_push_stash(mLow, mThisIndex, false);
+        low_push_stash(mLow->duk_ctx, mThisIndex, false);
         duk_push_string(ctx, "emit");
         duk_push_string(ctx, "connect");
         mConnectState = 2;
@@ -1410,17 +1410,17 @@ bool LowOPCUA::OnLoop()
             UA_ReadResponse *response = (UA_ReadResponse *)task.result;
             if(response->resultsSize != 3)
             {
-                low_remove_stash(mLow, task.objStashIndex);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else
             {
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 PushVariant(&response->results[0].value);
                 duk_put_prop_string(mLow->duk_ctx, -2, "browseName");
                 PushVariant(&response->results[1].value);
@@ -1430,7 +1430,7 @@ bool LowOPCUA::OnLoop()
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_null(mLow->duk_ctx);
                     duk_dup(mLow->duk_ctx, -3);
                     duk_call(mLow->duk_ctx, 2);
@@ -1442,26 +1442,26 @@ bool LowOPCUA::OnLoop()
             UA_TranslateBrowsePathsToNodeIdsResponse *response = (UA_TranslateBrowsePathsToNodeIdsResponse *)task.result;
             if(!response->resultsSize)
             {
-                low_remove_stash(mLow, task.objStashIndex);
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                 duk_call(mLow->duk_ctx, 1);
             }
             else if(!response->results[0].targetsSize)
             {
-                low_remove_stash(mLow, task.objStashIndex);
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0].statusCode));
                 duk_call(mLow->duk_ctx, 1);
             }
             else
             {
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_null(mLow->duk_ctx);
 
                 duk_push_object(mLow->duk_ctx);
 
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_put_prop_string(mLow->duk_ctx, -2, "\xff""nativeObj");
 
                 opcua_fill_node(mLow->duk_ctx);
@@ -1485,7 +1485,7 @@ bool LowOPCUA::OnLoop()
                     UA_ReferenceDescription *ref = &(response->results[i].references[j]);
                     duk_push_object(mLow->duk_ctx);
 
-                    low_push_stash(mLow, task.objStashIndex, false);
+                    low_push_stash(mLow->duk_ctx, task.objStashIndex, false);
                     duk_put_prop_string(mLow->duk_ctx, -2, "\xff""nativeObj");
 
                     opcua_fill_node(mLow->duk_ctx);
@@ -1501,9 +1501,9 @@ bool LowOPCUA::OnLoop()
 
                     duk_put_prop_index(mLow->duk_ctx, -2, n++);
                 }
-            low_remove_stash(mLow, task.objStashIndex);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex);
 
-            low_push_stash(mLow, task.callbackStashIndex, true);
+            low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
             if(n == 0 && (response->responseHeader.serviceResult & 0x80000000))
             {
                 duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
@@ -1523,8 +1523,8 @@ bool LowOPCUA::OnLoop()
         }
         else if(task.type == LOWOPCTASK_TYPE_READ && task.callbackStashIndex)
         {
-            low_remove_stash(mLow, task.objStashIndex);
-            low_push_stash(mLow, task.callbackStashIndex, true);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+            low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
 
             UA_ReadResponse *response = (UA_ReadResponse *)task.result;
             if(!response->resultsSize)
@@ -1546,8 +1546,8 @@ bool LowOPCUA::OnLoop()
         }
         else if(task.type == LOWOPCTASK_TYPE_WRITE && task.callbackStashIndex)
         {
-            low_remove_stash(mLow, task.objStashIndex);
-            low_push_stash(mLow, task.callbackStashIndex, true);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+            low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
 
             UA_WriteResponse *response = (UA_WriteResponse *)task.result;
             if(!response->resultsSize)
@@ -1568,8 +1568,8 @@ bool LowOPCUA::OnLoop()
         }
         else if(task.type == LOWOPCTASK_TYPE_CALL && task.callbackStashIndex)
         {
-            low_remove_stash(mLow, task.objStashIndex);
-            low_push_stash(mLow, task.callbackStashIndex, true);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+            low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
 
             UA_CallResponse *response = (UA_CallResponse *)task.result;
             if(!response->resultsSize)
@@ -1593,14 +1593,14 @@ bool LowOPCUA::OnLoop()
             UA_CreateSubscriptionResponse *response = (UA_CreateSubscriptionResponse *)task.result;
             if(response->responseHeader.serviceResult & 0x80000000)
             {
-                low_remove_stash(mLow, task.objStashIndex);
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                 duk_call(mLow->duk_ctx, 1);
             }
             else
             {
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_null(mLow->duk_ctx);
 
                 duk_push_object(mLow->duk_ctx);
@@ -1608,7 +1608,7 @@ bool LowOPCUA::OnLoop()
                 duk_push_int(mLow->duk_ctx, 0);
                 duk_put_prop_string(mLow->duk_ctx, -2, "\xff""itemCount");
 
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_dup(mLow->duk_ctx, -1);
                 duk_put_prop_string(mLow->duk_ctx, -3, "\xff""client");
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""nativeObj");
@@ -1636,34 +1636,34 @@ bool LowOPCUA::OnLoop()
             UA_DeleteSubscriptionsResponse *response = (UA_DeleteSubscriptionsResponse *)task.result;
             if(!response->resultsSize)
             {
-                low_remove_stash(mLow, task.objStashIndex);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else if(response->results[0] & 0x80000000)
             {
-                low_remove_stash(mLow, task.objStashIndex);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else
             {
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_del_prop_string(mLow->duk_ctx, -1, "\xff""id");
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_null(mLow->duk_ctx);
                     duk_call(mLow->duk_ctx, 1);
                 }
@@ -1674,39 +1674,39 @@ bool LowOPCUA::OnLoop()
             UA_CreateMonitoredItemsResponse *response = (UA_CreateMonitoredItemsResponse *)task.result;
             if(!response->resultsSize)
             {
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
                 duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
                 duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
-                low_remove_stash(mLow, task.objStashIndex2);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex2);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else if(response->results[0].statusCode & 0x80000000)
             {
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
                 duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
                 duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
-                low_remove_stash(mLow, task.objStashIndex2);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex2);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0].statusCode));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else
             {
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""client");
-                mMonitoredItems[task.clientHandle] = std::pair<int, int>(low_add_stash(mLow, duk_get_top_index(mLow->duk_ctx)), task.objStashIndex2);
+                mMonitoredItems[task.clientHandle] = std::pair<int, int>(low_add_stash(mLow->duk_ctx, duk_get_top_index(mLow->duk_ctx)), task.objStashIndex2);
                 if(!mClient->publishNotificationCallback && !mDetachedState)
                 {
                     mClient->publishNotificationCallback = OnPublishNotification;
@@ -1714,7 +1714,7 @@ bool LowOPCUA::OnLoop()
                     UA_Client_Subscriptions_backgroundPublish(mClient);
                     pthread_mutex_unlock(&mMutex);
                 }
-                low_push_stash(mLow, task.objStashIndex2, false);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex2, false);
                 duk_push_uint(mLow->duk_ctx, response->results[0].monitoredItemId);
                 duk_put_prop_string(mLow->duk_ctx, -2, "\xff""monitoredItemID");
                 duk_push_uint(mLow->duk_ctx, task.clientHandle);
@@ -1722,7 +1722,7 @@ bool LowOPCUA::OnLoop()
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_null(mLow->duk_ctx);
                     duk_call(mLow->duk_ctx, 1);
                 }
@@ -1733,36 +1733,36 @@ bool LowOPCUA::OnLoop()
             UA_DeleteMonitoredItemsResponse *response = (UA_DeleteMonitoredItemsResponse *)task.result;
             if(!response->resultsSize)
             {
-                low_remove_stash(mLow, task.objStashIndex);
-                low_remove_stash(mLow, task.objStashIndex2);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex2);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->responseHeader.serviceResult));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else if(response->results[0] & 0x80000000)
             {
-                low_remove_stash(mLow, task.objStashIndex);
-                low_remove_stash(mLow, task.objStashIndex2);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+                low_remove_stash(mLow->duk_ctx, task.objStashIndex2);
 
                 if(task.callbackStashIndex)
                 {
-                    low_push_stash(mLow, task.callbackStashIndex, true);
+                    low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                     duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, UA_StatusCode_name(response->results[0]));
                     duk_call(mLow->duk_ctx, 1);
                 }
             }
             else
             {
-                low_push_stash(mLow, task.objStashIndex2, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex2, true);
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""itemCount");
                 duk_push_int(mLow->duk_ctx, duk_require_int(mLow->duk_ctx, -1) - 1);
                 duk_put_prop_string(mLow->duk_ctx, -3, "\xff""itemCount");
 
-                low_push_stash(mLow, task.objStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.objStashIndex, true);
                 duk_get_prop_string(mLow->duk_ctx, -1, "\xff""monitoredItemID");
                 int monitoredItemID = duk_require_uint(mLow->duk_ctx, -1);
                 duk_get_prop_string(mLow->duk_ctx, -2, "\xff""clientHandle");
@@ -1773,22 +1773,22 @@ bool LowOPCUA::OnLoop()
                 {
                     if(task.callbackStashIndex)
                     {
-                        low_push_stash(mLow, task.callbackStashIndex, true);
+                        low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                         duk_push_error_object(mLow->duk_ctx, DUK_ERR_ERROR, "node property was tampered with");
                         duk_call(mLow->duk_ctx, 1);
                     }
                 }
                 else
                 {
-                    low_remove_stash(mLow, iter->second.first);
-                    low_remove_stash(mLow, iter->second.second);
+                    low_remove_stash(mLow->duk_ctx, iter->second.first);
+                    low_remove_stash(mLow->duk_ctx, iter->second.second);
                     mMonitoredItems.erase(iter);
                     mClient->publishNotificationCallback = mDetachedState || mMonitoredItems.size() == 0 ? NULL : OnPublishNotification;
                     duk_del_prop_string(mLow->duk_ctx, -1, "\xff""monitoredItemID");
 
                     if(task.callbackStashIndex)
                     {
-                        low_push_stash(mLow, task.callbackStashIndex, true);
+                        low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                         duk_push_null(mLow->duk_ctx);
                         duk_call(mLow->duk_ctx, 1);
                     }
@@ -1797,11 +1797,11 @@ bool LowOPCUA::OnLoop()
         }
         else
         {
-            low_remove_stash(mLow, task.objStashIndex);
-            low_remove_stash(mLow, task.objStashIndex2);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex);
+            low_remove_stash(mLow->duk_ctx, task.objStashIndex2);
             if(task.callbackStashIndex)
             {
-                low_push_stash(mLow, task.callbackStashIndex, true);
+                low_push_stash(mLow->duk_ctx, task.callbackStashIndex, true);
                 duk_push_null(mLow->duk_ctx);
                 duk_call(mLow->duk_ctx, 1);
             }
@@ -1823,10 +1823,10 @@ bool LowOPCUA::OnLoop()
         {
             while(duk_get_top(mLow->duk_ctx))
                 duk_pop(mLow->duk_ctx);
-            low_push_stash(mLow, iter->second.first, false);
+            low_push_stash(mLow->duk_ctx, iter->second.first, false);
             duk_push_string(mLow->duk_ctx, "emit");
             duk_push_string(mLow->duk_ctx, "dataChanged");
-            low_push_stash(mLow, iter->second.second, false);
+            low_push_stash(mLow->duk_ctx, iter->second.second, false);
             PushVariant(&min->value.value);
             duk_call_prop(mLow->duk_ctx, -5, 3);
         }

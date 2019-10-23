@@ -36,11 +36,11 @@ LowHTTPDirect::~LowHTTPDirect()
         mSocket->SetDirect(NULL, 0);
 
     if(mRequestCallID)
-        low_remove_stash(mLow, mRequestCallID);
+        low_remove_stash(mLow->duk_ctx, mRequestCallID);
     if(mReadCallID)
-        low_remove_stash(mLow, mReadCallID);
+        low_remove_stash(mLow->duk_ctx, mReadCallID);
     if(mWriteCallID)
-        low_remove_stash(mLow, mWriteCallID);
+        low_remove_stash(mLow->duk_ctx, mWriteCallID);
 
     while(mParamFirst)
     {
@@ -52,7 +52,7 @@ LowHTTPDirect::~LowHTTPDirect()
     for(int i = 0; i < mWriteBufferStashInvalidCount + mWriteBufferCount; i++)
     {
         if(mWriteBufferStashID[i])
-            low_remove_stash(mLow, mWriteBufferStashID[i]);
+            low_remove_stash(mLow->duk_ctx, mWriteBufferStashID[i]);
     }
 
     pthread_mutex_destroy(&mMutex);
@@ -95,12 +95,12 @@ void LowHTTPDirect::Init()
 
     if(mReadCallID)
     {
-        low_remove_stash(mLow, mReadCallID);
+        low_remove_stash(mLow->duk_ctx, mReadCallID);
         mReadCallID = 0;
     }
     if(mWriteCallID)
     {
-        low_remove_stash(mLow, mWriteCallID);
+        low_remove_stash(mLow->duk_ctx, mWriteCallID);
         mWriteCallID = 0;
     }
 }
@@ -179,7 +179,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
         duk_dup(mLow->duk_ctx, callIndex);
         if(mReadError || mHTTPError)
         {
-            low_push_stash(mLow, mRequestCallID, false);
+            low_push_stash(mLow->duk_ctx, mRequestCallID, false);
             if(mReadError)
                 mSocket->PushError(0);
             else
@@ -255,7 +255,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
         }
     }
     else
-        mReadCallID = low_add_stash(mLow, callIndex);
+        mReadCallID = low_add_stash(mLow->duk_ctx, callIndex);
 }
 
 // -----------------------------------------------------------------------------
@@ -281,7 +281,7 @@ void LowHTTPDirect::WriteHeaders(const char *txt,
     if(isChunked)
         mWriteBuffers[0].iov_len -=
           2; // get rid of last \r\n, will be added with chunks
-    mWriteBufferStashID[0] = low_add_stash(mLow, index);
+    mWriteBufferStashID[0] = low_add_stash(mLow->duk_ctx, index);
     mWriteBufferCount = 1;
 
     DoWrite();
@@ -309,7 +309,7 @@ void LowHTTPDirect::Write(unsigned char *data,
     pthread_mutex_lock(&mMutex);
     while(mWriteBufferStashInvalidCount)
     {
-        low_remove_stash(mLow, mWriteBufferStashID[0]);
+        low_remove_stash(mLow->duk_ctx, mWriteBufferStashID[0]);
         mWriteBufferStashID[0] = mWriteBufferStashID[1];
         mWriteBufferStashID[1] = mWriteBufferStashID[2];
         mWriteBufferStashID[2] = 0;
@@ -347,7 +347,7 @@ void LowHTTPDirect::Write(unsigned char *data,
         mWriteBuffers[mWriteBufferCount].iov_base = data;
         mWriteBuffers[mWriteBufferCount].iov_len = len;
         mWriteBufferStashID[mWriteBufferCount] =
-          low_add_stash(mLow, bufferIndex);
+          low_add_stash(mLow->duk_ctx, bufferIndex);
         mWriteBufferCount++;
     }
 
@@ -395,7 +395,7 @@ void LowHTTPDirect::Write(unsigned char *data,
     }
     else
     {
-        mWriteCallID = low_add_stash(mLow, callIndex);
+        mWriteCallID = low_add_stash(mLow->duk_ctx, callIndex);
         mSocket->TriggerDirect(LOWSOCKET_TRIGGER_WRITE);
     }
 }
@@ -451,7 +451,7 @@ bool LowHTTPDirect::OnLoop()
 
     if(!mIsRequest && mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER && mAtTrailer)
     {
-        low_push_stash(mLow, mRequestCallID, false);
+        low_push_stash(mLow->duk_ctx, mRequestCallID, false);
         duk_push_null(mLow->duk_ctx);
 
         duk_push_array(mLow->duk_ctx);
@@ -495,7 +495,7 @@ bool LowHTTPDirect::OnLoop()
     }
     if(!mIsRequest && (mClosed || mReadError || mHTTPError))
     {
-        low_push_stash(mLow, mRequestCallID, false);
+        low_push_stash(mLow->duk_ctx, mRequestCallID, false);
         if(mReadError)
             mSocket->PushError(0);
         else if(mHTTPError)
@@ -519,11 +519,11 @@ bool LowHTTPDirect::OnLoop()
 
         int callID = mReadCallID;
         mReadCallID = 0;
-        low_push_stash(mLow, callID, true);
+        low_push_stash(mLow->duk_ctx, callID, true);
 
         if(mReadError || mHTTPError)
         {
-            low_push_stash(mLow, mRequestCallID, false);
+            low_push_stash(mLow->duk_ctx, mRequestCallID, false);
             if(mReadError)
                 mSocket->PushError(0);
             else
@@ -606,7 +606,7 @@ bool LowHTTPDirect::OnLoop()
         {
             int callID = mWriteCallID;
             mWriteCallID = 0;
-            low_push_stash(mLow, callID, true);
+            low_push_stash(mLow->duk_ctx, callID, true);
 
             if(mWriteError)
             {

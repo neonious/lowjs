@@ -35,7 +35,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
     if(direct && directType == 0)
     {
         // Server version
-        direct->SetRequestCallID(low_add_stash(low, 1));
+        direct->SetRequestCallID(low_add_stash(ctx, 1));
     }
     else if(!direct)
     {
@@ -52,7 +52,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
         if(!socket->SetDirect(direct, 0))
             duk_reference_error(
               ctx, "file descriptor not available for direct object");
-        direct->SetRequestCallID(low_add_stash(low, 1));
+        direct->SetRequestCallID(low_add_stash(ctx, 1));
     }
     else
         duk_reference_error(

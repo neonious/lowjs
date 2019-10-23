@@ -102,9 +102,9 @@ extern "C"
 bool low_reset(low_main_t *low);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-int low_add_stash(low_main_t *low, int index);
-void low_remove_stash(low_main_t *low, int index);
-void low_push_stash(low_main_t *low, int index, bool remove);
+int low_add_stash(duk_context *ctx, int index);
+void low_remove_stash(duk_context *ctx, int index);
+void low_push_stash(duk_context *ctx, int index, bool remove);
 
 void *low_push_buffer(duk_context *ctx, int len);
 

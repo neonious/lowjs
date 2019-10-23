@@ -56,7 +56,7 @@ LowFSMisc::~LowFSMisc()
 
     if(mCallID)
     {
-        low_remove_stash(mLow, mCallID);
+        low_remove_stash(mLow->duk_ctx, mCallID);
         mLow->run_ref--;
     }
     pthread_mutex_destroy(&mMutex);
@@ -319,7 +319,7 @@ void LowFSMisc::Run(int callIndex)
 {
     if(callIndex)
     {
-        mCallID = low_add_stash(mLow, callIndex);
+        mCallID = low_add_stash(mLow->duk_ctx, callIndex);
         mLow->run_ref++;
     }
     else
@@ -489,7 +489,7 @@ bool LowFSMisc::OnLoop()
         mCallID = 0;
         mLow->run_ref--;
 
-        low_push_stash(mLow, callID, true);
+        low_push_stash(mLow->duk_ctx, callID, true);
     }
     if(mError)
     {

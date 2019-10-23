@@ -737,12 +737,12 @@ void low_destroy(low_main_t *low)
 //  low_add_stash
 // -----------------------------------------------------------------------------
 
-int low_add_stash(low_main_t *low, int index)
+int low_add_stash(duk_context *ctx, int index)
 {
+    low_main_t *low = duk_get_low_context(ctx);
     if(low->duk_flag_stop)
         return 0;
 
-    duk_context *ctx = low->duk_ctx;
     if(duk_is_undefined(ctx, index))
         return 0;
 
@@ -775,12 +775,11 @@ int low_add_stash(low_main_t *low, int index)
 //  low_remove_stash
 // -----------------------------------------------------------------------------
 
-void low_remove_stash(low_main_t *low, int index)
+void low_remove_stash(duk_context *ctx, int index)
 {
-    if(low->duk_flag_stop || !index)
+    if(!index)
         return;
 
-    duk_context *ctx = low->duk_ctx;
     duk_push_heap_stash(ctx);
     duk_get_prop_string(ctx, -1, "low");
     duk_del_prop_index(ctx, -1, index);
@@ -791,12 +790,8 @@ void low_remove_stash(low_main_t *low, int index)
 //  low_push_stash
 // -----------------------------------------------------------------------------
 
-void low_push_stash(low_main_t *low, int index, bool remove)
+void low_push_stash(duk_context *ctx, int index, bool remove)
 {
-    if(low->duk_flag_stop)
-        return;
-
-    duk_context *ctx = low->duk_ctx;
     duk_push_heap_stash(ctx);
     duk_get_prop_string(ctx, -1, "low");
     duk_get_prop_index(ctx, -1, index);
