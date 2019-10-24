@@ -200,6 +200,67 @@ duk_ret_t low_process_info(duk_context *ctx)
 
     duk_push_object(ctx);
 #if !LOW_ESP32_LWIP_SPECIALITIES
+
+#ifdef __APPLE__
+    char *path = (char *)low_alloc(PROC_PIDPATHINFO_MAXSIZE);
+    if(!path)
+    {
+        low_push_error(low, ENOMEM, "malloc");
+        duk_throw(ctx);
+    }
+    if(proc_pidpath(getpid(), path, PROC_PIDPATHINFO_MAXSIZE) <= 0)
+    {
+        free(path);
+        low_push_error(low, errno, "proc_pidpath");
+        duk_throw(ctx);
+    }
+#else
+#define MAX_PATH_LEN 1024
+
+    char *path = (char *)low_alloc(MAX_PATH_LEN + 1);
+    if(!path)
+    {
+        low_push_error(low, ENOMEM, "malloc");
+        duk_throw(ctx);
+    }
+    memset(path, 0, MAX_PATH_LEN + 1);
+    if(readlink("/proc/self/exe", path, MAX_PATH_LEN) < 0)
+    {
+        free(path);
+        low_push_error(low, ENOMEM, "readlink");
+        duk_throw(ctx);
+    }
+#endif /* __APPLE__ */
+
+    duk_push_array(ctx);
+
+    duk_push_string(ctx, path);
+    free(path);
+    duk_dup(ctx, -1);
+    duk_put_prop_index(ctx, -3, 0);
+    duk_put_prop_string(ctx, 0, "execPath");
+
+    if(g_low_system.argc >= 2)
+    {
+        char path2[PATH_MAX];
+        realpath(g_low_system.argv[1], path2);
+        duk_push_string(ctx, path2);
+        duk_put_prop_index(ctx, -2, 1);
+
+        for(int i = 2; i < g_low_system.argc; i++)
+        {
+            duk_push_string(ctx, g_low_system.argv[i]);
+            duk_put_prop_index(ctx, -2, i);
+        }
+    }
+    duk_put_prop_string(ctx, 0, "argv");
+
+    if(g_low_system.argc)
+    {
+        duk_push_string(ctx, g_low_system.argv[0]);
+        duk_put_prop_string(ctx, 0, "argv0");
+    }
+
     for(int i = 0; environ && environ[i]; i++)
     {
         int j;

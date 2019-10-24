@@ -43,6 +43,13 @@
 
 struct low_system_t
 {
+#if !LOW_ESP32_LWIP_SPECIALITIES
+    int argc;
+    const char **argv;
+
+    char *main_module_path;
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+
     char *lib_path;
 
 #if LOW_HAS_TERMIOS
@@ -55,7 +62,7 @@ struct low_system_t
 
 extern "C"
 {
-    bool low_system_init();
+    bool low_system_init(int argc, const char *argv[]);
     void low_system_destroy();
 }
 

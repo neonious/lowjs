@@ -15,12 +15,6 @@ int main(int argc, char *argv[])
 {
     low_t *low;
 
-    if(argc > 2)
-    {
-        fprintf(stderr, "Syntax: %s [file.js]\n", argc ? argv[0] : "lowjs");
-        return EXIT_FAILURE;
-    }
-
     if(argc == 2
     && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0))
     {
@@ -28,7 +22,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if(!low_system_init())
+    if(!low_system_init(argc, argv))
         return EXIT_FAILURE;
 
     low = low_init();

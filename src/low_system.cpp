@@ -59,8 +59,11 @@ static void low_system_signal(int sig)
 //  low_system_init
 // -----------------------------------------------------------------------------
 
-bool low_system_init()
+bool low_system_init(int argc, const char *argv[])
 {
+    g_low_system.argc = argc;
+    g_low_system.argv = argv;
+
     srand(time(NULL));
 
     // Setup signal handler
@@ -92,16 +95,23 @@ bool low_system_init()
     int lib_add_path_len = sizeof(lib_add_path) - 1;
 
 #ifdef __APPLE__
+    char path[PROC_PIDPATHINFO_MAXSIZE + lib_add_path_len];
     g_low_system.lib_path =
         (char *)low_alloc(PROC_PIDPATHINFO_MAXSIZE + lib_add_path_len);
-    if(proc_pidpath(getpid(), g_low_system.lib_path,
-                    PROC_PIDPATHINFO_MAXSIZE) <= 0)
+    if(!g_low_system.lib_path)
+    {
+        low_error_errno();
+        goto err;
+    }
+
+    if(proc_pidpath(getpid(), path, PROC_PIDPATHINFO_MAXSIZE) <= 0)
     {
         low_error_errno();
         goto err;
     }
 #else
 #define MAX_PATH_LEN 1024
+    char path[MAX_PATH_LEN + 1 + lib_add_path_len];
 
     g_low_system.lib_path =
         (char *)low_alloc(MAX_PATH_LEN + 1 + lib_add_path_len);
@@ -110,8 +120,9 @@ bool low_system_init()
         low_error_errno();
         goto err;
     }
-    memset(g_low_system.lib_path, 0, MAX_PATH_LEN + 1);
-    if(readlink("/proc/self/exe", g_low_system.lib_path, MAX_PATH_LEN) < 0)
+
+    memset(path, 0, MAX_PATH_LEN + 1);
+    if(readlink("/proc/self/exe", path, MAX_PATH_LEN) < 0)
     {
         low_error_errno();
         goto err;
@@ -119,13 +130,18 @@ bool low_system_init()
 #endif /* __APPLE__ */
 
     int i;
-    for(i = strlen(g_low_system.lib_path); i > 0; i--)
-        if(g_low_system.lib_path[i - 1] == '/')
+    for(i = strlen(path); i > 0; i--)
+        if(path[i - 1] == '/')
         {
-            g_low_system.lib_path[i] = '\0';
+            path[i] = '\0';
             break;
         }
-    strcpy(g_low_system.lib_path + i, lib_add_path);
+    strcpy(path + i, lib_add_path);
+
+    realpath(path, g_low_system.lib_path);
+    i = strlen(g_low_system.lib_path);
+    g_low_system.lib_path[i] = '/';
+    g_low_system.lib_path[i + 1] = '\0';
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_HAS_TERMIOS
@@ -144,7 +160,9 @@ bool low_system_init()
     return true;
 
 err:
+#if !LOW_ESP32_LWIP_SPECIALITIES
     low_free(g_low_system.lib_path);
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
     return false;
 }
 
@@ -155,7 +173,9 @@ err:
 void low_system_destroy()
 {
     low_set_raw_mode(false);
+#if !LOW_ESP32_LWIP_SPECIALITIES
     low_free(g_low_system.lib_path);
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 }
 
 // -----------------------------------------------------------------------------
