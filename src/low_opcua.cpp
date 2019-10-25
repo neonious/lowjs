@@ -1074,7 +1074,7 @@ LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeou
     UA_DateTime now = UA_DateTime_nowMonotonic();
     UA_DateTime next = UA_Timer_process(&client->timer, now, (UA_TimerExecutionCallback)clientExecuteRepeatedCallback, this);
     if((signed)next != -1)
-        mChoreIndex = low_loop_set_chore_c(mLow, 0, (next - now) / 1000000, OnTimeout, this);
+        mChoreIndex = low_set_timeout(mLow->duk_ctx, 0, (next - now) / 1000000, OnTimeout, this);
     if(mConnectState == 1)
         low_loop_set_callback(mLow, this);
 }
@@ -1087,7 +1087,7 @@ LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeou
 LowOPCUA::~LowOPCUA()
 {
     low_web_clear_poll(mLow, this);
-    low_loop_clear_chore_c(mLow, mChoreIndex);
+    low_clear_timeout(mLow->duk_ctx, mChoreIndex);
 
     UA_Client_delete(mClient);
     while(mWriteBuffer)
@@ -1111,7 +1111,7 @@ LowOPCUA::~LowOPCUA()
             low_remove_stash(mLow->duk_ctx, iter->second.callbackStashIndex);
         low_remove_stash(mLow->duk_ctx, iter->second.objStashIndex);
         low_remove_stash(mLow->duk_ctx, iter->second.objStashIndex2);
-        low_loop_clear_chore_c(mLow, iter->second.timeoutChoreIndex);
+        low_clear_timeout(mLow->duk_ctx, iter->second.timeoutChoreIndex);
     }
     for(auto iter = mMonitoredItems.begin(); iter != mMonitoredItems.end(); iter++)
     {
@@ -1176,7 +1176,7 @@ void LowOPCUA::AddAsyncRequestAndUnlock(int type, unsigned int reqID, const UA_D
     task.objStashIndex2 = objStashIndex2;
     task.clientHandle = clientHandle;
     task.callbackStashIndex = callbackStashIndex;
-    task.timeoutChoreIndex = low_loop_set_chore_c(mLow, 0, mTimeoutMS, OnTaskTimeout, &task);
+    task.timeoutChoreIndex = low_set_timeout(mLow->duk_ctx, 0, mTimeoutMS, OnTaskTimeout, &task);
     pthread_mutex_unlock(&mMutex);
     if(FD() >= 0)
         low_web_set_poll_events(mLow, this, mDisabledState || mDetachedState == 2 ? 0 : (mWriteBuffer || mConnectState == 0 ? POLLOUT | POLLIN | POLLERR : POLLIN | POLLERR));
@@ -1226,7 +1226,7 @@ void LowOPCUA::OnTimeout(void *data)
         int ms = (next - now) / 1000000;
         if(ms < 20)
             ms = 20;
-        opcua->mChoreIndex = low_loop_set_chore_c(opcua->mLow, opcua->mChoreIndex, ms, OnTimeout, data);
+        opcua->mChoreIndex = low_set_timeout(opcua->mLow->duk_ctx, opcua->mChoreIndex, ms, OnTimeout, data);
     }
     if(opcua->mConnectState == 1 || opcua->mDisabledState == 1)
         low_loop_set_callback(opcua->mLow, opcua);
@@ -1275,7 +1275,7 @@ void LowOPCUA::OnTaskTimeout(void *data)
         opcua->mDetachedState = 2;
 
     int callback = task->callbackStashIndex;
-    low_loop_clear_chore_c(opcua->mLow, task->timeoutChoreIndex);
+    low_clear_timeout(opcua->mLow->duk_ctx, task->timeoutChoreIndex);
     low_remove_stash(opcua->mLow->duk_ctx, task->objStashIndex);
     low_remove_stash(opcua->mLow->duk_ctx, task->objStashIndex2);
     opcua->mTasks.erase(task->id);
@@ -1404,7 +1404,7 @@ bool LowOPCUA::OnLoop()
         while(duk_get_top(mLow->duk_ctx))
             duk_pop(mLow->duk_ctx);
 
-        low_loop_clear_chore_c(mLow, task.timeoutChoreIndex);
+        low_clear_timeout(mLow->duk_ctx, task.timeoutChoreIndex);
         if(task.type == LOWOPCTASK_TYPE_LOOKUP_PROPS)
         {
             UA_ReadResponse *response = (UA_ReadResponse *)task.result;

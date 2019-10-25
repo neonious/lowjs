@@ -26,7 +26,7 @@ int native_adder_method_add(duk_context *ctx)
 //  module_main
 // -----------------------------------------------------------------------------
 
-int module_main(duk_context *ctx)
+int module_main(duk_context *ctx, const char *module_path)
 {
     duk_push_object(ctx);
 

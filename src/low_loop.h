@@ -30,8 +30,8 @@ duk_ret_t low_loop_run_ref(duk_context *ctx);
 duk_ret_t low_loop_set_chore(duk_context *ctx);
 duk_ret_t low_loop_clear_chore(duk_context *ctx);
 
-int low_loop_set_chore_c(low_main_t *low, int index, int delay, void (*call)(void *data), void *data);
-void low_loop_clear_chore_c(low_main_t *low, int index);
+int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *data), void *data);
+void low_clear_timeout(duk_context *ctx, int index);
 
 void low_loop_set_callback(
     low_main_t *low,

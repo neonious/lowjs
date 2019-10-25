@@ -81,6 +81,8 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"closedir", (uintptr_t)closedir},
 
 //    {"low_call_direct", (uintptr_t)low_call_direct},
+    {"low_set_timeout", (uintptr_t)low_set_timeout},
+    {"low_clear_timeout", (uintptr_t)low_clear_timeout},
     {"low_add_stash", (uintptr_t)low_add_stash},
     {"low_remove_stash", (uintptr_t)low_remove_stash},
     {"low_push_stash", (uintptr_t)low_push_stash},
@@ -513,20 +515,20 @@ int native_api_load_sync(duk_context *ctx)
     const char *err;
     bool err_malloc = false;
 
-    int (*module_main)(duk_context *) = (int (*)(duk_context *))elf_load((char *)data, len, &err, &err_malloc);
+    int (*module_main)(duk_context *, const char *) = (int (*)(duk_context *, const char *))elf_load((char *)data, len, &err, &err_malloc);
     free(data);
 
     if(!module_main)
     {
-	if(err_malloc)
-	{
-		const char *err2 = duk_push_string(ctx, err);
-		low_free((void *)err);
-	        duk_generic_error(ctx, err2);
-	}
-	else
-	        duk_generic_error(ctx, err);
+        if(err_malloc)
+        {
+            const char *err2 = duk_push_string(ctx, err);
+            low_free((void *)err);
+                duk_generic_error(ctx, err2);
+        }
+        else
+                duk_generic_error(ctx, err);
 	}
 
-    return module_main(ctx);
+    return module_main(ctx, path);
 }

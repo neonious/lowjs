@@ -255,11 +255,13 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
 
 
 // -----------------------------------------------------------------------------
-//  low_loop_set_chore_c
+//  low_set_timeout
 // -----------------------------------------------------------------------------
 
-int low_loop_set_chore_c(low_main_t *low, int index, int delay, void (*call)(void *data), void *data)
+int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *data), void *data)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
     if(index == 0)
     {
         index = low->chores.size() ? low->chores.begin()->first - 1 : -1;
@@ -298,11 +300,13 @@ int low_loop_set_chore_c(low_main_t *low, int index, int delay, void (*call)(voi
 
 
 // -----------------------------------------------------------------------------
-//  low_loop_clear_chore_c
+//  low_clear_timeout
 // -----------------------------------------------------------------------------
 
-void low_loop_clear_chore_c(low_main_t *low, int index)
+void low_clear_timeout(duk_context *ctx, int index)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
     auto iter = low->chores.find(index);
     if(iter == low->chores.end())
         return;
