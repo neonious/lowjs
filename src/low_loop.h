@@ -22,10 +22,7 @@ struct low_chore_t
 class LowLoopCallback;
 
 extern "C" bool low_loop_run(low_main_t *low);
-duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata);
-duk_ret_t low_loop_call_chore_c_safe(duk_context *ctx, void *udata);
-duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata);
-duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata);
+duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata);
 
 duk_ret_t low_loop_chore_ref(duk_context *ctx);
 duk_ret_t low_loop_run_ref(duk_context *ctx);
@@ -42,5 +39,8 @@ void low_loop_set_callback(
 void low_loop_clear_callback(
     low_main_t *low,
     LowLoopCallback *callback); // must be called from main thread
+
+void low_call_next_tick(duk_context *ctx, int num_args);
+int low_call_next_tick_js(duk_context *ctx);
 
 #endif /* __LOW_LOOP_H__ */

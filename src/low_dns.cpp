@@ -325,7 +325,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 
         duk_dup(ctx, 4);
         low_push_error(low, ENOMEM, "malloc");
-        duk_call(ctx, 1);
+        low_call_next_tick(ctx, 1);
         return 0;
     }
 
@@ -365,7 +365,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 
         duk_dup(ctx, 2);
         low_push_error(low, ENOMEM, "malloc");
-        duk_call(ctx, 1);
+        low_call_next_tick(ctx, 1);
         return 0;
     }
 
@@ -375,7 +375,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
     {
         duk_dup(ctx, 2);
         low_push_error(low, error, "inet_pton");
-        duk_call(ctx, 1);
+        low_call_next_tick(ctx, 1);
         return 0;
     }
 #else

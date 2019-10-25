@@ -43,7 +43,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
             int err = errno;
             duk_dup(low->duk_ctx, 4);
             low_push_error(low, err, "inet_pton");
-            duk_call(low->duk_ctx, 1);
+            low_call_next_tick(low->duk_ctx, 1);
             return 0;
         }
         addr_in->sin_port = htons(port);
@@ -58,7 +58,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
             int err = errno;
             duk_dup(low->duk_ctx, 4);
             low_push_error(low, err, "inet_pton");
-            duk_call(low->duk_ctx, 1);
+            low_call_next_tick(low->duk_ctx, 1);
             return 0;
         }
         addr_in6->sin6_port = htons(port);
@@ -70,7 +70,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
     {
         duk_dup(low->duk_ctx, 4);
         low_push_error(low, ENOMEM, "malloc");
-        duk_call(low->duk_ctx, 1);
+        low_call_next_tick(low->duk_ctx, 1);
         return 0;
     }
 
@@ -82,7 +82,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
 
         duk_dup(ctx, 4);
         low_push_error(low, err, syscall);
-        duk_call(ctx, 1);
+        low_call_next_tick(ctx, 1);
     }
     else
     {
@@ -93,7 +93,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
             duk_push_int(ctx, ntohs(((struct sockaddr_in *)addr)->sin_port));
         else
             duk_push_int(ctx, ntohs(((struct sockaddr_in6 *)addr)->sin6_port));
-        duk_call(ctx, 3);
+        low_call_next_tick(ctx, 3);
     }
 
     return 0;

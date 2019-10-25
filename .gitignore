@@ -1,3 +1,4 @@
+examples/native/src/native.so
 .vscode
 .DS_Store
 /build

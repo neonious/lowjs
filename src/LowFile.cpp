@@ -87,14 +87,14 @@ void LowFile::Read(int pos, unsigned char *data, int len, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "read");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
     if(mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "read");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -125,14 +125,14 @@ void LowFile::Write(int pos, unsigned char *data, int len, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "write");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
     if(mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "write");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -163,14 +163,14 @@ void LowFile::FStat(int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "fstat");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
     if(mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "fstat");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -198,14 +198,14 @@ bool LowFile::Close(int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EBADF, "close");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return true;
     }
     if(mPhase != LOWFILE_PHASE_READY)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EALREADY, "close");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return true;
     }
 

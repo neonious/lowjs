@@ -337,7 +337,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "read");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -360,12 +360,12 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, len);
-            duk_call(mLow->duk_ctx, 2);
+            low_call_next_tick(mLow->duk_ctx, 2);
         }
         else
         {
             PushError(0);
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
         }
     }
     else
@@ -400,7 +400,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_null(mLow->duk_ctx);
         duk_push_int(mLow->duk_ctx, len);
-        duk_call(mLow->duk_ctx, 2);
+        low_call_next_tick(mLow->duk_ctx, 2);
         return;
     }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -409,7 +409,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "write");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -430,12 +430,12 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, len);
-            duk_call(mLow->duk_ctx, 2);
+            low_call_next_tick(mLow->duk_ctx, 2);
         }
         else
         {
             PushError(1);
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
         }
     }
     else
@@ -459,7 +459,7 @@ void LowSocket::Shutdown(int callIndex)
     if(!mConnected)
     {
         low_push_error(mLow, ENOTCONN, "shutdown");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
     }
     else if(Shutdown() < 0)
     {
@@ -472,7 +472,7 @@ void LowSocket::Shutdown(int callIndex)
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_null(mLow->duk_ctx);
     }
-    duk_call(mLow->duk_ctx, 1);
+    low_call_next_tick(mLow->duk_ctx, 1);
 }
 
 // -----------------------------------------------------------------------------
@@ -958,7 +958,10 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
         else
             duk_dup(ctx, callIndex);
         PushError(2);
-        duk_call(ctx, 1);
+        if(onStash)
+            duk_call(ctx, 1);
+        else
+            low_call_next_tick(ctx, 1);
 
         return false;
     }
@@ -977,10 +980,18 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
             duk_push_int(ctx, localPort);
             duk_push_string(ctx, mRemoteHost);
             duk_push_int(ctx, mRemotePort);
-            duk_call(ctx, 7);
+            if(onStash)
+                duk_call(ctx, 7);
+            else
+                low_call_next_tick(ctx, 7);
         }
         else
-            duk_call(ctx, 3);
+        {
+            if(onStash)
+                duk_call(ctx, 3);
+            else
+                low_call_next_tick(ctx, 3);
+        }
     }
 
     return true;

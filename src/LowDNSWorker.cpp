@@ -44,7 +44,7 @@ bool LowDNSWorker::Lookup(const char *host, int family, int hints,
     {
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_string(mLow->duk_ctx, "ERRIPTOOLONG");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return false;
     }
 
@@ -71,7 +71,7 @@ bool LowDNSWorker::LookupService(const char *ip, int port, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_string(mLow->duk_ctx, "ERRIPTOOLONG");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return false;
     }
 

@@ -45,7 +45,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
         {
             duk_dup(ctx, 1);
             low_push_error(low, ENOMEM, "malloc");
-            duk_call(ctx, 1);
+            low_call_next_tick(ctx, 1);
             return 0;
         }
 

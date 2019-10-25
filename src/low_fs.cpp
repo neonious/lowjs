@@ -156,7 +156,7 @@ duk_ret_t low_fs_close(duk_context *ctx)
 
         duk_dup(low->duk_ctx, 1);
         duk_push_null(low->duk_ctx);
-        duk_call(low->duk_ctx, 1);
+        low_call_next_tick(low->duk_ctx, 1);
     }
     return 0;
 }

@@ -6,6 +6,7 @@
 
 #include "low_module.h"
 #include "low_system.h"
+#include "low_loop.h"
 
 #include <duktape.h>
 #include <unistd.h>
@@ -84,7 +85,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"low_remove_stash", (uintptr_t)low_remove_stash},
     {"low_push_stash", (uintptr_t)low_push_stash},
     {"low_push_buffer", (uintptr_t)low_push_buffer},
-//    {"low_call_next_tick", (uintptr_t)low_call_next_tick},
+    {"low_call_next_tick", (uintptr_t)low_call_next_tick},
 
     {"duk_base64_decode", (uintptr_t)duk_base64_decode},
     {"duk_base64_encode", (uintptr_t)duk_base64_encode},

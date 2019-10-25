@@ -1147,7 +1147,6 @@ Object.defineProperty(
     }
 );
 
-process.nextTick = setImmediate;
 process.hrtime = function hrtime(time) {
     const hrValues = new Uint32Array(3);
     native.hrtime(hrValues);

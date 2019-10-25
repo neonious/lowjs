@@ -19,43 +19,39 @@
 void user_cpu_load(bool active);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-bool low_loop_run(low_main_t *low)
+duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
     while(!low->duk_flag_stop)
     {
         if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
         {
-            if(duk_safe_call(low->duk_ctx,
-                            low_loop_exit_safe,
-                            NULL,   // beforeExit
-                            0,
-                            1) != DUK_EXEC_SUCCESS)
-            {
-                if(!low->duk_flag_stop) // flag stop also produces error
-                    low_duk_print_error(low->duk_ctx);
-                duk_pop(low->duk_ctx);
-
-                return low->duk_flag_stop;
-            }
+            low_push_stash(ctx, low->signal_call_id, false);
+            duk_push_string(ctx, "beforeExit");
+            duk_call(ctx, 1);
+            duk_pop_n(ctx, duk_get_top(ctx));
         }
         if(low->duk_flag_stop || (!low->run_ref && !low->loop_callback_first))
         {
             if(!low->duk_flag_stop && low->signal_call_id)
             {
-                if(duk_safe_call(low->duk_ctx,
-                                low_loop_exit_safe,
-                                (void *)1,  // exit
-                                0,
-                                1) != DUK_EXEC_SUCCESS)
-                {
-                    if(!low->duk_flag_stop) // flag stop also produces error
-                        low_duk_print_error(low->duk_ctx);
-                    duk_pop(low->duk_ctx);
-
-                    return low->duk_flag_stop;
-                }
+                low_push_stash(ctx, low->signal_call_id, false);
+                duk_push_string(ctx, "exit");
+                duk_call(ctx, 1);
+                duk_pop_n(ctx, duk_get_top(ctx));
             }
             break;
+        }
+
+        // Handle process.nextTick / low_call_next_tick
+        while(duk_get_top(low->next_tick_ctx))
+        {
+            int num_args = duk_require_int(low->next_tick_ctx, -1);
+            duk_pop(low->next_tick_ctx);
+            duk_xmove_top(ctx, low->next_tick_ctx, num_args + 1);
+            duk_call(ctx, num_args);
+            duk_pop_n(ctx, duk_get_top(ctx));
         }
 
         int millisecs = -1;
@@ -85,18 +81,11 @@ bool low_loop_run(low_main_t *low)
                         low->run_ref--;
                     low->chores.erase(iterData);
 
-                    void *args[2] = {(void *)call, data};
-                    if(duk_safe_call(
-                        low->duk_ctx, low_loop_call_chore_c_safe, args, 0, 1) !=
-                    DUK_EXEC_SUCCESS)
-                    {
-                        if(!low->duk_flag_stop) // flag stop also produces error
-                            low_duk_print_error(low->duk_ctx);
-                        duk_pop(low->duk_ctx);
+                    call(data);
 
-                        return low->duk_flag_stop;
-                    }
-                    duk_pop(low->duk_ctx);
+                    int index = duk_get_top(ctx);
+                    if(index)
+                        duk_pop_n(ctx, index);
                 }
                 else
                 {
@@ -117,18 +106,9 @@ bool low_loop_run(low_main_t *low)
                         pair<int, int>(iterData->second.stamp, index));
                     }
 
-                    int args[2] = {index, erase};
-                    if(duk_safe_call(
-                        low->duk_ctx, low_loop_call_chore_safe, args, 0, 1) !=
-                    DUK_EXEC_SUCCESS)
-                    {
-                        if(!low->duk_flag_stop) // flag stop also produces error
-                            low_duk_print_error(low->duk_ctx);
-                        duk_pop(low->duk_ctx);
-
-                        return low->duk_flag_stop;
-                    }
-                    duk_pop(low->duk_ctx);
+                    low_push_stash(ctx, index, erase);
+                    duk_call(ctx, 0);
+                    duk_pop_n(ctx, duk_get_top(ctx));
                 }
                 continue;
             }
@@ -137,7 +117,7 @@ bool low_loop_run(low_main_t *low)
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!low->loop_callback_first)
         {
-            duk_debugger_cooperate(low->duk_ctx);
+            duk_debugger_cooperate(ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(false);
@@ -191,70 +171,34 @@ bool low_loop_run(low_main_t *low)
             callback->mNext = NULL;
 
             pthread_mutex_unlock(&low->loop_thread_mutex);
-            if(duk_safe_call(low->duk_ctx,
-                                low_loop_call_callback_safe,
-                                callback,
-                                0,
-                                1) != DUK_EXEC_SUCCESS)
-            {
-                if(!low->duk_flag_stop) // flag stop also produces error
-                    low_duk_print_error(low->duk_ctx);
-                duk_pop(low->duk_ctx);
+            if(!callback->OnLoop())
+                delete callback;
 
-                return low->duk_flag_stop;
-            }
-            duk_pop(low->duk_ctx);
+            int index = duk_get_top(ctx);
+            if(index)
+                duk_pop_n(ctx, index);
         }
         else
             pthread_mutex_unlock(&low->loop_thread_mutex);
     }
-    return true;
-}
 
-// -----------------------------------------------------------------------------
-//  low_loop_call_chore_safe
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_loop_call_chore_safe(duk_context *ctx, void *udata)
-{
-    int *args = (int *)udata;
-
-    low_push_stash(ctx, args[0], args[1]);
-    duk_call(ctx, 0);
     return 0;
 }
 
-duk_ret_t low_loop_call_chore_c_safe(duk_context *ctx, void *udata)
+bool low_loop_run(low_main_t *low)
 {
-    void **args = (void **)udata;
+    if(duk_safe_call(low->duk_ctx,
+                    low_loop_run_safe,
+                    NULL,
+                    0,
+                    1) != DUK_EXEC_SUCCESS)
+    {
+        if(!low->duk_flag_stop) // flag stop also produces error
+            low_duk_print_error(low->duk_ctx);
+        duk_pop(low->duk_ctx);
+    }
 
-    ((void (*)(void *))args[0])(args[1]);
-    return 0;
-}
-
-// -----------------------------------------------------------------------------
-//  low_loop_call_callback_safe
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_loop_call_callback_safe(duk_context *ctx, void *udata)
-{
-    LowLoopCallback *callback = (LowLoopCallback *)udata;
-    if(!callback->OnLoop())
-        delete callback;
-    return 0;
-}
-
-
-// -----------------------------------------------------------------------------
-//  low_loop_exit_safe
-// -----------------------------------------------------------------------------
-
-duk_ret_t low_loop_exit_safe(duk_context *ctx, void *udata)
-{
-    low_push_stash(ctx, duk_get_low_context(ctx)->signal_call_id, false);
-    duk_push_string(ctx, udata == NULL ? "beforeExit" : "exit");
-    duk_call(ctx, 1);
-    return 0;
+    return low->duk_flag_stop;
 }
 
 
@@ -466,4 +410,27 @@ void low_loop_clear_callback(low_main_t *low, LowLoopCallback *callback)
         callback->mNext = NULL;
     }
     pthread_mutex_unlock(&low->loop_thread_mutex);
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_call_next_tick
+// -----------------------------------------------------------------------------
+
+void low_call_next_tick(duk_context *ctx, int num_args)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    duk_xmove_top(low->next_tick_ctx, ctx, num_args + 1);
+    duk_push_int(low->next_tick_ctx, num_args);
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_call_next_tick_js
+// -----------------------------------------------------------------------------
+
+int low_call_next_tick_js(duk_context *ctx)
+{
+    low_call_next_tick(ctx, duk_get_top(ctx) - 1);
+    return 0;
 }

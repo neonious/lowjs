@@ -629,7 +629,12 @@ bool low_reset(low_main_t *low)
 
 static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
     duk_push_heap_stash(ctx);
+    low->next_tick_ctx = duk_get_context(ctx, duk_push_thread(ctx));
+    duk_put_prop_string(ctx, -2, "next_tick_ctx");
+
     duk_push_object(ctx);
     duk_put_prop_string(ctx, -2, "low");
     duk_pop(ctx);

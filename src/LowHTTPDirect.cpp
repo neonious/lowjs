@@ -152,7 +152,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "read");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -192,7 +192,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
             mReadError = mHTTPError = false;
 
             Detach();
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
         }
         else
         {
@@ -239,7 +239,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                 }
 
                 if(mIsServer)
-                    duk_call(mLow->duk_ctx, 4);
+                    low_call_next_tick(mLow->duk_ctx, 4);
                 else
                 {
                     Detach();
@@ -247,11 +247,11 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                     duk_push_boolean(mLow->duk_ctx,
                                      !mClosed && mWriteDone &&
                                        !mWriteBufferCount);
-                    duk_call(mLow->duk_ctx, 5);
+                    low_call_next_tick(mLow->duk_ctx, 5);
                 }
             }
             else
-                duk_call(mLow->duk_ctx, 3);
+                low_call_next_tick(mLow->duk_ctx, 3);
         }
     }
     else
@@ -302,7 +302,7 @@ void LowHTTPDirect::Write(unsigned char *data,
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "write");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -363,14 +363,14 @@ void LowHTTPDirect::Write(unsigned char *data,
             mWriteError = false;
 
             Detach();
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
         }
         else
         {
             duk_push_null(mLow->duk_ctx);
             duk_push_int(mLow->duk_ctx, mBytesWritten);
             mBytesWritten = 0;
-            duk_call(mLow->duk_ctx, 2);
+            low_call_next_tick(mLow->duk_ctx, 2);
         }
 
         if(!mWriteBufferCount &&

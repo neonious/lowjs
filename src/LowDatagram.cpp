@@ -120,7 +120,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
     {
         duk_dup(mLow->duk_ctx, callIndex);
         low_push_error(mLow, EAGAIN, "write");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
 
@@ -134,7 +134,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
             int err = errno;
             duk_dup(mLow->duk_ctx, callIndex);
             low_push_error(mLow, err, "inet_pton");
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
             return;
         }
         addr_in->sin_port = htons(port);
@@ -149,7 +149,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
             int err = errno;
             duk_dup(mLow->duk_ctx, callIndex);
             low_push_error(mLow, err, "inet_pton");
-            duk_call(mLow->duk_ctx, 1);
+            low_call_next_tick(mLow->duk_ctx, 1);
             return;
         }
         addr_in6->sin6_port = htons(port);
@@ -170,7 +170,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
             duk_push_null(mLow->duk_ctx);
         else
             low_push_error(mLow, err, "sendto");
-        duk_call(mLow->duk_ctx, 1);
+        low_call_next_tick(mLow->duk_ctx, 1);
     }
     else
     {
