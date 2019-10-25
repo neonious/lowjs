@@ -19,10 +19,13 @@ const {
 } = errors.codes;
 
 class Socket extends events.EventEmitter {
-    constructor(options) {
-        this._ref = true;
+    constructor(options, listener) {
+        if (options === null || typeof options !== 'object')
+            options = {type: options};
 
+        this._ref = true;
         super();
+
         this._options = Object.assign({}, options);
         if(!this._options.lookup)
             this._options.lookup = dns.lookup;
@@ -292,28 +295,21 @@ module.exports = {
 };
 
 // From node
-let kStateSymbol = Symbol();
-
 function enqueue(self, toEnqueue) {
-    const state = self[kStateSymbol];
-  
     // If the send queue hasn't been initialized yet, do it, and install an
     // event handler that flushes the send queue after binding is done.
-    if (state.queue === undefined)
-      state.queue = [];
-    state.queue.push(toEnqueue);
+    if (self._queue === undefined)
+        self._queue = [];
+    self._queue.push(toEnqueue);
   }
   
   function onCanWrite() {
-    const state = this[kStateSymbol];
-    if(state && state.queue && state.queue.length)
-        state.queue.shift()();
+    if(this._queue && this._queue.length)
+        this._queue.shift()();
   }
   
   function onListenError(err) {
-    const state = this[kStateSymbol];
-    if(state)
-      state.queue = undefined;
+    this._queue = undefined;
   }
 
   function sliceBuffer(buffer, offset, length) {
