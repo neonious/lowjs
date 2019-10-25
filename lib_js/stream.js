@@ -458,7 +458,7 @@ class Writable extends EventEmitter {
 
         if (this._writableCorkCount == 0 && !this._writableWriting) {
             this._writableWriting = true;
-            this._write(chunk, encoding, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } callback(); this._writableNext(); });
+            this._write(chunk, encoding, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } process.nextTick(callback); this._writableNext(); });
         } else {
             if (!this._writableObjectMode && this._writableBuf.length) {
                 let last = this._writableBuf[this._writableBuf.length - 1];
@@ -609,7 +609,7 @@ class Transform extends Duplex {
         if (this._flush)
             this._flush(callback)
         else
-            callback();
+            process.nextTick(callback);
     }
 }
 
@@ -619,7 +619,7 @@ class PassThrough extends Transform {
     }
 
     _transform(chunk, encoding, callback) {
-        callback(null, chunk);
+        process.nextTick(callback, null, chunk);
     }
 }
 

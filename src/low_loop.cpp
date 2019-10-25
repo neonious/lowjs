@@ -25,6 +25,16 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
     while(!low->duk_flag_stop)
     {
+        // Handle process.nextTick / low_call_next_tick
+        while(!low->duk_flag_stop && duk_get_top(low->next_tick_ctx))
+        {
+            int num_args = duk_require_int(low->next_tick_ctx, -1);
+            duk_pop(low->next_tick_ctx);
+            duk_xmove_top(ctx, low->next_tick_ctx, num_args + 1);
+            duk_call(ctx, num_args);
+            duk_pop_n(ctx, duk_get_top(ctx));
+        }
+
         if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
         {
             low_push_stash(ctx, low->signal_call_id, false);
@@ -42,16 +52,6 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
                 duk_pop_n(ctx, duk_get_top(ctx));
             }
             break;
-        }
-
-        // Handle process.nextTick / low_call_next_tick
-        while(duk_get_top(low->next_tick_ctx))
-        {
-            int num_args = duk_require_int(low->next_tick_ctx, -1);
-            duk_pop(low->next_tick_ctx);
-            duk_xmove_top(ctx, low->next_tick_ctx, num_args + 1);
-            duk_call(ctx, num_args);
-            duk_pop_n(ctx, duk_get_top(ctx));
         }
 
         int millisecs = -1;
