@@ -17,6 +17,14 @@ int main(int argc, char *argv[])
     low_t *low;
 
     if(argc == 2
+    && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))
+    {
+        printf("Usage: %s [script.js] [arguments]\n", argv[0]);
+        printf("       %s -h | --help | -v | --version\n", argv[0]);
+        return EXIT_SUCCESS;
+    }
+
+    if(argc == 2
     && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0))
     {
         printf("%s\n", LOW_VERSION);
