@@ -1,16 +1,40 @@
-MIT License
+NEONIOUS PUBLIC LICENSE
 
-Copyright (c) 2018-19 neonious GmbH
+Copyright (C) 2018, 2019 neonious GmbH, Muensterstr. 246, 40470 Duesseldorf, Germany
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software, both in source code and compiled form, and associated documentation files (the
+"Software") to
+
+(1) use the Software, including modifying and merging the Software and using the Software
+    in running applications, including networked ones, also to
+
+(2) publish, distribute, sublicense or sell copies of the Software, derived work of the
+    Software or combined work with the Software, both in source code and compiled form, if
+
+    - this happens under the term of this license (The above copyright notice and this
+      permission notice, both together: this LICENSE file, must be part of the
+      distribution and be available to the user in a prominent place, such as the LICENSE
+      file in the root directory of the software), and
+
+    - the origin of the software is clearly stated as being the Software by neonious, with
+      a link to https://www.neonious.com/ , and
+
+    - changes in the source code or the behaviour of the compiled programs are clearly
+      documented (for example via GIT commits or a change log), and
+
+	- the software only has implementations for the following architectures:
+
+		ESP32 (any OS)
+		Linux
+		Windows
+		macOS
+
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for
+inclusion in the Software by You shall be under the terms and conditions of this license,
+without any additional terms or conditions.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
