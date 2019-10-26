@@ -61,7 +61,7 @@ Please see the [lowjs test documentation](https://github.com/neonious/lowjs/blob
 
 We appreciate every person or company who is willing to contribute to low.js and its related products. We will gladly accept any code contribution which helps the cause after an appropriate review. Bug reports and suggestions are also welcome!
 
-low.js, with exception of the adaption for ESP32, is placed under the MIT license, allowing you to use low.js commercially and even modify it. The adaption of low.js for ESP32 is not Open Source, but may be used freely with the lowsync flasher. low.js is maintained by neonious GmbH, the makers of the neonious one microcontroller board.
+low.js, with exception of the adaption for ESP32, is placed under a permisse free license, allowing you to use low.js commercially and even modify it (see LICENSE file for details). The adaption of low.js for ESP32 is not Open Source, but may be used freely with the lowsync flashing tool. low.js is maintained by neonious, the makers of the neonious one microcontroller board.
 
 
 ### Contact us
@@ -71,14 +71,14 @@ low.js, with exception of the adaption for ESP32, is placed under the MIT licens
     40470 Düsseldorf
     Germany
     
-    Managing Director / CEO
-    Thomas Rogg
+    https://www.neonious.com/
+    info@neonious.com
     
     TEL +49 211 9241 8187
     FAX +49 211 9241 8172
     
-    info@neonious.com
-    District Court Düsseldorf
-    HRB 83086
+    Managing Director / CEO: Thomas Rogg
+    District Court Düsseldorf, HRB 83086
+
 
 Node.js is a trademark of Joyent, Inc. (https://www.nodejs.org/). ESP32 and ESP32-WROVER are products by Espressif Systems (https://www.espressif.com/). neonious GmbH is in no way affiliated with these companies.
