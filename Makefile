@@ -112,7 +112,8 @@ deps/duktape/src-low/duktape.c: $(shell find deps/duktape/src-input)
 		-DDUK_USE_ES6_PROXY	\
 		-DDUK_USE_GLOBAL_BINDING \
 		-DDUK_USE_SYMBOL_BUILTIN	\
-		-DDUK_USE_SECTION_B
+		-DDUK_USE_SECTION_B \
+		-DDUK_USE_CPP_EXCEPTIONS
 
 deps/c-ares/configure:
 	cd deps/c-ares && . ./buildconf

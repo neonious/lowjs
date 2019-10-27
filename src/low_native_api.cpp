@@ -26,6 +26,7 @@
 #define Elf_Shdr    Elf64_Shdr
 #define Elf_Sym     Elf64_Sym
 #define Elf_Rela    Elf64_Rela
+#define Elf_Rel    Elf64_Rel
 #define ELF_R_SYM   ELF64_R_SYM
 #define ELF_R_TYPE  ELF64_R_TYPE
 #elif defined(__i386__)
@@ -35,6 +36,7 @@
 #define Elf_Phdr    Elf32_Phdr
 #define Elf_Shdr    Elf32_Shdr
 #define Elf_Sym     Elf32_Sym
+#define Elf_Rela    Elf32_Rela
 #define Elf_Rel     Elf32_Rel
 #define ELF_R_SYM   ELF32_R_SYM
 #define ELF_R_TYPE  ELF32_R_TYPE
@@ -50,7 +52,21 @@ struct native_api_entry_t
     uintptr_t func;
 };
 
+extern uintptr_t _Unwind_Resume, __gxx_personality_v0;
 struct native_api_entry_t NATIVE_API_ENTRIES[] = {
+    // For C++ handling
+    {"_Znwm", (uintptr_t)(void *(*)(size_t))operator new},
+    {"_Znam", (uintptr_t)(void *(*)(size_t))operator new[]},
+    {"_ZdlPv", (uintptr_t)(void (*)(void *))operator delete},
+    {"_ZdlPvm", (uintptr_t)(void (*)(void *))operator delete},
+    {"_ZdaPvm", (uintptr_t)(void (*)(void *))operator delete[]},
+    // handle "_Znwm*"  TODO
+    // handle "_Znam*"
+    // handle "_ZdlPv*"
+    // handle "_ZdaPv*"
+    {"_Unwind_Resume", (uintptr_t)_Unwind_Resume},
+    {"__gxx_personality_v0", (uintptr_t)__gxx_personality_v0},
+
     {"malloc", (uintptr_t)malloc},
     {"calloc", (uintptr_t)calloc},
     {"realloc", (uintptr_t)realloc},
@@ -61,6 +77,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"memmove", (uintptr_t)memmove},
     {"memset", (uintptr_t)memset},
 
+    {"strlen", (uintptr_t)strlen},
     {"strcpy", (uintptr_t)strcpy},
     {"sprintf", (uintptr_t)sprintf},
 
@@ -349,6 +366,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             syms = (const Elf_Sym *)(data + shdr[i].sh_offset);
 
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++) {
+                printf("SYMBOL FOUND %s %p\n", strings + syms[j].st_name, exec + syms[j].st_value);
                 if (strcmp("module_main", strings + syms[j].st_name) == 0) {
                     entry = exec + syms[j].st_value;
                     break;
@@ -366,16 +384,20 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     }
 
     for(int i=0; i < hdr->e_shnum; i++) {
+        // TODO: handle all of these
+        // https://www.intezer.com/executable-and-linkable-format-101-part-3-relocations/
 #if defined(__x86_64__)
         if (shdr[i].sh_type == SHT_RELA)
         {
             const Elf_Rela *rel = (const Elf_Rela *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rela); j++)
-                if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
+                switch(ELF_R_TYPE(rel[j].r_info))
                 {
-                    const char *sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
-
+                case R_X86_64_JMP_SLOT:
+                case R_X86_64_64:
+                    const char *sym;
                     int k;
+                    sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
                     for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
                     {
                         if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
@@ -390,7 +412,15 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         return NULL;
                     }
 
-                    *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
+                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
+                    else
+                        *(uintptr_t *)(exec + rel[j].r_offset) += NATIVE_API_ENTRIES[k].func;
+                    break;
+
+                case R_X86_64_RELATIVE:
+                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                    break;
                 }
         }
 #elif defined(__i386__)
@@ -419,6 +449,16 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 
                     *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
                 }
+                else if(ELF_R_TYPE(rel[j].r_info) == R_386_RELATIVE)
+                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                else
+                {
+                    munmap(exec, exec_size);
+                    *err = (char *)low_alloc(80);
+                    sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
+                    *err_malloc = true;
+                    return NULL;
+                }
         }
 #endif
     }
@@ -436,6 +476,28 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_EXEC);
     }
 
+    for(int i=0; i < hdr->e_shnum; i++) {
+        if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
+            uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
+            for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
+                if(*calls && *calls != (uintptr_t)-1)
+                    ((void (*)(void))(*calls + exec))();
+                calls++;
+            }
+        }
+    }
+    for(int i=0; i < hdr->e_shnum; i++) {
+        if (shdr[i].sh_type == SHT_INIT_ARRAY) {
+            uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
+            for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
+                if(*calls && *calls != (uintptr_t)-1)
+                    ((void (*)(void))(*calls + exec))();
+                calls++;
+            }
+        }
+    }
+    // TODO: fini calls
+
     return entry;
 
 range_error:
@@ -448,4 +510,19 @@ range_error:
     *err = "Native modules are not yet supported on this architecture.";
     return NULL;
 #endif
+}
+
+
+// -----------------------------------------------------------------------------
+//  native_api_call
+// -----------------------------------------------------------------------------
+
+int native_api_call(duk_context *ctx)
+{
+    void **params = (void **)duk_get_buffer_data(ctx, 2, NULL);
+    int (*module_main)(duk_context *, const char *) = (int (*)(duk_context *, const char *))params[0];
+    const char *path = (const char *)params[1];
+    duk_pop(ctx);
+
+    return module_main(ctx, path);
 }

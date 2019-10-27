@@ -37,6 +37,9 @@ void low_module_init(duk_context *ctx)
     duk_put_prop_string(ctx, -2, "modules");
 
     duk_push_object(ctx);
+    duk_put_prop_string(ctx, -2, "native_modules");
+
+    duk_push_object(ctx);
 
     // Add native object, only resolvable from lib:
     duk_push_object(ctx);
@@ -471,21 +474,8 @@ bool get_data_block(const char *path,
 
 void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 {
-    // Try to find in cache
-    duk_push_heap_stash(ctx);
-    duk_get_prop_string(ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
-    if(duk_get_prop_string(ctx, -1, path))
-    {
-        duk_remove(ctx, -2);
-        duk_remove(ctx, -2);
-        return;
-    }
-    duk_pop_2(ctx); // stash is kept on stack
-
     int flags = 0;
-    unsigned char *data;
-    int len;
-    struct stat st;
+    int len = strlen(path);
 
     bool isLib = memcmp(path, "lib:", 4) == 0;
     if(isLib)
@@ -496,27 +486,49 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     }
     else
     {
-        int fullLen = strlen(path);
-        for(len = fullLen; len >= 0; len--)
-            if(path[len] == '.')
+        int tillDot;
+        for(tillDot = len; tillDot > 0; tillDot--)
+            if(path[tillDot] == '.')
                 break;
 
-        if(fullLen - len == 5 && path[len] == '.' &&
-        (path[len + 1] == 'j' || path[len + 1] == 'J') &&
-        (path[len + 2] == 's' || path[len + 2] == 'S') &&
-        (path[len + 3] == 'o' || path[len + 3] == 'O') &&
-        (path[len + 4] == 'n' || path[len + 4] == 'N'))
+        if(len - tillDot == 5 && path[tillDot] == '.' &&
+        (path[tillDot + 1] == 'j' || path[tillDot + 1] == 'J') &&
+        (path[tillDot + 2] == 's' || path[tillDot + 2] == 'S') &&
+        (path[tillDot + 3] == 'o' || path[tillDot + 3] == 'O') &&
+        (path[tillDot + 4] == 'n' || path[tillDot + 4] == 'N'))
             flags |= LOW_MODULE_FLAG_JSON;
-        if(fullLen - len == 4 && path[len] == '.' &&
-        (path[len + 1] == 'l' || path[len + 1] == 'L') &&
-        (path[len + 2] == 'o' || path[len + 2] == 'O') &&
-        (path[len + 3] == 'w' || path[len + 2] == 'W'))
+        if(len - tillDot == 4 && path[tillDot] == '.' &&
+        (path[tillDot + 1] == 'l' || path[tillDot + 1] == 'L') &&
+        (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O') &&
+        (path[tillDot + 3] == 'w' || path[tillDot + 2] == 'W'))
             flags |= LOW_MODULE_FLAG_DUK_FORMAT;
-        if(fullLen - len == 3 && path[len] == '.' &&
-        (path[len + 1] == 's' || path[len + 1] == 'S') &&
-        (path[len + 2] == 'o' || path[len + 2] == 'O'))
+        if(len - tillDot == 3 && path[tillDot] == '.' &&
+        (path[tillDot + 1] == 's' || path[tillDot + 1] == 'S') &&
+        (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O'))
             flags |= LOW_MODULE_FLAG_NATIVE;
     }
+
+    const char *cacheName;
+    if(isLib)
+        cacheName = "lib_modules";
+    else if(flags & LOW_MODULE_FLAG_NATIVE)
+        cacheName = "native_modules";
+    else
+        cacheName = "modules";
+
+    // Try to find in cache
+    duk_push_heap_stash(ctx);
+    duk_get_prop_string(ctx, -1, cacheName);
+    if(duk_get_prop_string(ctx, -1, path))
+    {
+        duk_remove(ctx, -2);
+        duk_remove(ctx, -2);
+        return;
+    }
+    duk_pop_2(ctx); // stash is kept on stack
+
+    unsigned char *data;
+    struct stat st;
 
 #if LOW_ESP32_LWIP_SPECIALITIES
     char *txt;
@@ -525,7 +537,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     if(len > 1000)
         goto cantLoad;
 
-    txt = (char *)low_alloc(1024);
+    txt = (char *)duk_push_fixed_buffer(ctx, 1024);
     if(!txt)
         goto cantLoad;
 
@@ -654,7 +666,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     duk_put_prop_string(ctx, -3, "filename");
     duk_put_prop_string(ctx, -2, "id");
 
-    if(!(flags & (LOW_MODULE_FLAG_JSON | LOW_MODULE_FLAG_NATIVE)))
+    if(!(flags & LOW_MODULE_FLAG_JSON))
     {
         if(flags & LOW_MODULE_FLAG_GLOBAL)
             duk_push_global_object(ctx);
@@ -680,61 +692,13 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 
     // [... module]
 
-    // require function
-    duk_push_c_function(ctx, low_module_require, 1);
-
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
-
-    duk_push_string(ctx, "name");
-    duk_push_string(ctx, "require"); // this is used in call stack
-    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
-    duk_dup(ctx, -2);
-    duk_put_prop_string(ctx, -2, "module");
-
-    // [... module require]
-
-    // require.cache
-    duk_push_heap_stash(ctx);
-
-    duk_get_prop_string(ctx, -1, "modules");
-    duk_put_prop_string(ctx, -3, "cache");
-    duk_pop(ctx);
-
-    // require.resolve
-    duk_push_c_function(ctx, low_module_resolve, 1);
-
-    duk_dup(ctx, -3);
-    duk_put_prop_string(ctx,
-                        -2,
-                        "\xff"
-                        "module");
-
-    duk_push_string(ctx, "name");
-    duk_push_string(ctx, "resolve"); // this is used in call stack
-    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
-    duk_put_prop_string(ctx, -2, "resolve");
-
-    // require.main
-    duk_get_prop_string(ctx, -2, "main");
-    duk_put_prop_string(ctx, -2, "main");
-
-    if(!isLib && !(flags & (LOW_MODULE_FLAG_JSON | LOW_MODULE_FLAG_NATIVE)))
-        duk_put_prop_string(ctx, -2, "require");
-
-    // [... module [require]]
-
     if(!(flags & LOW_MODULE_FLAG_GLOBAL))
     {
         // Cache module
         duk_push_heap_stash(ctx);
 
-        duk_get_prop_string(
-          ctx, -1, memcmp(path, "lib:", 4) == 0 ? "lib_modules" : "modules");
-        duk_dup(ctx, !isLib && !(flags & (LOW_MODULE_FLAG_JSON | LOW_MODULE_FLAG_NATIVE)) ? -3 : -4);
+        duk_get_prop_string(ctx, -1, cacheName);
+        duk_dup(ctx, -3);
         duk_put_prop_string(ctx, -2, path);
         duk_pop_2(ctx);
     }
@@ -754,7 +718,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
         const char *err;
         bool err_malloc = false;
 
-        int (*module_main)(duk_context *, const char *) = (int (*)(duk_context *, const char *))native_api_load((char *)data, len, &err, &err_malloc);
+        void *module_main = native_api_load((char *)data, len, &err, &err_malloc);
         low_free(data);
 
         if(!module_main)
@@ -768,14 +732,63 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
             else
                 duk_generic_error(ctx, err);
         }
-
-        if(module_main(ctx, path) != 1)
-            duk_generic_error(ctx, "module_main of module '%s' did not return exports");
-
-        duk_put_prop_string(ctx, -2, "exports");
+    
+        duk_push_c_lightfunc(ctx, native_api_call, 3, 0, 0);
+        duk_dup(ctx, -2);
+        duk_get_prop_string(ctx, -1, "exports");
+        void **params = (void **)duk_push_fixed_buffer(ctx, 2 * sizeof(void *));
+        params[0] = module_main;
+        params[1] = (void *)path;
+        duk_call(ctx, 3);
+        duk_pop(ctx);
     }
     else
     {
+        // require function
+        duk_push_c_function(ctx, low_module_require, 1);
+
+        duk_dup(ctx, -2);
+        duk_put_prop_string(ctx,
+                            -2,
+                            "\xff"
+                            "module");
+
+        duk_push_string(ctx, "name");
+        duk_push_string(ctx, "require"); // this is used in call stack
+        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+        duk_dup(ctx, -2);
+        duk_put_prop_string(ctx, -2, "module");
+
+        // [... module require]
+
+        // require.cache
+        duk_push_heap_stash(ctx);
+
+        duk_get_prop_string(ctx, -1, "modules");
+        duk_put_prop_string(ctx, -3, "cache");
+        duk_pop(ctx);
+
+        // require.resolve
+        duk_push_c_function(ctx, low_module_resolve, 1);
+
+        duk_dup(ctx, -3);
+        duk_put_prop_string(ctx,
+                            -2,
+                            "\xff"
+                            "module");
+
+        duk_push_string(ctx, "name");
+        duk_push_string(ctx, "resolve"); // this is used in call stack
+        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
+        duk_put_prop_string(ctx, -2, "resolve");
+
+        // require.main
+        duk_get_prop_string(ctx, -2, "main");
+        duk_put_prop_string(ctx, -2, "main");
+
+        if(!isLib)
+            duk_put_prop_string(ctx, -2, "require");
+
         if(flags & LOW_MODULE_FLAG_DUK_FORMAT)
         {
             memcpy(duk_push_fixed_buffer(ctx, len),
