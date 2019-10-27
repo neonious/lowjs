@@ -1,6 +1,6 @@
 NEONIOUS PUBLIC LICENSE
 
-Copyright (C) 2018, 2019 neonious GmbH, Muensterstr. 246, 40470 Duesseldorf, Germany
+Copyright (C) 2018, 2019 neonious GmbH
 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -24,12 +24,15 @@ software, both in source code and compiled form, and associated documentation fi
     - changes in the source code or the behaviour of the compiled programs are clearly
       documented (for example via GIT commits or a change log), and
 
-    - the software only has implementations for the following architectures:
+    - the software only has code generic to any architecture and code for the following
+      architectures:
 
         ESP32 (any OS)
         Linux
         Windows
         macOS
+
+      For any other architectures, please contact neonious.
 
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for
@@ -43,3 +46,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+Contact us
+
+    neonious GmbH
+    Münsterstr. 246
+    40470 Düsseldorf
+    Germany
+    
+    Managing Director / CEO
+    Thomas Rogg
+    
+    TEL +49 211 9241 8187
+    FAX +49 211 9241 8172
+    
+    info@neonious.com
+    District Court Düsseldorf
+    HRB 83086
