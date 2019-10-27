@@ -24,12 +24,12 @@ software, both in source code and compiled form, and associated documentation fi
     - changes in the source code or the behaviour of the compiled programs are clearly
       documented (for example via GIT commits or a change log), and
 
-	- the software only has implementations for the following architectures:
+    - the software only has implementations for the following architectures:
 
-		ESP32 (any OS)
-		Linux
-		Windows
-		macOS
+        ESP32 (any OS)
+        Linux
+        Windows
+        macOS
 
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for
