@@ -4,6 +4,7 @@
 
 #include "low_native_api.h"
 
+#include "low_main.h"
 #include "low_module.h"
 #include "low_system.h"
 #include "low_loop.h"
@@ -80,6 +81,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"readdir", (uintptr_t)readdir},
     {"closedir", (uintptr_t)closedir},
 
+    {"low_load_module", (uintptr_t)low_load_module},
 //    {"low_call_direct", (uintptr_t)low_call_direct},
     {"low_set_timeout", (uintptr_t)low_set_timeout},
     {"low_clear_timeout", (uintptr_t)low_clear_timeout},
@@ -245,57 +247,24 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
 
 
 // -----------------------------------------------------------------------------
-//  register_native_api - registers the module "native-api"
-// -----------------------------------------------------------------------------
-
-static void setup_module_safe(low_main_t *low, void *data)
-{
-    duk_context *ctx = low_get_duk_context(low);
-
-    // DukTape stack is [module] [exports]
-
-    duk_function_list_entry methods[] = {{"load", native_api_load, 2},
-                                         {"loadSync", native_api_load_sync, 1},
-                                         {NULL, NULL, 0}};
-    duk_put_function_list(low_get_duk_context(low), 1, methods);
-}
-
-bool low_register_native_api(low_main_t *low)
-{
-    return low_module_make_native(low, "native-api", setup_module_safe, NULL);
-}
-
-
-// -----------------------------------------------------------------------------
 //  native_api_load
 // -----------------------------------------------------------------------------
 
-int native_api_load(duk_context *ctx)
-{
-    duk_generic_error(ctx, "async version not implemented yet, please use loadSync");
-    return 0;
-}
-
-
-// -----------------------------------------------------------------------------
-//  native_api_load_sync
-// -----------------------------------------------------------------------------
-
-static void *elf_load(char *elf_start, unsigned int size, const char **err, bool *err_malloc)
+void *native_api_load(const char *data, unsigned int size, const char **err, bool *err_malloc)
 {
 #if defined(__x86_64__) || defined(__i386__)
-    Elf_Ehdr *hdr;
-    Elf_Phdr *phdr;
-    Elf_Shdr *shdr;
+    const Elf_Ehdr *hdr;
+    const Elf_Phdr *phdr;
+    const Elf_Shdr *shdr;
 
     bool exec_has = false;
     unsigned int exec_min, exec_max, exec_size;
     char *exec = NULL;
-    char *strings;
-    Elf_Sym *syms;
+    const char *strings;
+    const Elf_Sym *syms;
     void *entry = NULL;
 
-    hdr = (Elf_Ehdr *)elf_start;
+    hdr = (const Elf_Ehdr *)data;
     if(size < sizeof(Elf_Ehdr))
         goto range_error;
 
@@ -325,8 +294,8 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
     if(!hdr->e_phnum || size < hdr->e_phoff + hdr->e_phnum * sizeof(Elf_Phdr)
     || !hdr->e_shnum || size < hdr->e_shoff + hdr->e_shnum * sizeof(Elf_Shdr))
         goto range_error;
-    phdr = (Elf_Phdr *)(elf_start + hdr->e_phoff);
-    shdr = (Elf_Shdr *)(elf_start + hdr->e_shoff);
+    phdr = (const Elf_Phdr *)(data + hdr->e_phoff);
+    shdr = (const Elf_Shdr *)(data + hdr->e_shoff);
 
     for (int i = 0; i < hdr->e_phnum; i++)
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
@@ -362,7 +331,7 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
 
     for(int i = 0; i < hdr->e_phnum; i++)
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
-            char *start = elf_start + phdr[i].p_offset;
+            const char *start = data + phdr[i].p_offset;
             char *taddr = phdr[i].p_vaddr + exec;
             memmove(taddr, start, phdr[i].p_filesz);
         }
@@ -376,8 +345,8 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
             // but the user can break many things if they are allowed to load native
             // modules, so it is not a security critical thing if we do not
 
-            strings = elf_start + shdr[shdr[i].sh_link].sh_offset;
-            syms = (Elf_Sym *)(elf_start + shdr[i].sh_offset);
+            strings = data + shdr[shdr[i].sh_link].sh_offset;
+            syms = (const Elf_Sym *)(data + shdr[i].sh_offset);
 
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++) {
                 if (strcmp("module_main", strings + syms[j].st_name) == 0) {
@@ -400,7 +369,7 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
 #if defined(__x86_64__)
         if (shdr[i].sh_type == SHT_RELA)
         {
-            Elf_Rela *rel = (Elf_Rela *)(elf_start + shdr[i].sh_offset);
+            const Elf_Rela *rel = (const Elf_Rela *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rela); j++)
                 if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
                 {
@@ -415,9 +384,9 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
                     {
                         munmap(exec, exec_size);
-			*err = (char *)low_alloc(80 + strlen(sym));
-			sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
-			*err_malloc = true;
+                        *err = (char *)low_alloc(80 + strlen(sym));
+                        sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+                        *err_malloc = true;
                         return NULL;
                     }
 
@@ -427,11 +396,11 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
 #elif defined(__i386__)
         if (shdr[i].sh_type == SHT_REL)
         {
-            Elf_Rel *rel = (Elf_Rel *)(elf_start + shdr[i].sh_offset);
+            const Elf_Rel *rel = (const Elf_Rel *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rel); j++)
                 if(ELF_R_TYPE(rel[j].r_info) == R_386_JMP_SLOT)
                 {
-                    const char* sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                    const char *sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
 
                     int k;
                     for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
@@ -442,9 +411,9 @@ static void *elf_load(char *elf_start, unsigned int size, const char **err, bool
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
                     {
                         munmap(exec, exec_size);
-			*err = (char *)low_alloc(80 + strlen(sym));
-			sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
-			*err_malloc = true;
+                        *err = (char *)low_alloc(80 + strlen(sym));
+                        sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+                        *err_malloc = true;
                         return NULL;
                     }
 
@@ -479,56 +448,4 @@ range_error:
     *err = "Native modules are not yet supported on this architecture.";
     return NULL;
 #endif
-}
-
-int native_api_load_sync(duk_context *ctx)
-{
-    const char *path = duk_require_string(ctx, 0);
-
-    int fd = open(path, O_RDONLY);
-    if(fd < 0)
-        duk_generic_error(ctx, "cannot find module '%s'", path);
-
-    struct stat st;
-    if(fstat(fd, &st) < 0)
-    {
-        close(fd);
-        duk_generic_error(ctx, "cannot stat module '%s'", path);
-    }
-    int len = st.st_size;
-
-    void *data = malloc(len);
-    if(!data)
-    {
-        close(fd);
-        duk_generic_error(ctx, "out of memory");
-    }
-
-    if(read(fd, data, len) != len)
-    {
-        free(data);
-        close(fd);
-        duk_generic_error(ctx, "cannot read module '%s'", path);
-    }
-    close(fd);
-
-    const char *err;
-    bool err_malloc = false;
-
-    int (*module_main)(duk_context *, const char *) = (int (*)(duk_context *, const char *))elf_load((char *)data, len, &err, &err_malloc);
-    free(data);
-
-    if(!module_main)
-    {
-        if(err_malloc)
-        {
-            const char *err2 = duk_push_string(ctx, err);
-            low_free((void *)err);
-                duk_generic_error(ctx, err2);
-        }
-        else
-                duk_generic_error(ctx, err);
-	}
-
-    return module_main(ctx, path);
 }

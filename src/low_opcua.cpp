@@ -33,7 +33,7 @@ static void setup_module_safe(low_main_t *low, void *data)
     duk_push_string(ctx, "UAClient");
     duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
 
-    low_module_require_c(ctx, "lib:events", 0);
+    low_load_module(ctx, "lib:events", false);
     duk_get_prop_string(ctx, -1, "exports");
     duk_get_prop_string(ctx, -1, "EventEmitter");
     duk_set_prototype(ctx, -4);

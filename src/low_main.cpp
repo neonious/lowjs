@@ -640,7 +640,7 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
     duk_pop(ctx);
 
     low_module_init(ctx);
-    low_module_require_c(ctx, "lib:init", LOW_MODULE_FLAG_GLOBAL);
+    low_load_module(ctx, "lib:init", false);
 
     return 0;
 }
@@ -656,7 +656,7 @@ bool low_lib_init(low_main_t *low)
     }
     duk_pop(low->duk_ctx);
 
-    return low_register_native_api(low) && low_register_opcua(low);     // 100% native modules
+    return low_register_opcua(low);     // 100% native modules
 }
 
 // -----------------------------------------------------------------------------
