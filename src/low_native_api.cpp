@@ -42,6 +42,8 @@
 #define ELF_R_TYPE  ELF32_R_TYPE
 #endif
 
+#include <unwind.h>
+
 
 // Constants
 extern low_system_t g_low_system;
@@ -52,7 +54,7 @@ struct native_api_entry_t
     uintptr_t func;
 };
 
-extern uintptr_t _Unwind_Resume, __gxx_personality_v0;
+extern uintptr_t __gxx_personality_v0;
 struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     // For C++ handling
     {"_Znwm", (uintptr_t)(void *(*)(size_t))operator new},
@@ -366,7 +368,6 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             syms = (const Elf_Sym *)(data + shdr[i].sh_offset);
 
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++) {
-                printf("SYMBOL FOUND %s %p\n", strings + syms[j].st_name, exec + syms[j].st_value);
                 if (strcmp("module_main", strings + syms[j].st_name) == 0) {
                     entry = exec + syms[j].st_value;
                     break;
@@ -476,6 +477,16 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_EXEC);
     }
 
+    for(int i=0; i < hdr->e_shnum; i++) {
+        const Elf_Shdr *sh_strtab = &shdr[hdr->e_shstrndx];
+        const char *const sh_strtab_p = data + sh_strtab->sh_offset;
+        if(strcmp(sh_strtab_p + shdr[i].sh_name, ".eh_frame") == 0)
+        {
+            void *ehframe = malloc(shdr[i].sh_size);
+            memcpy(ehframe, data + shdr[i].sh_offset, shdr[i].sh_size);
+            __register_frame(ehframe);
+        }
+    }
     for(int i=0; i < hdr->e_shnum; i++) {
         if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);

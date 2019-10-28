@@ -12,9 +12,6 @@ console.log(native.object_heap_test() ? "working" : "not working");
 console.log("C++ objects new/delete:")
 console.log(native.new_test() ? "working" : "not working");
 
-/*
- * Not working yet!
-
 console.log("C++ objects destructing while throw:");
 try {
     native.unwind_stack_test_do_unwind();
@@ -24,4 +21,3 @@ try {
         console.log("catch called with wrong value", i);
 }
 console.log(native.unwind_stack_test() ? "working" : "not working");
-*/
