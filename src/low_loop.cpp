@@ -152,11 +152,11 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
                 }
 
                 pthread_cond_timedwait(
-                  &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
+                &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
             }
             else
                 pthread_cond_wait(&low->loop_thread_cond,
-                                  &low->loop_thread_mutex);
+                                &low->loop_thread_mutex);
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -187,18 +187,56 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
 bool low_loop_run(low_main_t *low)
 {
-    if(duk_safe_call(low->duk_ctx,
-                    low_loop_run_safe,
-                    NULL,
-                    0,
-                    1) != DUK_EXEC_SUCCESS)
+    try
     {
-        if(!low->duk_flag_stop) // flag stop also produces error
-            low_duk_print_error(low->duk_ctx);
-        duk_pop(low->duk_ctx);
-    }
+        while(true)
+        {
+            if(duk_safe_call(low->duk_ctx,
+                        low_loop_run_safe,
+                        NULL,
+                        0,
+                        1) != DUK_EXEC_SUCCESS)
+            {
+                if(!low->duk_flag_stop) // flag stop also produces error
+                {
+                    // Check for uncaughtException handler
+                    if(!low->signal_call_id)
+                    {
+                        low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+                        return false;
+                    }
 
-    return low->duk_flag_stop;
+                    low_push_stash(low->duk_ctx, low->signal_call_id, false);
+                    duk_push_string(low->duk_ctx, "uncaughtException");
+                    duk_dup(low->duk_ctx, -3);
+                    duk_call(low->duk_ctx, 2);
+
+                    if(!duk_require_boolean(low->duk_ctx, -1))
+                    {
+                        duk_pop(low->duk_ctx);
+                        low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                duk_pop(low->duk_ctx);
+                return true;
+            }
+        }
+    }
+    catch(std::exception &e)
+    {
+        fprintf(stderr, "Fatal exception: %s\n", e.what());
+    }
+    catch(...)
+    {
+        fprintf(stderr, "Fatal exception\n");
+    }
+    return false;
 }
 
 

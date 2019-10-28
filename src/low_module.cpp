@@ -60,14 +60,12 @@ void low_module_init(duk_context *ctx)
 //  low_module_make_native
 // -----------------------------------------------------------------------------
 
-static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
+bool low_module_make_native(low_main_t *low,
+                            const char *name,
+                            void (*setup_cb)(low_main_t *main, void *data),
+                            void *setup_cb_data)
 {
-    low_main_t *low = *(low_main_t **)udata;
-    char *name = (char *)(((void **)udata)[1]);
-    void (*setup_safe_cb)(low_main_t * main, void *data) =
-      (void (*)(low_main_t * main, void *data))(((void **)udata)[2]);
-    void *setup_safe_cb_data = ((void **)udata)[3];
-
+    duk_context *ctx = low_get_duk_context(low);
     duk_push_object(ctx); // our new module!
 
     duk_push_string(ctx, name);
@@ -139,7 +137,7 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     // [... module]
 
     duk_get_prop_string(ctx, 0, "exports");
-    setup_safe_cb(low, setup_safe_cb_data);
+    setup_cb(low, setup_cb_data);
 
     /* module.loaded = true */
     duk_push_true(ctx);
@@ -154,28 +152,7 @@ static duk_ret_t low_module_make_native_safe(duk_context *ctx, void *udata)
     sprintf(txt, "lib:%s", name);
     duk_put_prop_string(ctx, -2, txt);
 
-    return 0;
-}
-
-bool low_module_make_native(low_main_t *low,
-                            const char *name,
-                            void (*setup_safe_cb)(low_main_t *main, void *data),
-                            void *setup_safe_cb_data)
-{
-    void *data[4] = {
-      (void *)low, (void *)name, (void *)setup_safe_cb, setup_safe_cb_data};
-    if(duk_safe_call(
-         low->duk_ctx, low_module_make_native_safe, (void *)data, 0, 1) !=
-       DUK_EXEC_SUCCESS)
-    {
-        if(!low->duk_flag_stop) // flag stop also produces error
-            low_duk_print_error(low->duk_ctx);
-        duk_pop(low->duk_ctx);
-
-        return low->duk_flag_stop;
-    }
-
-    duk_pop(low->duk_ctx);
+    duk_pop(ctx);
     return true;
 }
 
@@ -213,29 +190,66 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
 
 bool low_module_main(low_main_t *low, const char *path)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
-    if(duk_safe_call(low->duk_ctx, low_module_main_safe, (void *)path, 0, 1) !=
-       DUK_EXEC_SUCCESS)
-#else
-    char path2[PATH_MAX];
-    if(path)
-        realpath(path, path2);
-
-    if(duk_safe_call(low->duk_ctx,
-                     low_module_main_safe,
-                     (void *)(path ? path2 : NULL),
-                     0,
-                     1) != DUK_EXEC_SUCCESS)
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    try
     {
-        if(!low->duk_flag_stop) // flag stop also produces error
-            low_duk_print_error(low->duk_ctx);
-        duk_pop(low->duk_ctx);
+        while(true)
+        {
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(duk_safe_call(low->duk_ctx, low_module_main_safe, (void *)path, 0, 1) !=
+            DUK_EXEC_SUCCESS)
+#else
+            char path2[PATH_MAX];
+            if(path)
+                realpath(path, path2);
 
-        return low->duk_flag_stop;
+            if(duk_safe_call(low->duk_ctx,
+                            low_module_main_safe,
+                            (void *)(path ? path2 : NULL),
+                            0,
+                            1) != DUK_EXEC_SUCCESS)
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            {
+                if(!low->duk_flag_stop) // flag stop also produces error
+                {
+                    // Check for uncaughtException handler
+                    if(!low->signal_call_id)
+                    {
+                        low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+                        return false;
+                    }
+
+                    low_push_stash(low->duk_ctx, low->signal_call_id, false);
+                    duk_push_string(low->duk_ctx, "uncaughtException");
+                    duk_dup(low->duk_ctx, -3);
+                    duk_call(low->duk_ctx, 2);
+
+                    if(!duk_require_boolean(low->duk_ctx, -1))
+                    {
+                        duk_pop(low->duk_ctx);
+                        low_duk_print_error(low->duk_ctx);
+                        duk_pop(low->duk_ctx);
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                duk_pop(low->duk_ctx);
+                return true;
+            }
+        }
     }
-    duk_pop(low->duk_ctx);
-    return true;
+    catch(std::exception &e)
+    {
+        fprintf(stderr, "Fatal exception: %s\n", e.what());
+    }
+    catch(...)
+    {
+        fprintf(stderr, "Fatal exception\n");
+    }
+
+    return false;
 }
 
 // -----------------------------------------------------------------------------

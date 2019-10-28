@@ -106,9 +106,9 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
 //  {"_ZTVN10__cxxabiv119__pointer_type_infoE", TODO},
 
     {"malloc", (uintptr_t)low_alloc},
-    {"calloc", (uintptr_t)calloc},
-    {"realloc", (uintptr_t)realloc},
-    {"free", (uintptr_t)free},
+    {"calloc", (uintptr_t)low_calloc},
+    {"realloc", (uintptr_t)low_realloc},
+    {"free", (uintptr_t)low_free},
 
     {"memcmp", (uintptr_t)memcmp},
     {"memcpy", (uintptr_t)memcpy},

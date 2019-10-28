@@ -93,7 +93,6 @@ node_modules/BUILT: package.json
 deps/duktape/src-low/duktape.c: $(shell find deps/duktape/src-input)
 	rm -rf deps/duktape/src-low
 	cd deps/duktape && python tools/configure.py --output-directory=src-low	\
-		-DDUK_USE_FATAL_HANDLER   \
 		-DDUK_USE_GLOBAL_BUILTIN   \
 		-DDUK_USE_BOOLEAN_BUILTIN   \
 		-DDUK_USE_ARRAY_BUILTIN   \

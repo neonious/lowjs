@@ -1130,9 +1130,7 @@ Object.defineProperty(
   );
 
 exports.process = new events.EventEmitter();
-native.processInfo(process, (signal) => {
-    return process.emit(signal);
-});
+native.processInfo(process, process.emit.bind(process));
 // required for test for node in axios module, file /lib/defaults.js
 // the test is:
 // Object.prototype.toString.call(process) === '[object process]'

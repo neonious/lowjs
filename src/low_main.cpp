@@ -90,22 +90,6 @@ static void low_duk_free(void *udata, void *ptr)
     low_free(ptr);
 }
 
-static void low_duk_fatal(void *udata, const char *msg)
-{
-#if LOW_ESP32_LWIP_SPECIALITIES
-    ESP_LOGE(TAG, "duk_fatal: %s", msg);
-    vTaskDelay(5000);
-    esp_restart();
-#else
-    low_error(msg);
-
-    fprintf(stderr,
-            "--- exiting as we reached fatal error handler, should not "
-            "happen ---\n");
-    exit(EXIT_FAILURE);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-}
-
 low_main_t *low_init()
 {
 #if LOW_INCLUDE_CARES_RESOLVER
@@ -140,7 +124,7 @@ low_main_t *low_init()
     low->duk_ctx = NULL;
 #else
     low->duk_ctx = duk_create_heap(
-      low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
+      low_duk_alloc, low_duk_realloc, low_duk_free, low, NULL);
     if(!low->duk_ctx)
     {
         fprintf(stderr, "Cannot initialize Duktape heap\n");
@@ -555,7 +539,7 @@ bool low_reset(low_main_t *low)
     pthread_mutex_unlock(&low->web_thread_mutex);
 
     duk_context *new_ctx = duk_create_heap(
-      low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
+      low_duk_alloc, low_duk_realloc, low_duk_free, low, NULL);
     if(!new_ctx && low->duk_ctx)
     {
         fprintf(stderr, "Cannot create Duktape heap, trying after free\n");
@@ -565,7 +549,7 @@ bool low_reset(low_main_t *low)
         low->duk_ctx = NULL;
 
         duk_context *new_ctx = duk_create_heap(
-          low_duk_alloc, low_duk_realloc, low_duk_free, low, low_duk_fatal);
+          low_duk_alloc, low_duk_realloc, low_duk_free, low, NULL);
     }
     if(!new_ctx)
     {
@@ -642,21 +626,37 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
     low_module_init(ctx);
     low_load_module(ctx, "lib:init", false);
 
+    low_register_opcua(low);     // 100% native modules
+
     return 0;
 }
 
 bool low_lib_init(low_main_t *low)
 {
-    if(duk_safe_call(low->duk_ctx, low_lib_init_safe, NULL, 0, 1) !=
-       DUK_EXEC_SUCCESS)
+    try
     {
-        if(!low->duk_flag_stop)
-            low_duk_print_error(low->duk_ctx);
-        return false;
-    }
-    duk_pop(low->duk_ctx);
+        if(duk_safe_call(low->duk_ctx, low_lib_init_safe, NULL, 0, 1) !=
+        DUK_EXEC_SUCCESS)
+        {
+            if(!low->duk_flag_stop)
+                low_duk_print_error(low->duk_ctx);
+            duk_pop(low->duk_ctx);
+            return false;
+        }
+        duk_pop(low->duk_ctx);
 
-    return low_register_opcua(low);     // 100% native modules
+        return true;
+    }
+    catch(std::exception &e)
+    {
+        fprintf(stderr, "Fatal exception: %s\n", e.what());
+    }
+    catch(...)
+    {
+        fprintf(stderr, "Fatal exception\n");
+    }
+
+    return false;
 }
 
 // -----------------------------------------------------------------------------

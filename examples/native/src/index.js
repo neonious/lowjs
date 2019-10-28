@@ -35,8 +35,3 @@ try {
 console.log(native.throw_test() ? "working" : "not working");
 
 console.log("Done.");
-
-/*
-{"throw_something_test", native_method_throw_something_test, 0},
-{"throw_test", native_method_throw_test, 0},
-*/
