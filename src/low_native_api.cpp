@@ -4,6 +4,7 @@
 
 #include "low_native_api.h"
 
+#include "low_alloc.h"
 #include "low_main.h"
 #include "low_module.h"
 #include "low_system.h"
@@ -46,7 +47,17 @@
 #include <unwind.h>
 #endif /* __APPLE_H__ */
 
-extern "C" _Unwind_Reason_Code __gxx_personality_v0(
+extern "C" {
+
+void* __cxa_allocate_exception(size_t thrown_size) throw();
+void* __cxa_begin_catch(void* exceptionObject) throw();
+void __cxa_call_unexpected (void*) __attribute__((noreturn));
+void __cxa_end_catch();
+void __cxa_free_exception(void * thrown_exception) throw();
+void __cxa_rethrow();
+void __cxa_throw(void* thrown_exception, struct std::type_info * tinfo, void (*dest)(void*));
+
+_Unwind_Reason_Code __gxx_personality_v0(
     int version,
     _Unwind_Action actions,
     uint64_t exceptionClass,
@@ -54,6 +65,7 @@ extern "C" _Unwind_Reason_Code __gxx_personality_v0(
     struct _Unwind_Context* context,
     void* stop_parameter);
 
+}
 
 // Constants
 extern low_system_t g_low_system;
@@ -64,17 +76,36 @@ struct native_api_entry_t
     uintptr_t func;
 };
 
+// https://www.mkompf.com/cplus/
 struct native_api_entry_t NATIVE_API_ENTRIES[] = {
+    // stack unwinding
+    {"_Unwind_Resume", (uintptr_t)_Unwind_Resume},
+    {"__gxx_personality_v0", (uintptr_t)__gxx_personality_v0},
+
+    // http://demangler.com/
     // _Znwm* ... are mapped to these 4 entries below
     {"_Znwm", (uintptr_t)(void *(*)(size_t))operator new},
     {"_Znam", (uintptr_t)(void *(*)(size_t))operator new[]},
     {"_ZdlPv", (uintptr_t)(void (*)(void *))operator delete},
     {"_ZdaPv", (uintptr_t)(void (*)(void *))operator delete[]},
 
-    {"_Unwind_Resume", (uintptr_t)_Unwind_Resume},
-    {"__gxx_personality_v0", (uintptr_t)__gxx_personality_v0},
+    // https://libcxxabi.llvm.org/spec.html
+    {"__cxa_allocate_exception", (uintptr_t)__cxa_allocate_exception},
+    {"__cxa_call_unexpected", (uintptr_t)__cxa_call_unexpected},
+    {"__cxa_begin_catch", (uintptr_t)__cxa_begin_catch},
+    {"__cxa_end_catch", (uintptr_t)__cxa_end_catch},
+    {"__cxa_free_exception", (uintptr_t)__cxa_free_exception},
+    {"__cxa_rethrow", (uintptr_t)__cxa_rethrow},
+    {"__cxa_throw", (uintptr_t)__cxa_throw},
 
-    {"malloc", (uintptr_t)malloc},
+    // To support more of the C++ stdlib, we need to first implement more type detection
+    // allows throw of integer
+//  {"_ZTIPi", (uintptr_t)&typeid(int)},
+    // These symbols are missing to support throw of classes
+//  {"_ZTVN10__cxxabiv117__class_type_infoE", TODO},
+//  {"_ZTVN10__cxxabiv119__pointer_type_infoE", TODO},
+
+    {"malloc", (uintptr_t)low_alloc},
     {"calloc", (uintptr_t)calloc},
     {"realloc", (uintptr_t)realloc},
     {"free", (uintptr_t)free},
@@ -114,6 +145,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"low_push_stash", (uintptr_t)low_push_stash},
     {"low_push_buffer", (uintptr_t)low_push_buffer},
     {"low_call_next_tick", (uintptr_t)low_call_next_tick},
+    {"low_alloc_throw", (uintptr_t)low_alloc_throw},
 
     {"duk_base64_decode", (uintptr_t)duk_base64_decode},
     {"duk_base64_encode", (uintptr_t)duk_base64_encode},
@@ -288,6 +320,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     const Elf_Sym *syms;
     void *entry = NULL;
 
+    // Validate image
     hdr = (const Elf_Ehdr *)data;
     if(size < sizeof(Elf_Ehdr))
         goto range_error;
@@ -321,6 +354,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     phdr = (const Elf_Phdr *)(data + hdr->e_phoff);
     shdr = (const Elf_Shdr *)(data + hdr->e_shoff);
 
+    // Get image size
     for (int i = 0; i < hdr->e_phnum; i++)
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
             if(phdr[i].p_filesz > phdr[i].p_memsz)
@@ -342,6 +376,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     }
     exec_size = exec_max - exec_min;
 
+    // Copy image into memory
     exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     if(!exec)
     {
@@ -350,9 +385,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     }
     exec -= exec_min;
 
-    // Start with clean memory
     memset(exec, 0, exec_size);
-
     for(int i = 0; i < hdr->e_phnum; i++)
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
             const char *start = data + phdr[i].p_offset;
@@ -360,6 +393,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             memmove(taddr, start, phdr[i].p_filesz);
         }
 
+    // Get entry point
     for(int i=0; i < hdr->e_shnum; i++) {
         if (shdr[i].sh_type == SHT_DYNSYM) {
             if(shdr[i].sh_link >= hdr->e_shnum)
@@ -389,6 +423,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
         return NULL;
     }
 
+    // Modify relocatables
     for(int i=0; i < hdr->e_shnum; i++)
     {
         // https://www.intezer.com/executable-and-linkable-format-101-part-3-relocations/
@@ -404,6 +439,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 case R_X86_64_PC64:
                 case R_X86_64_64:
                 case R_X86_64_JMP_SLOT:
+                case R_X86_64_GLOB_DAT:
                     const char *sym;
                     int k, len;
                     sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
@@ -429,12 +465,12 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         *err_malloc = true;
                         return NULL;
                     }
-                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
+                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_PC64)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
                     else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend;
                     else
-                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
                     break;
 
                 case R_X86_64_RELATIVE:
@@ -461,6 +497,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 case R_386_PC32:
                 case R_386_32:
                 case R_386_JMP_SLOT:
+                case R_386_GLOB_DAT:
                     const char *sym;
                     int k, len;
                     sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
@@ -486,12 +523,12 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         *err_malloc = true;
                         return NULL;
                     }
-                    if(ELF_R_TYPE(rel[j].r_info) == R_386_JMP_SLOT)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
+                    if(ELF_R_TYPE(rel[j].r_info) == R_386_PC32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
                     else if(ELF_R_TYPE(rel[j].r_info) == R_386_32)
                         *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend;
                     else
-                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
                     break;
 
                 case R_386_RELATIVE:
@@ -509,6 +546,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 #endif
     }
 
+    // Modify heap protection flags
     for(int i = 0; i < hdr->e_phnum; i++) {
         if(phdr[i].p_type != PT_LOAD || !phdr[i].p_filesz)
             continue;
@@ -522,17 +560,18 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_EXEC);
     }
 
-    // Required for stack unwinding (throws)
-    for(int i=0; i < hdr->e_shnum; i++)
+    // Setup stack unwinding for throws
+    for(int i = 0; i < hdr->e_shnum; i++)
     {
         const Elf_Shdr *sh_strtab = &shdr[hdr->e_shstrndx];
         const char *const sh_strtab_p = data + sh_strtab->sh_offset;
+
         if(strcmp(sh_strtab_p + shdr[i].sh_name, ".eh_frame") == 0)
         {
 #ifdef __APPLE__
-            // On OS X __register_frame takes a single FDE as an argument.
+            // On OS X/BSD __register_frame takes a single FDE as an argument.
             // See http://lists.llvm.org/pipermail/llvm-dev/2013-April/061737.html
-            // and projects/libunwind/src/UnwindLevel1-gcc-ext.c.
+            // and projects/libunwind/src/UnwindLevel1-gcc-ext.c
             const char *P = (const char *)exec + shdr[i].sh_addr;
             const char *End = P + shdr[i].sh_size;
             do  {
@@ -556,7 +595,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
         }
     }
 
-    for(int i=0; i < hdr->e_shnum; i++)
+    // Call constructors, send destructors to atexit
+    for(int i = 0; i < hdr->e_shnum; i++)
         if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
@@ -565,7 +605,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 calls++;
             }
         }
-    for(int i=0; i < hdr->e_shnum; i++)
+
+    for(int i = 0; i < hdr->e_shnum; i++)
         if(shdr[i].sh_type == SHT_INIT_ARRAY)
         {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);

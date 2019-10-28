@@ -6,12 +6,9 @@
 #define __LOW_ALLOC_H__
 
 #include "low_config.h"
-#include <stddef.h>
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-#include "esp_log.h"
-#include "esp_system.h"
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+#include <duktape.h>
+#include <stddef.h>
 
 #if LOW_USE_SYSTEM_ALLOC
 #include <cstdlib>
@@ -36,10 +33,13 @@ extern "C"
     void low_free(void *ptr);
 
     char *low_strdup(const char *str);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 #endif /* LOW_USE_SYSTEM_ALLOC */
+
+void *low_alloc_throw(duk_context *ctx, size_t size);
 
 #ifdef __cplusplus
 #include <memory>
@@ -64,14 +64,8 @@ template<typename T> class low_allocator : public std::allocator<T>
     {
         T *items = (T *)low_alloc(n * sizeof(T));
         if(!items)
-        {
-#if LOW_ESP32_LWIP_SPECIALITIES
-            ESP_LOGE("low_alloc", "memory full in C++ allocator, restarting");
-            esp_restart();
-#else
             throw std::bad_alloc();
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        }
+
         return items;
     }
 

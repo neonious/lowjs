@@ -1,6 +1,8 @@
 'use strict';
 
 var native = require('./native');
+if(native != require('./native'))
+	console.log("not cached");
 
 console.log("Simple adder test:")
 console.log("2 + 3 = ", native.simple_add(2, 3));
@@ -18,6 +20,23 @@ try {
     console.log("unwind_stack_test_do_unwind did not throw");
 } catch(i) {
     if(i != 123)
-        console.log("catch called with wrong value", i);
+        console.log("unwind_stack_test_do_unwind: catch called with wrong value", i);
 }
 console.log(native.unwind_stack_test() ? "working" : "not working");
+
+console.log("Throw tests...");
+try {
+    native.throw_duk_test();
+    console.log("throw_duk_test did not throw");
+} catch(err) {
+    if(!err || err.message != "throw test")
+        console.log("throw_duk_test: catch called with wrong value", err);
+}
+console.log(native.throw_test() ? "working" : "not working");
+
+console.log("Done.");
+
+/*
+{"throw_something_test", native_method_throw_something_test, 0},
+{"throw_test", native_method_throw_test, 0},
+*/

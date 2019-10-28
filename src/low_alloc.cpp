@@ -4,6 +4,11 @@
 
 #include "low_alloc.h"
 
+#include "low_main.h"
+#include "low_system.h"
+
+#include <errno.h>
+
 #include <cstdlib>
 #include <cstring>
 
@@ -15,6 +20,22 @@
 void *operator new(size_t size, low_new_ident ident) noexcept
 {
     return low_alloc(size);
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_alloc_throw
+// -----------------------------------------------------------------------------
+
+void *low_alloc_throw(duk_context *ctx, size_t size)
+{
+    void *data = low_alloc(size);
+    if(!data)
+    {
+        low_push_error(duk_get_low_context(ctx), ENOMEM, "malloc");
+        duk_throw(ctx);
+    }
+    return data;
 }
 
 

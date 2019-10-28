@@ -6,37 +6,33 @@ error:
 endif
 
 all: src/native.so
-
-esp32: src/native.esp32.so
+esp32: src/native.so
 
 C = gcc
 CXX = g++
 LD = g++
 
-FLAGS = -O3 -fPIC
+FLAGS = -O3 -fPIC -fvisibility=hidden -fno-stack-protector -fno-builtin -fno-rtti
 
-CFLAGS = $(FLAGS) -fvisibility=hidden -fno-stack-protector -fno-builtin -Ilow_native_api/include
-CXXFLAGS = $(FLAGS) -fvisibility=hidden -fno-stack-protector -fno-builtin -Ilow_native_api/include
-LDFLAGS = $(FLAGS) -shared -Llow_native_api/lib -fno-builtin -nostdlib
+CFLAGS = $(FLAGS) -Ilow_native_api/include
+CXXFLAGS = $(FLAGS) -Ilow_native_api/include
+LDFLAGS = $(FLAGS) -shared -nostdlib -static-libstdc++
 
 esp32: C = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-gcc
 esp32: CXX = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-g++
 esp32: LD = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-g++
 
-esp32: CFLAGS = $(FLAGS) -fvisibility=hidden -fno-stack-protector -fno-builtin -Ilow_native_api/include -DDUK_F_32BIT_PTRS
-esp32: CXXFLAGS = $(FLAGS) -fvisibility=hidden -fno-stack-protector -fno-builtin -Ilow_native_api/include -DDUK_F_32BIT_PTRS
+esp32: CFLAGS = $(FLAGS) -Ilow_native_api/include -DDUK_F_32BIT_PTRS
+esp32: CXXFLAGS = $(FLAGS) -Ilow_native_api/include -DDUK_F_32BIT_PTRS
 
 OBJECTS =	\
 	src/native.o
 
 clean:
-	rm -f src/native.so src/native.esp32.so */*.o */*.d
+	rm -f src/native.so */*.o */*.d
 
 src/native.so: $(OBJECTS) Makefile
-	$(LD) -o src/native.so $(OBJECTS) $(LDFLAGS) -llow_native
-
-src/native.esp32.so: $(OBJECTS) Makefile
-	$(LD) -o src/native.so $(OBJECTS) $(LDFLAGS) -llow_native.esp32
+	$(LD) -o src/native.so $(OBJECTS) $(LDFLAGS)
 
 %.o : %.c Makefile
 	$(C) $(CFLAGS) -MMD -o $@ -c $<

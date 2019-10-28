@@ -65,7 +65,6 @@ int native_method_cxx_object_heap_test(duk_context *ctx)
     return 1;
 }
 
-
 // -----------------------------------------------------------------------------
 //  native_method_cxx_unwind_test -
 // -----------------------------------------------------------------------------
@@ -94,8 +93,49 @@ int native_method_cxx_unwind_stack_test(duk_context *ctx)
 
 
 // -----------------------------------------------------------------------------
+//  native_method_throw_duk_test -
+// -----------------------------------------------------------------------------
+
+int thrown = 0;
+
+int native_method_throw_duk_test(duk_context *ctx)
+{
+	try
+    {
+        duk_generic_error(ctx, "throw test");
+    }
+    catch(...)
+    {
+        thrown++;
+        throw;
+    }
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
+//  native_method_throw_test -
+// -----------------------------------------------------------------------------
+
+int native_method_throw_test(duk_context *ctx)
+{
+	duk_push_boolean(ctx, thrown == 1);
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
 //  module_main - on stack: [module exports]
 // -----------------------------------------------------------------------------
+
+#include <vector>
+#include <map>
+
+class stl_link_test_class
+{
+public:
+    stl_link_test_class();
+};
 
 int module_main(duk_context *ctx, const char *module_path)
 {
@@ -104,8 +144,15 @@ int module_main(duk_context *ctx, const char *module_path)
                                          {"object_heap_test", native_method_cxx_object_heap_test, 0},
                                          {"unwind_stack_test_do_unwind", native_method_cxx_unwind_stack_test_do_unwind, 0},
                                          {"unwind_stack_test", native_method_cxx_unwind_stack_test, 0},
+                                         {"throw_duk_test", native_method_throw_duk_test, 0},
+                                         {"throw_test", native_method_throw_test, 0},
                                          {NULL, NULL, 0}};
     duk_put_function_list(ctx, 1, methods);
-
+/*
+    std::vector<stl_link_test_class> v;         // working
+    v.push_back(stl_link_test_class());
+    std::map<int, stl_link_test_class> m;       // not working
+    m[8] = stl_link_test_class();
+*/
     return 0;
 }
