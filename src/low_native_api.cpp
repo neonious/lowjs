@@ -42,7 +42,9 @@
 #define ELF_R_TYPE  ELF32_R_TYPE
 #endif
 
+#ifdef __APPLE__
 #include <unwind.h>
+#endif /* __APPLE_H__ */
 
 
 // Constants
@@ -367,12 +369,12 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             strings = data + shdr[shdr[i].sh_link].sh_offset;
             syms = (const Elf_Sym *)(data + shdr[i].sh_offset);
 
-            for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++) {
-                if (strcmp("module_main", strings + syms[j].st_name) == 0) {
+            for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++)
+                if (strcmp("module_main", strings + syms[j].st_name) == 0)
+                {
                     entry = exec + syms[j].st_value;
                     break;
                 }
-            }
             if(entry)
                 break;
         }
@@ -387,6 +389,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     for(int i=0; i < hdr->e_shnum; i++) {
         // TODO: handle all of these
         // https://www.intezer.com/executable-and-linkable-format-101-part-3-relocations/
+        // https://github.com/freebsd/freebsd/blob/master/libexec/rtld-elf/amd64/reloc.c
 #if defined(__x86_64__)
         if (shdr[i].sh_type == SHT_RELA)
         {
@@ -416,12 +419,19 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
                         *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
                     else
-                        *(uintptr_t *)(exec + rel[j].r_offset) += NATIVE_API_ENTRIES[k].func;
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend;
                     break;
 
                 case R_X86_64_RELATIVE:
                     *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
                     break;
+
+                default:
+                    munmap(exec, exec_size);
+                    *err = (char *)low_alloc(80);
+                    sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
+                    *err_malloc = true;
+                    return NULL;
                 }
         }
 #elif defined(__i386__)
@@ -477,17 +487,40 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_EXEC);
     }
 
-    for(int i=0; i < hdr->e_shnum; i++) {
+    // Required for stack unwinding (throws)
+    for(int i=0; i < hdr->e_shnum; i++)
+    {
         const Elf_Shdr *sh_strtab = &shdr[hdr->e_shstrndx];
         const char *const sh_strtab_p = data + sh_strtab->sh_offset;
         if(strcmp(sh_strtab_p + shdr[i].sh_name, ".eh_frame") == 0)
         {
-            void *ehframe = malloc(shdr[i].sh_size);
-            memcpy(ehframe, data + shdr[i].sh_offset, shdr[i].sh_size);
-            __register_frame(ehframe);
+#ifdef __APPLE__
+            // On OS X __register_frame takes a single FDE as an argument.
+            // See http://lists.llvm.org/pipermail/llvm-dev/2013-April/061737.html
+            // and projects/libunwind/src/UnwindLevel1-gcc-ext.c.
+            const char *P = (const char *)exec + shdr[i].sh_addr;
+            const char *End = P + shdr[i].sh_size;
+            do  {
+                uint32_t Length = *(const uint32_t *)P;
+                uint32_t Offset = *(const uint32_t *)(P + 4);
+                if(Offset != 0)
+                    __register_frame(P);
+                P += 4 + Length;
+                if(P > End)
+                {
+                    munmap(exec, exec_size);
+                    *err = ".eh_frame section broken.";
+                    return NULL;
+                }
+            } while(P != End);
+#else
+            // TODO
+#endif /* __APPLE__ */
+
+            break;
         }
     }
-    for(int i=0; i < hdr->e_shnum; i++) {
+    for(int i=0; i < hdr->e_shnum; i++)
         if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
@@ -496,8 +529,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 calls++;
             }
         }
-    }
-    for(int i=0; i < hdr->e_shnum; i++) {
+    for(int i=0; i < hdr->e_shnum; i++)
         if (shdr[i].sh_type == SHT_INIT_ARRAY) {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
@@ -506,7 +538,6 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 calls++;
             }
         }
-    }
     // TODO: fini calls
 
     return entry;
