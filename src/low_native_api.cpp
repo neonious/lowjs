@@ -26,7 +26,7 @@
 #define Elf_Shdr    Elf64_Shdr
 #define Elf_Sym     Elf64_Sym
 #define Elf_Rela    Elf64_Rela
-#define Elf_Rel    Elf64_Rel
+#define Elf_Rel     Elf64_Rel
 #define ELF_R_SYM   ELF64_R_SYM
 #define ELF_R_TYPE  ELF64_R_TYPE
 #elif defined(__i386__)
@@ -46,6 +46,14 @@
 #include <unwind.h>
 #endif /* __APPLE_H__ */
 
+extern "C" _Unwind_Reason_Code __gxx_personality_v0(
+    int version,
+    _Unwind_Action actions,
+    uint64_t exceptionClass,
+    struct _Unwind_Exception* exceptionObject,
+    struct _Unwind_Context* context,
+    void* stop_parameter);
+
 
 // Constants
 extern low_system_t g_low_system;
@@ -56,18 +64,13 @@ struct native_api_entry_t
     uintptr_t func;
 };
 
-extern uintptr_t __gxx_personality_v0;
 struct native_api_entry_t NATIVE_API_ENTRIES[] = {
-    // For C++ handling
+    // _Znwm* ... are mapped to these 4 entries below
     {"_Znwm", (uintptr_t)(void *(*)(size_t))operator new},
     {"_Znam", (uintptr_t)(void *(*)(size_t))operator new[]},
     {"_ZdlPv", (uintptr_t)(void (*)(void *))operator delete},
-    {"_ZdlPvm", (uintptr_t)(void (*)(void *))operator delete},
-    {"_ZdaPvm", (uintptr_t)(void (*)(void *))operator delete[]},
-    // handle "_Znwm*"  TODO
-    // handle "_Znam*"
-    // handle "_ZdlPv*"
-    // handle "_ZdaPv*"
+    {"_ZdaPv", (uintptr_t)(void (*)(void *))operator delete[]},
+
     {"_Unwind_Resume", (uintptr_t)_Unwind_Resume},
     {"__gxx_personality_v0", (uintptr_t)__gxx_personality_v0},
 
@@ -386,10 +389,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
         return NULL;
     }
 
-    for(int i=0; i < hdr->e_shnum; i++) {
-        // TODO: handle all of these
+    for(int i=0; i < hdr->e_shnum; i++)
+    {
         // https://www.intezer.com/executable-and-linkable-format-101-part-3-relocations/
-        // https://github.com/freebsd/freebsd/blob/master/libexec/rtld-elf/amd64/reloc.c
 #if defined(__x86_64__)
         if (shdr[i].sh_type == SHT_RELA)
         {
@@ -397,14 +399,26 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rela); j++)
                 switch(ELF_R_TYPE(rel[j].r_info))
                 {
-                case R_X86_64_JMP_SLOT:
+                case R_X86_64_NONE: break;
+
+                case R_X86_64_PC64:
                 case R_X86_64_64:
+                case R_X86_64_JMP_SLOT:
                     const char *sym;
-                    int k;
+                    int k, len;
                     sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                    // support all operator new and deletes
+                    if(memcmp(sym, "_Znwm", 5) == 0
+                    || memcmp(sym, "_Znam", 5) == 0)
+                        len = 5;
+                    else if(memcmp(sym, "_ZdlPv", 6) == 0
+                         || memcmp(sym, "_ZdaPv", 6) == 0)
+                        len = 6;
+                    else
+                        len = strlen(sym) + 1;
                     for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
                     {
-                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
+                        if(memcmp(NATIVE_API_ENTRIES[k].name, sym, len) == 0)
                             break;
                     }
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
@@ -415,11 +429,12 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         *err_malloc = true;
                         return NULL;
                     }
-
                     if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_JMP_SLOT)
                         *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
-                    else
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend;
+                    else
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
                     break;
 
                 case R_X86_64_RELATIVE:
@@ -439,14 +454,28 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
         {
             const Elf_Rel *rel = (const Elf_Rel *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rel); j++)
-                if(ELF_R_TYPE(rel[j].r_info) == R_386_JMP_SLOT)
+                switch(ELF_R_TYPE(rel[j].r_info))
                 {
-                    const char *sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                case R_386_NONE: break;
 
-                    int k;
+                case R_386_PC32:
+                case R_386_32:
+                case R_386_JMP_SLOT:
+                    const char *sym;
+                    int k, len;
+                    sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                    // support all operator new and deletes
+                    if(memcmp(sym, "_Znwm", 5) == 0
+                    || memcmp(sym, "_Znam", 5) == 0)
+                        len = 5;
+                    else if(memcmp(sym, "_ZdlPv", 6) == 0
+                         || memcmp(sym, "_ZdaPv", 6) == 0)
+                        len = 6;
+                    else
+                        len = strlen(sym) + 1;
                     for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
                     {
-                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
+                        if(memcmp(NATIVE_API_ENTRIES[k].name, sym, len) == 0)
                             break;
                     }
                     if(k == sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t))
@@ -457,13 +486,19 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         *err_malloc = true;
                         return NULL;
                     }
+                    if(ELF_R_TYPE(rel[j].r_info) == R_386_JMP_SLOT)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_386_32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend;
+                    else
+                        *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
+                    break;
 
-                    *(uintptr_t *)(exec + rel[j].r_offset) = NATIVE_API_ENTRIES[k].func;
-                }
-                else if(ELF_R_TYPE(rel[j].r_info) == R_386_RELATIVE)
+                case R_386_RELATIVE:
                     *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
-                else
-                {
+                    break;
+
+                default:
                     munmap(exec, exec_size);
                     *err = (char *)low_alloc(80);
                     sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
@@ -520,6 +555,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             break;
         }
     }
+
     for(int i=0; i < hdr->e_shnum; i++)
         if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
@@ -530,15 +566,26 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             }
         }
     for(int i=0; i < hdr->e_shnum; i++)
-        if (shdr[i].sh_type == SHT_INIT_ARRAY) {
+        if(shdr[i].sh_type == SHT_INIT_ARRAY)
+        {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
-            for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
+            for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++)
+            {
                 if(*calls && *calls != (uintptr_t)-1)
                     ((void (*)(void))(*calls + exec))();
                 calls++;
             }
         }
-    // TODO: fini calls
+        else if(shdr[i].sh_type == SHT_FINI_ARRAY)
+        {
+            uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
+            for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++)
+            {
+                if(*calls && *calls != (uintptr_t)-1)
+                    atexit((void (*)(void))(*calls + exec));
+                calls++;
+            }
+        }
 
     return entry;
 
