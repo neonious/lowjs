@@ -242,7 +242,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
 
 void *native_api_load(const char *data, unsigned int size, const char **err, bool *err_malloc)
 {
-#if defined(__x86_64__) || defined(__i386__)
+#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
     const Elf_Ehdr *hdr;
     const Elf_Phdr *phdr;
     const Elf_Shdr *shdr;
@@ -278,6 +278,20 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     || hdr->e_machine != EM_386)
     {
         *err = "File is an ELF file, but not one for x86 machines.";
+        return NULL;
+    }
+#elif defined(__aarch64__)
+    if(hdr->e_ident[EI_CLASS] != ELFCLASS64
+    || hdr->e_machine != EM_AARCH64)
+    {
+        *err = "File is an ELF file, but not one for arm64 machines.";
+        return NULL;
+    }
+#elif defined(__arm__)
+    if(hdr->e_ident[EI_CLASS] != ELFCLASS32
+    || hdr->e_machine != EM_ARM)
+    {
+        *err = "File is an ELF file, but not one for arm machines.";
         return NULL;
     }
 #endif
@@ -379,8 +393,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 {
                 case R_X86_64_NONE: break;
 
-                case R_X86_64_PC64:
-                case R_X86_64_64:
+                case R_X86_64_PC32:
+                case R_X86_64_32:
                 case R_X86_64_JMP_SLOT:
                 case R_X86_64_GLOB_DAT:
                     uintptr_t func;
@@ -409,9 +423,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         return NULL;
                     }
 
-                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_PC64)
+                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_PC32)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
-                    else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_64)
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_32)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend;
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
@@ -475,6 +489,122 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     break;
 
                 case R_386_RELATIVE:
+                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                    break;
+
+                default:
+                    munmap(exec, exec_size);
+                    *err = (char *)low_alloc(80);
+                    sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
+                    *err_malloc = true;
+                    return NULL;
+                }
+        }
+#elif defined(__aarch64__)
+        if (shdr[i].sh_type == SHT_RELA)
+        {
+            const Elf_Rela *rel = (const Elf_Rela *)(data + shdr[i].sh_offset);
+            for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rela); j++)
+                switch(ELF_R_TYPE(rel[j].r_info))
+                {
+                case R_AARCH64_NONE: break;
+
+                case R_AARCH64_ABS32:
+                case R_AARCH64_PREL32:
+                case R_AARCH64_JUMP_SLOT:
+                case R_AARCH64_GLOB_DAT:
+                    uintptr_t func;
+                    const char *sym;
+
+                    sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                    func = 0;
+
+                    for(int k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
+                    {
+                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
+                        {
+                            func = NATIVE_API_ENTRIES[k].func;
+                            break;
+                        }
+                    }
+
+                    if(!func)
+                        func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
+                    if(!func)
+                    {
+                        munmap(exec, exec_size);
+                        *err = (char *)low_alloc(80 + strlen(sym));
+                        sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+                        *err_malloc = true;
+                        return NULL;
+                    }
+
+                    if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_PREL32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_ABS32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend;
+                    else
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func;
+                    break;
+
+                case R_AARCH64_RELATIVE:
+                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                    break;
+
+                default:
+                    munmap(exec, exec_size);
+                    *err = (char *)low_alloc(80);
+                    sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
+                    *err_malloc = true;
+                    return NULL;
+                }
+        }
+#elif defined(__arm__)
+        if (shdr[i].sh_type == SHT_REL)
+        {
+            const Elf_Rel *rel = (const Elf_Rel *)(data + shdr[i].sh_offset);
+            for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Rel); j++)
+                switch(ELF_R_TYPE(rel[j].r_info))
+                {
+                case R_ARM_NONE: break;
+
+                case R_ARM_ABS32:
+                case R_ARM_REL32:
+                case R_ARM_JUMP_SLOT:
+                case R_ARM_GLOB_DAT:
+                    uintptr_t func;
+                    const char *sym;
+
+                    sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
+                    func = 0;
+
+                    for(int k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
+                    {
+                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
+                        {
+                            func = NATIVE_API_ENTRIES[k].func;
+                            break;
+                        }
+                    }
+
+                    if(!func)
+                        func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
+                    if(!func)
+                    {
+                        munmap(exec, exec_size);
+                        *err = (char *)low_alloc(80 + strlen(sym));
+                        sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
+                        *err_malloc = true;
+                        return NULL;
+                    }
+
+                    if(ELF_R_TYPE(rel[j].r_info) == R_ARM_REL32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func - (uintptr_t)(exec + rel[j].r_offset);
+                    else
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func;
+                    break;
+
+                case R_ARM_RELATIVE:
                     *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
                     break;
 
