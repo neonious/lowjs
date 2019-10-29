@@ -88,6 +88,13 @@ struct low_main_t
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 };
 
+typedef enum
+{
+    LOW_THREAD_CODE,
+    LOW_THREAD_WORKER_FAST,
+    LOW_THREAD_WORKER_SLOW
+} low_thread;
+
 extern "C"
 {
     low_main_t *low_init();
@@ -101,6 +108,9 @@ extern "C"
 #if LOW_ESP32_LWIP_SPECIALITIES
 bool low_reset(low_main_t *low);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+void low_call_direct(duk_context *ctx, low_thread thread, void (*func)(void *userdata), void *userdata);
+low_thread low_get_current_thread(duk_context *ctx);
 
 int low_add_stash(duk_context *ctx, int index);
 void low_remove_stash(duk_context *ctx, int index);

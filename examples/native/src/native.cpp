@@ -180,10 +180,10 @@ int native_method_throw_test(duk_context *ctx)
 class stl_link_test_class
 {
 public:
-    stl_link_test_class();
+    stl_link_test_class() {}
 };
 
-int module_main(duk_context *ctx, const char *module_path)
+bool module_load(duk_context *ctx, const char *module_path)
 {
     duk_function_list_entry methods[] = {{"simple_add", native_method_simple_add, 2},
                                          {"new_test", native_method_cxx_new_test, 0},
@@ -196,11 +196,11 @@ int module_main(duk_context *ctx, const char *module_path)
                                          {"throw_test", native_method_throw_test, 0},
                                          {NULL, NULL, 0}};
     duk_put_function_list(ctx, 1, methods);
-/*
+
     std::vector<stl_link_test_class> v;         // working
     v.push_back(stl_link_test_class());
-    std::map<int, stl_link_test_class> m;       // not working
-    m[8] = stl_link_test_class();
-*/
-    return 0;
+//    std::map<int, stl_link_test_class> m;       // not working
+//    m[8] = stl_link_test_class();
+
+    return true;
 }

@@ -9,12 +9,6 @@ CXXFLAGS = $(FLAGS) -Iinclude -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/includ
 LD = g++
 LDFLAGS = $(FLAGS) -lm -lpthread deps/open62541/build/bin/libopen62541.a
 
-# So distribution, built under Alpine Linux/musl, runs everywhere
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-	LDFLAGS += -static -static-libstdc++ -static-libgcc
-endif
-
 OBJECTS_LOW =							\
 	app/main.o
 OBJECTS =							\

@@ -2,6 +2,8 @@
 //  low_native_api.cpp
 // -----------------------------------------------------------------------------
 
+#define __register_frame __register_frame_other_proto
+
 #include "low_native_api.h"
 
 #include "low_alloc.h"
@@ -9,6 +11,7 @@
 #include "low_module.h"
 #include "low_system.h"
 #include "low_loop.h"
+#include "low_web_thread.h"
 
 #include <duktape.h>
 #include <unistd.h>
@@ -45,6 +48,9 @@
 #define ELF_R_TYPE  ELF32_R_TYPE
 #endif
 
+#undef __register_frame
+extern "C" void __register_frame(const void *);
+
 
 // Constants
 extern low_system_t g_low_system;
@@ -53,6 +59,180 @@ struct native_api_entry_t
 {
     const char *name;
     uintptr_t func;
+};
+
+struct native_api_entry_t NATIVE_API_ENTRIES[] = {
+    {"low_load_module", (uintptr_t)low_load_module},
+
+    {"low_call_direct", (uintptr_t)low_call_direct},
+    {"low_set_socket_events", (uintptr_t)low_set_socket_events},
+    {"low_get_current_thread", (uintptr_t)low_get_current_thread},
+
+    {"low_set_timeout", (uintptr_t)low_set_timeout},
+    {"low_clear_timeout", (uintptr_t)low_clear_timeout},
+
+    {"low_call_next_tick", (uintptr_t)low_call_next_tick},
+
+    {"low_add_stash", (uintptr_t)low_add_stash},
+    {"low_remove_stash", (uintptr_t)low_remove_stash},
+    {"low_push_stash", (uintptr_t)low_push_stash},
+
+    {"low_push_buffer", (uintptr_t)low_push_buffer},
+
+    {"low_alloc_throw", (uintptr_t)low_alloc_throw},
+
+    {"duk_base64_decode", (uintptr_t)duk_base64_decode},
+    {"duk_base64_encode", (uintptr_t)duk_base64_encode},
+    {"duk_buffer_to_string", (uintptr_t)duk_buffer_to_string},
+    {"duk_call", (uintptr_t)duk_call},
+    {"duk_call_method", (uintptr_t)duk_call_method},
+    {"duk_call_prop", (uintptr_t)duk_call_prop},
+    {"duk_char_code_at", (uintptr_t)duk_char_code_at},
+    {"duk_check_type", (uintptr_t)duk_check_type},
+    {"duk_check_type_mask", (uintptr_t)duk_check_type_mask},
+    {"duk_components_to_time", (uintptr_t)duk_components_to_time},
+    {"duk_concat", (uintptr_t)duk_concat},
+    {"duk_copy", (uintptr_t)duk_copy},
+    {"duk_decode_string", (uintptr_t)duk_decode_string},
+    {"duk_def_prop", (uintptr_t)duk_def_prop},
+    {"duk_del_prop", (uintptr_t)duk_del_prop},
+    {"duk_del_prop_index", (uintptr_t)duk_del_prop_index},
+    {"duk_del_prop_literal_raw", (uintptr_t)duk_del_prop_literal_raw},
+    {"duk_del_prop_lstring", (uintptr_t)duk_del_prop_lstring},
+    {"duk_del_prop_string", (uintptr_t)duk_del_prop_string},
+    {"duk_dup", (uintptr_t)duk_dup},
+    {"duk_dup_top", (uintptr_t)duk_dup_top},
+    {"duk_enum", (uintptr_t)duk_enum},
+    {"duk_equals", (uintptr_t)duk_equals},
+    {"duk_error_raw", (uintptr_t)duk_error_raw},
+    {"duk_freeze", (uintptr_t)duk_freeze},
+    {"duk_get_boolean", (uintptr_t)duk_get_boolean},
+    {"duk_get_boolean_default", (uintptr_t)duk_get_boolean_default},
+    {"duk_get_buffer_data", (uintptr_t)duk_get_buffer_data},
+    {"duk_get_buffer_data_default", (uintptr_t)duk_get_buffer_data_default},
+    {"duk_get_c_function", (uintptr_t)duk_get_c_function},
+    {"duk_get_c_function_default", (uintptr_t)duk_get_c_function_default},
+    {"duk_get_finalizer", (uintptr_t)duk_get_finalizer},
+    {"duk_get_int", (uintptr_t)duk_get_int},
+    {"duk_get_int_default", (uintptr_t)duk_get_int_default},
+    {"duk_get_length", (uintptr_t)duk_get_length},
+    {"duk_get_lstring", (uintptr_t)duk_get_lstring},
+    {"duk_get_lstring_default", (uintptr_t)duk_get_lstring_default},
+    {"duk_get_now", (uintptr_t)duk_get_now},
+    {"duk_get_number", (uintptr_t)duk_get_number},
+    {"duk_get_number_default", (uintptr_t)duk_get_number_default},
+    {"duk_get_pointer", (uintptr_t)duk_get_pointer},
+    {"duk_get_pointer_default", (uintptr_t)duk_get_pointer_default},
+    {"duk_get_prop", (uintptr_t)duk_get_prop},
+    {"duk_get_prop_desc", (uintptr_t)duk_get_prop_desc},
+    {"duk_get_prop_index", (uintptr_t)duk_get_prop_index},
+    {"duk_get_prop_literal_raw", (uintptr_t)duk_get_prop_literal_raw},
+    {"duk_get_prop_lstring", (uintptr_t)duk_get_prop_lstring},
+    {"duk_get_prop_string", (uintptr_t)duk_get_prop_string},
+    {"duk_get_prototype", (uintptr_t)duk_get_prototype},
+    {"duk_get_string", (uintptr_t)duk_get_string},
+    {"duk_get_string_default", (uintptr_t)duk_get_string_default},
+    {"duk_get_top", (uintptr_t)duk_get_top},
+    {"duk_get_top_index", (uintptr_t)duk_get_top_index},
+    {"duk_get_type", (uintptr_t)duk_get_type},
+    {"duk_get_type_mask", (uintptr_t)duk_get_type_mask},
+    {"duk_get_uint", (uintptr_t)duk_get_uint},
+    {"duk_get_uint_default", (uintptr_t)duk_get_uint_default},
+    {"duk_has_prop", (uintptr_t)duk_has_prop},
+    {"duk_has_prop_index", (uintptr_t)duk_has_prop_index},
+    {"duk_has_prop_literal_raw", (uintptr_t)duk_has_prop_literal_raw},
+    {"duk_has_prop_lstring", (uintptr_t)duk_has_prop_lstring},
+    {"duk_has_prop_string", (uintptr_t)duk_has_prop_string},
+    {"duk_hex_decode", (uintptr_t)duk_hex_decode},
+    {"duk_hex_encode", (uintptr_t)duk_hex_encode},
+    {"duk_insert", (uintptr_t)duk_insert},
+    {"duk_instanceof", (uintptr_t)duk_instanceof},
+    {"duk_is_array", (uintptr_t)duk_is_array},
+    {"duk_is_boolean", (uintptr_t)duk_is_boolean},
+    {"duk_is_buffer_data", (uintptr_t)duk_is_buffer_data},
+    {"duk_is_c_function", (uintptr_t)duk_is_c_function},
+    {"duk_is_constructable", (uintptr_t)duk_is_constructable},
+    {"duk_is_constructor_call", (uintptr_t)duk_is_constructor_call},
+    {"duk_is_function", (uintptr_t)duk_is_function},
+    {"duk_is_nan", (uintptr_t)duk_is_nan},
+    {"duk_is_null", (uintptr_t)duk_is_null},
+    {"duk_is_number", (uintptr_t)duk_is_number},
+    {"duk_is_object", (uintptr_t)duk_is_object},
+    {"duk_is_pointer", (uintptr_t)duk_is_pointer},
+    {"duk_is_string", (uintptr_t)duk_is_string},
+    {"duk_is_symbol", (uintptr_t)duk_is_symbol},
+    {"duk_is_undefined", (uintptr_t)duk_is_undefined},
+    {"duk_is_valid_index", (uintptr_t)duk_is_valid_index},
+    {"duk_join", (uintptr_t)duk_join},
+    {"duk_json_decode", (uintptr_t)duk_json_decode},
+    {"duk_json_encode", (uintptr_t)duk_json_encode},
+    {"duk_map_string", (uintptr_t)duk_map_string},
+    {"duk_new", (uintptr_t)duk_new},
+    {"duk_next", (uintptr_t)duk_next},
+    {"duk_normalize_index", (uintptr_t)duk_normalize_index},
+    {"duk_pop", (uintptr_t)duk_pop},
+    {"duk_pop_2", (uintptr_t)duk_pop_2},
+    {"duk_pop_3", (uintptr_t)duk_pop_3},
+    {"duk_pop_n", (uintptr_t)duk_pop_n},
+    {"duk_push_array", (uintptr_t)duk_push_array},
+    {"duk_push_boolean", (uintptr_t)duk_push_boolean},
+    {"duk_push_c_function", (uintptr_t)duk_push_c_function},
+    {"duk_push_current_function", (uintptr_t)duk_push_current_function},
+    {"duk_push_error_object_raw", (uintptr_t)duk_push_error_object_raw},
+    {"duk_push_false", (uintptr_t)duk_push_false},
+    {"duk_push_int", (uintptr_t)duk_push_int},
+    {"duk_push_literal_raw", (uintptr_t)duk_push_literal_raw},
+    {"duk_push_lstring", (uintptr_t)duk_push_lstring},
+    {"duk_push_nan", (uintptr_t)duk_push_nan},
+    {"duk_push_new_target", (uintptr_t)duk_push_new_target},
+    {"duk_push_null", (uintptr_t)duk_push_null},
+    {"duk_push_number", (uintptr_t)duk_push_number},
+    {"duk_push_object", (uintptr_t)duk_push_object},
+    {"duk_push_pointer", (uintptr_t)duk_push_pointer},
+    {"duk_push_proxy", (uintptr_t)duk_push_proxy},
+    {"duk_push_sprintf", (uintptr_t)duk_push_sprintf},
+    {"duk_push_string", (uintptr_t)duk_push_string},
+    {"duk_push_this", (uintptr_t)duk_push_this},
+    {"duk_push_true", (uintptr_t)duk_push_true},
+    {"duk_push_uint", (uintptr_t)duk_push_uint},
+    {"duk_push_undefined", (uintptr_t)duk_push_undefined},
+    {"duk_put_function_list", (uintptr_t)duk_put_function_list},
+    {"duk_put_number_list", (uintptr_t)duk_put_number_list},
+    {"duk_put_prop", (uintptr_t)duk_put_prop},
+    {"duk_put_prop_index", (uintptr_t)duk_put_prop_index},
+    {"duk_put_prop_literal_raw", (uintptr_t)duk_put_prop_literal_raw},
+    {"duk_put_prop_lstring", (uintptr_t)duk_put_prop_lstring},
+    {"duk_put_prop_string", (uintptr_t)duk_put_prop_string},
+    {"duk_random", (uintptr_t)duk_random},
+    {"duk_remove", (uintptr_t)duk_remove},
+    {"duk_replace", (uintptr_t)duk_replace},
+    {"duk_samevalue", (uintptr_t)duk_samevalue},
+    {"duk_seal", (uintptr_t)duk_seal},
+    {"duk_set_finalizer", (uintptr_t)duk_set_finalizer},
+    {"duk_set_length", (uintptr_t)duk_set_length},
+    {"duk_set_prototype", (uintptr_t)duk_set_prototype},
+    {"duk_set_top", (uintptr_t)duk_set_top},
+    {"duk_strict_equals", (uintptr_t)duk_strict_equals},
+    {"duk_substring", (uintptr_t)duk_substring},
+    {"duk_swap", (uintptr_t)duk_swap},
+    {"duk_swap_top", (uintptr_t)duk_swap_top},
+    {"duk_throw_raw", (uintptr_t)duk_throw_raw},
+    {"duk_time_to_components", (uintptr_t)duk_time_to_components},
+    {"duk_to_boolean", (uintptr_t)duk_to_boolean},
+    {"duk_to_int", (uintptr_t)duk_to_int},
+    {"duk_to_int32", (uintptr_t)duk_to_int32},
+    {"duk_to_lstring", (uintptr_t)duk_to_lstring},
+    {"duk_to_null", (uintptr_t)duk_to_null},
+    {"duk_to_number", (uintptr_t)duk_to_number},
+    {"duk_to_object", (uintptr_t)duk_to_object},
+    {"duk_to_pointer", (uintptr_t)duk_to_pointer},
+    {"duk_to_primitive", (uintptr_t)duk_to_primitive},
+    {"duk_to_string", (uintptr_t)duk_to_string},
+    {"duk_to_uint", (uintptr_t)duk_to_uint},
+    {"duk_to_uint16", (uintptr_t)duk_to_uint16},
+    {"duk_to_uint32", (uintptr_t)duk_to_uint32},
+    {"duk_to_undefined", (uintptr_t)duk_to_undefined},
+    {"duk_trim", (uintptr_t)duk_trim}
 };
 
 
@@ -72,7 +252,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     char *exec = NULL;
     const char *strings;
     const Elf_Sym *syms;
-    void *entry = NULL;
+    void *entry = NULL, *exitEntry = NULL;
 
     // Validate image
     hdr = (const Elf_Ehdr *)data;
@@ -161,12 +341,21 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             syms = (const Elf_Sym *)(data + shdr[i].sh_offset);
 
             for(int j = 0; j < shdr[i].sh_size / sizeof(Elf_Sym); j++)
-                if (strcmp("module_main", strings + syms[j].st_name) == 0)
+            {
+                if(strcmp("module_load", strings + syms[j].st_name) == 0)
                 {
                     entry = exec + syms[j].st_value;
-                    break;
+                    if(exitEntry)
+                        break;
                 }
-            if(entry)
+                if(strcmp("module_unload", strings + syms[j].st_name) == 0)
+                {
+                    exitEntry = exec + syms[j].st_value;
+                    if(entry)
+                        break;
+                }
+            }
+            if(entry && exitEntry)
                 break;
         }
     }
@@ -196,31 +385,21 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 case R_X86_64_GLOB_DAT:
                     uintptr_t func;
                     const char *sym;
-                    int k, len;
 
                     sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
                     func = 0;
-/*
-                    // support all operator new and deletes
-                    if(memcmp(sym, "_Znwm", 5) == 0
-                    || memcmp(sym, "_Znam", 5) == 0)
-                        len = 5;
-                    else if(memcmp(sym, "_ZdlPv", 6) == 0
-                         || memcmp(sym, "_ZdaPv", 6) == 0)
-                        len = 6;
-                    else
-                        len = strlen(sym) + 1;
 
-                    for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
+                    for(int k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
                     {
-                        if(memcmp(NATIVE_API_ENTRIES[k].name, sym, len) == 0)
+                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
                         {
                             func = NATIVE_API_ENTRIES[k].func;
                             break;
                         }
                     }
-*/
-                    func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
+
+                    if(!func)
+                        func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
                         munmap(exec, exec_size);
@@ -265,31 +444,21 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 case R_386_GLOB_DAT:
                     uintptr_t func;
                     const char *sym;
-                    int k, len;
 
                     sym = strings + syms[ELF_R_SYM(rel[j].r_info)].st_name;
                     func = 0;
-/*
-                    // support all operator new and deletes
-                    if(memcmp(sym, "_Znwm", 5) == 0
-                    || memcmp(sym, "_Znam", 5) == 0)
-                        len = 5;
-                    else if(memcmp(sym, "_ZdlPv", 6) == 0
-                         || memcmp(sym, "_ZdaPv", 6) == 0)
-                        len = 6;
-                    else
-                        len = strlen(sym) + 1;
 
-                    for(k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
+                    for(int k = 0; k < sizeof(NATIVE_API_ENTRIES) / sizeof(native_api_entry_t); k++)
                     {
-                        if(memcmp(NATIVE_API_ENTRIES[k].name, sym, len) == 0)
+                        if(strcmp(NATIVE_API_ENTRIES[k].name, sym) == 0)
                         {
                             func = NATIVE_API_ENTRIES[k].func;
                             break;
                         }
                     }
-*/
-                    func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
+
+                    if(!func)
+                        func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
                         munmap(exec, exec_size);
@@ -300,9 +469,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     }
 
                     if(ELF_R_TYPE(rel[j].r_info) == R_386_PC32)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
-                    else if(ELF_R_TYPE(rel[j].r_info) == R_386_32)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend;
+                        *(uintptr_t *)(exec + rel[j].r_offset) = func - (uintptr_t)(exec + rel[j].r_offset);
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
                     break;
@@ -364,7 +531,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 }
             } while(P != End);
 #else
-            // TODO
+            __register_frame(P);
 #endif /* __APPLE__ */
 
             break;
@@ -403,6 +570,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 calls++;
             }
         }
+    if(exitEntry)
+        atexit((void (*)(void))exitEntry);
 
     return entry;
 

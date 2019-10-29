@@ -659,6 +659,16 @@ bool low_lib_init(low_main_t *low)
     return false;
 }
 
+
+void low_call_direct(duk_context *ctx, low_thread thread, void (*func)(void *userdata), void *userdata)
+{
+}
+
+low_thread low_get_current_thread(duk_context *ctx)
+{
+    return LOW_THREAD_CODE;
+}
+
 // -----------------------------------------------------------------------------
 //  low_destroy
 // -----------------------------------------------------------------------------

@@ -12,11 +12,11 @@ C = gcc
 CXX = g++
 LD = g++
 
-FLAGS = -O3 -fPIC -fvisibility=hidden -fno-stack-protector -fno-builtin -fno-rtti
+FLAGS = -O3 -fPIC -fvisibility=hidden -fno-stack-protector -fno-builtin
 
 CFLAGS = $(FLAGS) -Ilow_native_api/include
 CXXFLAGS = $(FLAGS) -Ilow_native_api/include
-LDFLAGS = $(FLAGS) -shared -nostdlib -static-libstdc++
+LDFLAGS = $(FLAGS) -shared -nostdlib
 
 esp32: C = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-gcc
 esp32: CXX = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-g++
