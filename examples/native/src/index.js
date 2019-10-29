@@ -32,6 +32,25 @@ try {
     if(!err || err.message != "throw test")
         console.log("throw_duk_test: catch called with wrong value", err);
 }
+try {
+    native.throw_exception_test();
+    console.log("throw_exception_test did not throw");
+} catch(err) {
+    if(!err || !err.message || err.message.indexOf("std::exception") == -1)
+        console.log("throw_exception_test: catch called with wrong value", err);
+}
+try {
+    native.throw_something_test();
+    console.log("throw_something_test did not throw");
+} catch(err) {
+    if(!err || !err.message || err.message.indexOf("std::exception") != -1)
+        console.log("throw_something_test: catch called with wrong value", err);
+}
 console.log(native.throw_test() ? "working" : "not working");
 
 console.log("Done.");
+
+/*
+{"throw_something_test", native_method_throw_something_test, 0},
+{"throw_test", native_method_throw_test, 0},
+*/

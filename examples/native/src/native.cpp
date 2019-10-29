@@ -5,6 +5,8 @@
 #include "low_native.h"
 #include "duktape.h"
 
+#include <exception>
+
 
 // -----------------------------------------------------------------------------
 //  native_method_simple_add - add method
@@ -114,12 +116,56 @@ int native_method_throw_duk_test(duk_context *ctx)
 
 
 // -----------------------------------------------------------------------------
+//  native_method_throw_exception_test -
+// -----------------------------------------------------------------------------
+
+int native_method_throw_exception_test(duk_context *ctx)
+{
+    try
+    {
+	throw std::exception();
+    }
+    catch(...)
+    {
+        thrown++;
+        throw;
+    }
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
+//  native_method_throw_something_test -
+// -----------------------------------------------------------------------------
+
+class ClassSomething
+{
+public:
+	ClassSomething() {}
+};
+
+int native_method_throw_something_test(duk_context *ctx)
+{
+    try
+    {
+	throw new ClassSomething();
+    }
+    catch(...)
+    {
+        thrown++;
+        throw;
+    }
+    return 1;
+}
+
+
+// -----------------------------------------------------------------------------
 //  native_method_throw_test -
 // -----------------------------------------------------------------------------
 
 int native_method_throw_test(duk_context *ctx)
 {
-	duk_push_boolean(ctx, thrown == 1);
+    duk_push_boolean(ctx, thrown == 3);
     return 1;
 }
 
@@ -145,6 +191,8 @@ int module_main(duk_context *ctx, const char *module_path)
                                          {"unwind_stack_test_do_unwind", native_method_cxx_unwind_stack_test_do_unwind, 0},
                                          {"unwind_stack_test", native_method_cxx_unwind_stack_test, 0},
                                          {"throw_duk_test", native_method_throw_duk_test, 0},
+                                         {"throw_exception_test", native_method_throw_exception_test, 0},
+                                         {"throw_something_test", native_method_throw_something_test, 0},
                                          {"throw_test", native_method_throw_test, 0},
                                          {NULL, NULL, 0}};
     duk_put_function_list(ctx, 1, methods);
