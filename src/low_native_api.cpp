@@ -362,7 +362,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     if(!entry)
     {
         munmap(exec, exec_size);
-        *err = "Entry point module_main not found.";
+        *err = "Entry point module_load not found.";
         return NULL;
     }
 
@@ -511,11 +511,11 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 
         if(strcmp(sh_strtab_p + shdr[i].sh_name, ".eh_frame") == 0)
         {
+            const char *P = (const char *)exec + shdr[i].sh_addr;
 #ifdef __APPLE__
             // On OS X/BSD __register_frame takes a single FDE as an argument.
             // See http://lists.llvm.org/pipermail/llvm-dev/2013-April/061737.html
             // and projects/libunwind/src/UnwindLevel1-gcc-ext.c
-            const char *P = (const char *)exec + shdr[i].sh_addr;
             const char *End = P + shdr[i].sh_size;
             do  {
                 uint32_t Length = *(const uint32_t *)P;
@@ -595,9 +595,9 @@ range_error:
 int native_api_call(duk_context *ctx)
 {
     void **params = (void **)duk_get_buffer_data(ctx, 2, NULL);
-    int (*module_main)(duk_context *, const char *) = (int (*)(duk_context *, const char *))params[0];
+    int (*module_load)(duk_context *, const char *) = (int (*)(duk_context *, const char *))params[0];
     const char *path = (const char *)params[1];
     duk_pop(ctx);
 
-    return module_main(ctx, path);
+    return module_load(ctx, path);
 }
