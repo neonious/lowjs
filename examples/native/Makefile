@@ -10,17 +10,17 @@ esp32: src/native.so
 
 C = gcc
 CXX = g++
-LD = g++
+LD = ld
 
 FLAGS = -O3 -fPIC -fvisibility=hidden -fno-stack-protector -fno-builtin
 
 CFLAGS = $(FLAGS) -Ilow_native_api/include
 CXXFLAGS = $(FLAGS) -Ilow_native_api/include
-LDFLAGS = $(FLAGS) -shared -nostdlib
+LDFLAGS = $(FLAGS) -shared
 
 esp32: C = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-gcc
 esp32: CXX = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-g++
-esp32: LD = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-g++
+esp32: LD = ~/esp/xtensa-esp32-elf/bin/xtensa-esp32-elf-ld
 
 esp32: CFLAGS = $(FLAGS) -Ilow_native_api/include -DDUK_F_32BIT_PTRS
 esp32: CXXFLAGS = $(FLAGS) -Ilow_native_api/include -DDUK_F_32BIT_PTRS

@@ -197,10 +197,10 @@ bool module_load(duk_context *ctx, const char *module_path)
                                          {NULL, NULL, 0}};
     duk_put_function_list(ctx, 1, methods);
 
-    std::vector<stl_link_test_class> v;         // working
+    std::vector<stl_link_test_class> v;
     v.push_back(stl_link_test_class());
-//    std::map<int, stl_link_test_class> m;       // not working
-//    m[8] = stl_link_test_class();
+    std::map<int, stl_link_test_class> m;
+    m[8] = stl_link_test_class();
 
     return true;
 }

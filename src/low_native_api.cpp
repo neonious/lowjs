@@ -322,18 +322,19 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
         *err = "File is not an ELF file.";
         return NULL;
     }
+    exec_min = exec_min & ~15;
     exec_size = exec_max - exec_min;
 
     // Copy image into memory
-    exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+    char *base = exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if(!exec)
     {
         *err = "Memory is full.";
         return NULL;
     }
-    exec -= exec_min;
-
     memset(exec, 0, exec_size);
+
+    exec -= exec_min;
     for(int i = 0; i < hdr->e_phnum; i++)
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
             const char *start = data + phdr[i].p_offset;
@@ -375,7 +376,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     }
     if(!entry)
     {
-        munmap(exec, exec_size);
+        munmap(base, exec_size);
         *err = "Entry point module_load not found.";
         return NULL;
     }
@@ -393,8 +394,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 {
                 case R_X86_64_NONE: break;
 
-                case R_X86_64_PC32:
-                case R_X86_64_32:
+                case R_X86_64_PC64:
+                case R_X86_64_64:
                 case R_X86_64_JMP_SLOT:
                 case R_X86_64_GLOB_DAT:
                     uintptr_t func;
@@ -416,27 +417,27 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
-                        munmap(exec, exec_size);
+                        munmap(base, exec_size);
                         *err = (char *)low_alloc(80 + strlen(sym));
                         sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
                         *err_malloc = true;
                         return NULL;
                     }
 
-                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_PC32)
+                    if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_PC64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
-                    else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_32)
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_X86_64_64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend;
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
                     break;
 
                 case R_X86_64_RELATIVE:
-                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                    *(uintptr_t *)(exec + rel[j].r_offset) = (uintptr_t)exec + rel[j].r_addend;
                     break;
 
                 default:
-                    munmap(exec, exec_size);
+                    munmap(base, exec_size);
                     *err = (char *)low_alloc(80);
                     sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
                     *err_malloc = true;
@@ -475,7 +476,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
-                        munmap(exec, exec_size);
+                        munmap(base, exec_size);
                         *err = (char *)low_alloc(80 + strlen(sym));
                         sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
                         *err_malloc = true;
@@ -483,7 +484,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     }
 
                     if(ELF_R_TYPE(rel[j].r_info) == R_386_PC32)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = func - (uintptr_t)(exec + rel[j].r_offset);
+                        *(uintptr_t *)(exec + rel[j].r_offset) += func - (uintptr_t)(exec + rel[j].r_offset);
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_386_32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) += func;
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
                     break;
@@ -493,7 +496,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     break;
 
                 default:
-                    munmap(exec, exec_size);
+                    munmap(base, exec_size);
                     *err = (char *)low_alloc(80);
                     sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
                     *err_malloc = true;
@@ -509,8 +512,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 {
                 case R_AARCH64_NONE: break;
 
-                case R_AARCH64_ABS32:
-                case R_AARCH64_PREL32:
+                case R_AARCH64_ABS64:
+                case R_AARCH64_PREL64:
                 case R_AARCH64_JUMP_SLOT:
                 case R_AARCH64_GLOB_DAT:
                     uintptr_t func;
@@ -532,27 +535,27 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
-                        munmap(exec, exec_size);
+                        munmap(base, exec_size);
                         *err = (char *)low_alloc(80 + strlen(sym));
                         sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
                         *err_malloc = true;
                         return NULL;
                     }
 
-                    if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_PREL32)
+                    if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_PREL64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend - (uintptr_t)(exec + rel[j].r_offset);
-                    else if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_ABS32)
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_AARCH64_ABS64)
                         *(uintptr_t *)(exec + rel[j].r_offset) = func + rel[j].r_addend;
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
                     break;
 
                 case R_AARCH64_RELATIVE:
-                    *(uintptr_t *)(exec + rel[j].r_offset) += (uintptr_t)exec;
+                    *(uintptr_t *)(exec + rel[j].r_offset) = (uintptr_t)exec + rel[j].r_addend;
                     break;
 
                 default:
-                    munmap(exec, exec_size);
+                    munmap(base, exec_size);
                     *err = (char *)low_alloc(80);
                     sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
                     *err_malloc = true;
@@ -591,7 +594,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                         func = (uintptr_t)dlsym(RTLD_DEFAULT, sym);
                     if(!func)
                     {
-                        munmap(exec, exec_size);
+                        munmap(base, exec_size);
                         *err = (char *)low_alloc(80 + strlen(sym));
                         sprintf((char *)*err, "File asks for symbol '%s' which low.js does not know of.", sym);
                         *err_malloc = true;
@@ -599,7 +602,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     }
 
                     if(ELF_R_TYPE(rel[j].r_info) == R_ARM_REL32)
-                        *(uintptr_t *)(exec + rel[j].r_offset) = func - (uintptr_t)(exec + rel[j].r_offset);
+                        *(uintptr_t *)(exec + rel[j].r_offset) += func - (uintptr_t)(exec + rel[j].r_offset);
+                    else if(ELF_R_TYPE(rel[j].r_info) == R_ARM_ABS32)
+                        *(uintptr_t *)(exec + rel[j].r_offset) += func;
                     else
                         *(uintptr_t *)(exec + rel[j].r_offset) = func;
                     break;
@@ -609,7 +614,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     break;
 
                 default:
-                    munmap(exec, exec_size);
+                    munmap(base, exec_size);
                     *err = (char *)low_alloc(80);
                     sprintf((char *)*err, "Unknown relocatable type #%d.", (int)ELF_R_TYPE(rel[j].r_info));
                     *err_malloc = true;
@@ -617,20 +622,6 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 }
         }
 #endif
-    }
-
-    // Modify heap protection flags
-    for(int i = 0; i < hdr->e_phnum; i++) {
-        if(phdr[i].p_type != PT_LOAD || !phdr[i].p_filesz)
-            continue;
-
-        char *taddr = phdr[i].p_vaddr + exec;
-        if(!(phdr[i].p_flags & PF_W))
-            // Read-only.
-            mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_READ);
-        if(phdr[i].p_flags & PF_X)
-            // Executable.
-            mprotect((unsigned char *)taddr, phdr[i].p_memsz, PROT_EXEC);
     }
 
     // Setup stack unwinding for throws
@@ -651,16 +642,31 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 uint32_t Length = *(const uint32_t *)P;
                 uint32_t Offset = *(const uint32_t *)(P + 4);
                 if(Offset != 0)
-                    __register_frame(P);
+                {
+                    void *n2 = malloc(Length);
+                    memcpy(n2, P, Length);
+                    __register_frame(n2);
+                }
                 P += 4 + Length;
                 if(P > End)
                 {
-                    munmap(exec, exec_size);
+                    munmap(base, exec_size);
                     *err = ".eh_frame section broken.";
                     return NULL;
                 }
             } while(P != End);
 #else
+            for(int j = 0; j < hdr->e_shnum; j++)
+            {
+                if(i != j
+                && shdr[j].sh_addr >= shdr[i].sh_addr + shdr[i].sh_size
+                && shdr[j].sh_addr < shdr[i].sh_addr + shdr[i].sh_size + 4)
+                {
+                    *err = "There must not be a section right after .eh_frame, please use low_native_api linker script.";
+                    return NULL;
+                }
+            }
+            *(uint32_t *)(P + shdr[i].sh_size) = 0;
             __register_frame(P);
 #endif /* __APPLE__ */
 
@@ -707,7 +713,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 
 range_error:
     if(exec)
-        munmap(exec, exec_size);
+        munmap(base, exec_size);
 
     *err = "File is a valid ELF file for this machine, but corrupt.";
     return NULL;
