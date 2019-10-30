@@ -91,8 +91,8 @@ struct low_main_t
 typedef enum
 {
     LOW_THREAD_CODE,
-    LOW_THREAD_WORKER_FAST,
-    LOW_THREAD_WORKER_SLOW
+    LOW_THREAD_WORKER,
+    LOW_THREAD_SOCKET
 } low_thread;
 
 extern "C"
@@ -109,7 +109,7 @@ extern "C"
 bool low_reset(low_main_t *low);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-void low_call_direct(duk_context *ctx, low_thread thread, void (*func)(void *userdata), void *userdata);
+void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority, void (*func)(void *userdata), void *userdata);
 low_thread low_get_current_thread(duk_context *ctx);
 
 int low_add_stash(duk_context *ctx, int index);

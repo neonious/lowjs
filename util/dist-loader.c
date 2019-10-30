@@ -8,9 +8,9 @@
 
 int main(int argc, char *argv[])
 {
-    char ldPath[] = "../bin";
-    char ld[] = "../bin/low";
-    char bin[] = "../bin/low-exe";
+    char ldPath[] = "../lib";
+    char ld[] = "../lib/low";
+    char bin[] = "../lib/low-exe";
     char fName[1024];
     char argv0[32];
     sprintf(argv0, "/proc/%d/exe", getpid());
@@ -33,6 +33,9 @@ int main(int argc, char *argv[])
     for(i = 0; i < argc; i++)
             argvNew[i + 2] = argv[i];
     argvNew[argc + 2] = NULL;
+printf("PATH IS %s\n", path);
+    for(i = 0; argvNew[i]; i++)
+printf("%d %s\n", i, argvNew[i]);
     execv(path, argvNew);
     fprintf(stderr, "Cannot execute low main binary!\n");
     return EXIT_FAILURE;

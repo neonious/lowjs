@@ -24,7 +24,7 @@
 #include <unwind.h>
 #include <dlfcn.h>
 
-#if defined(__x86_64__)
+#if defined(__x86_64__) || defined(__aarch64__)
 #include <sys/elf64.h>
 
 #define Elf_Ehdr    Elf64_Ehdr
@@ -35,7 +35,7 @@
 #define Elf_Rel     Elf64_Rel
 #define ELF_R_SYM   ELF64_R_SYM
 #define ELF_R_TYPE  ELF64_R_TYPE
-#elif defined(__i386__)
+#elif defined(__i386__) || defined(__arm__)
 #include <sys/elf32.h>
 
 #define Elf_Ehdr    Elf32_Ehdr
@@ -64,7 +64,7 @@ struct native_api_entry_t
 struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"low_load_module", (uintptr_t)low_load_module},
 
-    {"low_call_direct", (uintptr_t)low_call_direct},
+    {"low_call_thread", (uintptr_t)low_call_thread},
     {"low_set_socket_events", (uintptr_t)low_set_socket_events},
     {"low_get_current_thread", (uintptr_t)low_get_current_thread},
 
@@ -326,7 +326,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     exec_size = exec_max - exec_min;
 
     // Copy image into memory
-    char *base = exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    char *base;
+    base = exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if(!exec)
     {
         *err = "Memory is full.";

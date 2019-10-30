@@ -660,14 +660,86 @@ bool low_lib_init(low_main_t *low)
 }
 
 
-void low_call_direct(duk_context *ctx, low_thread thread, void (*func)(void *userdata), void *userdata)
+// -----------------------------------------------------------------------------
+//  low_call_thread
+// -----------------------------------------------------------------------------
+
+class LowCallLoopCallback : public LowLoopCallback
 {
+public:
+    LowCallLoopCallback(low_main_t *low, void (*func)(void *userdata), void *userdata)
+        : LowLoopCallback(low), func(func), userdata(userdata)
+    {
+    }
+
+    bool OnLoop()
+    {
+        func(userdata);
+        return false;
+    }
+
+    void (*func)(void *userdata);
+    void *userdata;
+};
+
+class LowCallDataCallback : public LowDataCallback
+{
+public:
+    LowCallDataCallback(low_main_t *low, void (*func)(void *userdata), void *userdata)
+        : LowDataCallback(low), func(func), userdata(userdata)
+    {
+    }
+
+    bool OnData()
+    {
+        func(userdata);
+        return false;
+    }
+
+    void (*func)(void *userdata);
+    void *userdata;
+};
+
+void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority,
+                     void (*func)(void *userdata), void *userdata)
+{
+    low_main_t *low = duk_get_low_context(ctx);
+    switch(thread)
+    {
+    case LOW_THREAD_CODE:
+        low_loop_set_callback(low, new LowCallLoopCallback(low, func, userdata));
+        break;
+
+    case LOW_THREAD_WORKER:
+        low_data_set_callback(low, new LowCallDataCallback(low, func, userdata),
+            less_priority ? LOW_DATA_THREAD_PRIORITY_MODIFY : LOW_DATA_THREAD_PRIORITY_READ);
+        break;
+
+    default:
+        duk_type_error(ctx, "Native API: Cannot create a thread of type %d", thread);
+    }
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_get_current_thread
+// -----------------------------------------------------------------------------
 
 low_thread low_get_current_thread(duk_context *ctx)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
+    pthread_t thread = pthread_self();
+    if(thread == low->web_thread)
+        return LOW_THREAD_SOCKET;
+
+    for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
+        if(thread == low->data_thread[i])
+            return LOW_THREAD_WORKER;
+
     return LOW_THREAD_CODE;
 }
+
 
 // -----------------------------------------------------------------------------
 //  low_destroy
