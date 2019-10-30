@@ -1,16 +1,17 @@
 FLAGS = -O3 -DLOW_VERSION="\"`git show -s --format=%cd --date=format:%Y%m%d`_`git rev-parse --short HEAD`\""
 
 C = gcc
-CFLAGS = $(FLAGS) -Iinclude -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include
+CFLAGS = $(FLAGS) -Isrc -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include
 
 CXX = g++
-CXXFLAGS = $(FLAGS) -Iinclude -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
+CXXFLAGS = $(FLAGS) -Isrc -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
 
 LD = g++
 LDFLAGS = $(FLAGS) -lm -ldl -lpthread deps/open62541/build/bin/libopen62541.a
 
-OBJECTS_LOW =							\
-	app/main.o
+OBJECTS_LOW =						\
+	app/main.o						\
+	app/transpile.o
 OBJECTS =							\
 	deps/duktape/src-low/duktape.o		\
 	src/low_main.o					\
@@ -77,6 +78,7 @@ deps/duktape/src-low/duktape.o: deps/duktape/src-low/duktape.c Makefile
 lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
 	rm -rf lib lib_js/build
 	cd lib_js && node ../node_modules/typescript/bin/tsc
+	cp node_modules/\@babel/standalone/babel.min.js lib_js/build/babel.js
 	mkdir lib
 	util/dukc lib_js/build lib
 	touch lib/BUILT

@@ -252,6 +252,21 @@ bool low_module_main(low_main_t *low, const char *path)
     return false;
 }
 
+
+// -----------------------------------------------------------------------------
+//  low_module_set_transpile_hook
+// -----------------------------------------------------------------------------
+
+void low_module_set_transpile_hook(low_main_t *low,
+        bool (*transpile)(
+            const char *in_data, int in_len,
+            char **out_data, int *out_len,
+            const char **err, bool *err_malloc))
+{
+    low->module_transpile_hook = transpile;
+}
+
+
 // -----------------------------------------------------------------------------
 //  low_module_require - returns cached module or loads it
 // -----------------------------------------------------------------------------
@@ -488,6 +503,8 @@ bool get_data_block(const char *path,
 
 void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 {
+    low_main_t *low = duk_get_low_context(ctx);
+
     int flags = 0;
     int len = strlen(path);
 
@@ -820,8 +837,39 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
               shebang
                 ? "function(exports,require,module,__filename,__dirname){//"
                 : "function(exports,require,module,__filename,__dirname){");
-            duk_push_lstring(ctx, (char *)data, len);
-            low_free(data);
+            if(low->module_transpile_hook)
+            {
+                char *outData;
+                int outLen;
+
+                const char *err;
+                bool err_malloc = false;
+
+                if(!low->module_transpile_hook(
+                    (char *)data, len,
+                    &outData, &outLen,
+                    &err, &err_malloc))
+                {
+                    low_free(data);
+
+                    if(err_malloc)
+                    {
+                        const char *err2 = duk_push_string(ctx, err);
+                        low_free((void *)err);
+                        duk_generic_error(ctx, err2);
+                    }
+                    else
+                        duk_generic_error(ctx, err);
+                }
+                low_free(data);
+                duk_push_lstring(ctx, (char *)outData, outLen);
+                low_free(outData);
+            }
+            else
+            {
+                duk_push_lstring(ctx, (char *)data, len);
+                low_free(data);
+            }
             duk_push_string(ctx, "\n}"); /* Newline allows module last line to
                                             contain a // comment. */
             duk_concat(ctx, 3);

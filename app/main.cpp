@@ -6,7 +6,12 @@
 #define _GNU_SOURCE
 #endif /* __APPLE__ */
 
-#include "low.h"
+#include "transpile.h"
+
+#include "low_main.h"
+#include "low_module.h"
+#include "low_loop.h"
+#include "low_system.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,7 +34,6 @@
 
 static void handle_dist_loader(int *argc, char ***argv)
 {
-
 	if(*argc < 2)
 		return;
 
@@ -87,12 +91,29 @@ static void handle_dist_loader(int *argc, char ***argv)
 
 
 // -----------------------------------------------------------------------------
+//  usage - prints usage message
+// -----------------------------------------------------------------------------
+
+static void usage(const char *prog_name)
+{
+    printf("Usage: %s [options] [script.js [arguments]]\n", prog_name);
+    printf("\n");
+    printf("Options\n");
+    printf("  -t, --transpile    Transpile JavaScript on-the-fly with Babel\n");
+    printf("                     This is slow! Use only for testing.\n");
+    printf("\n");
+    printf("  -h, --help         Show this message (no other arg allowed)\n");
+    printf("  -v, --version      Show low.js version (no other arg allowed)\n");
+}
+
+
+// -----------------------------------------------------------------------------
 //  main - program entry point
 // -----------------------------------------------------------------------------
 
 int main(int argc, char *argv[])
 {
-    low_t *low;
+    low_main_t *low;
 
 #ifndef __APPLE__
 	handle_dist_loader(&argc, &argv);
@@ -101,11 +122,9 @@ int main(int argc, char *argv[])
     if(argc == 2
     && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))
     {
-        printf("Usage: %s [script.js] [arguments]\n", argv[0]);
-        printf("       %s -h | --help | -v | --version\n", argv[0]);
+        usage(argv[0]);
         return EXIT_SUCCESS;
     }
-
     if(argc == 2
     && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0))
     {
@@ -113,12 +132,44 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if(!low_system_init(argc, argv))
+    bool optTranspile = false;
+    char **restArgv = NULL;
+
+    for(int i = 1; i < argc; i++)
+    {
+        if(argv[i][0] != '-')
+        {
+            argc = argc - i + 1;
+            restArgv = (char **)malloc(sizeof(char *) * argc);
+            restArgv[0] = argv[0];
+            memcpy(restArgv + 1, argv + i, sizeof(char *) * (argc - 1));
+            argv = restArgv;
+        }
+        else if(strcmp(argv[i], "--transpile") == 0)
+            optTranspile = true;
+        else
+        {
+            usage(argv[0]);
+            return EXIT_FAILURE;
+        }
+    }
+    if(!restArgv)
+        argc = 1;
+
+    if(!low_system_init(argc, (const char **)(restArgv ? restArgv : argv)))
         return EXIT_FAILURE;
 
     low = low_init();
     if(!low)
         return EXIT_FAILURE;
+
+    if(optTranspile)
+    {
+        if(!init_transpile())
+            return EXIT_FAILURE;
+
+        low_module_set_transpile_hook(low, transpile);
+    }
 
     bool ok = false;
     if(low_lib_init(low) && low_module_main(low, argc > 1 ? argv[1] : NULL))

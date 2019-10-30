@@ -7,6 +7,7 @@
     "test": "cd test/tests_script && ts-node tests.ts"
   },
   "devDependencies": {
+    "@babel/standalone": "^7.6.4",
     "ts-node": "^7.0.1",
     "typescript": "3.1.6"
   },

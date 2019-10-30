@@ -142,8 +142,8 @@ low_main_t *low_init()
     low->signal_call_id = 0;
     low->web_thread_done = false;
     low->data_thread_done = false;
-
     low->last_chore_time = low_tick_count();
+    low->module_transpile_hook = NULL;
 
     if(pthread_mutex_init(&low->ref_mutex, NULL) != 0)
         goto err;
@@ -385,7 +385,8 @@ low_main_t *low_init()
     if(!low->cwd)
         return NULL;
 #else
-    g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
+    if(g_low_system.signal_pipe_fd == -1)
+        g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     return low;
