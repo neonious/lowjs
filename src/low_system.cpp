@@ -63,12 +63,21 @@ bool crashed = false;
 
 static void low_system_crash(int sig)
 {
+    // Go back to default handler
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    action.sa_handler = SIG_DFL;
+    sigaction(sig, &action, NULL);
+
     if(!crashed)
     {
         crashed = true;
         low_system_destroy();
     }
-    abort();
+
+    raise(sig);
 }
 
 #endif /* LOW_HAS_SYS_SIGNALS */

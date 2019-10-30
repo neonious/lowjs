@@ -5,6 +5,7 @@
 #include "LowSignalHandler.h"
 
 #include "low_main.h"
+#include "low_system.h"
 #include "low_config.h"
 
 #include <signal.h>
@@ -83,6 +84,7 @@ bool LowSignalHandler::OnLoop()
         sigaction(mSignal, &action, NULL);
 
         // Exit
+	low_system_destroy();
         raise(mSignal);
 #else
         while(true)
