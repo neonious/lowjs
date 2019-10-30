@@ -6,6 +6,7 @@ examples/native/src/native.so
 /lib
 /lib_js/build
 /lib_js_esp32/build
+/dist
 /util/dukc
 /test/duk_crash
 *.d

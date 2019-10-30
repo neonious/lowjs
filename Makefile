@@ -78,7 +78,7 @@ lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
 	rm -rf lib lib_js/build
 	cd lib_js && node ../node_modules/typescript/bin/tsc
 	mkdir lib
-	./util/dukc lib_js/build lib
+	util/dukc lib_js/build lib
 	touch lib/BUILT
 node_modules/BUILT: package.json
 	npm install
@@ -124,19 +124,9 @@ deps/open62541/build/bin/libopen62541.a:
 	cd deps/open62541/build && make
 
 # Builds distribution
-DIST_NAME=lowjs-`uname | tr A-Z a-z`-`uname -m`-`git show -s --format=%cd --date=format:%Y%m%d`_`git rev-parse --short HEAD`
-
-dist: bin/low lib/BUILT
-	rm -rf dist $(DIST_NAME) $(DIST_NAME).tar $(DIST_NAME).tar.gz
-	mkdir $(DIST_NAME)
-	cp -r bin lib LICENSE README.md $(DIST_NAME)
-	strip $(DIST_NAME)/bin/low
-	rm $(DIST_NAME)/lib/BUILT
-	tar -c $(DIST_NAME) > $(DIST_NAME).tar
-	gzip $(DIST_NAME).tar
-	mkdir dist
-	mv $(DIST_NAME).tar.gz dist
-	rm -rf $(DIST_NAME) $(DIST_NAME).tar
+dist: all
+	chmod 755 util/dist-build.sh
+	util/dist-build.sh
 
 docs: $(shell find lib_js_esp32)
-	node ./node_modules/jsdoc/jsdoc.js lib_js_esp32 -c jsdoc.conf.json -d docs
+	node node_modules/jsdoc/jsdoc.js lib_js_esp32 -c jsdoc.conf.json -d docs
