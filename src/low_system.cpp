@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 
 #if LOW_HAS_TERMIOS
 #include <termios.h>
@@ -53,6 +54,32 @@ static void low_system_signal(int sig)
     }
 }
 
+
+// -----------------------------------------------------------------------------
+//	low_system_crash
+// -----------------------------------------------------------------------------
+
+bool crashed = false;
+
+static void low_system_crash(int sig)
+{
+    // Go back to default handler
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    action.sa_handler = SIG_DFL;
+    sigaction(sig, &action, NULL);
+
+    if(!crashed)
+    {
+        crashed = true;
+        low_system_destroy();
+    }
+
+    raise(sig);
+}
+
 #endif /* LOW_HAS_SYS_SIGNALS */
 
 // -----------------------------------------------------------------------------
@@ -84,13 +111,19 @@ bool low_system_init(int argc, const char *argv[])
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
-#endif /* LOW_HAS_SYS_SIGNALS */
 
-    g_low_system.lib_path = NULL;
+    action.sa_flags = 0;
+    action.sa_handler = low_system_crash;
+    sigaction(SIGABRT, &action, NULL);
+    sigaction(SIGBUS, &action, NULL);
+    sigaction(SIGSEGV, &action, NULL);
+#endif /* LOW_HAS_SYS_SIGNALS */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
     g_low_system.lib_path = (char *)"/lib/";
 #else
+    g_low_system.lib_path = NULL;
+
     const char lib_add_path[] = "../lib/";
     int lib_add_path_len = sizeof(lib_add_path) - 1;
 
@@ -172,7 +205,13 @@ err:
 
 void low_system_destroy()
 {
+    u_long mode = 0;
+
+    ioctl(0, FIONBIO, &mode);
+    ioctl(1, FIONBIO, &mode);
+    ioctl(2, FIONBIO, &mode);
     low_set_raw_mode(false);
+
 #if !LOW_ESP32_LWIP_SPECIALITIES
     low_free(g_low_system.lib_path);
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
