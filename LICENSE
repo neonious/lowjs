@@ -1,4 +1,4 @@
-NEONIOUS PUBLIC LICENSE
+NEONIOUS PUBLIC LICENSE FOR LOW.JS
 
 Copyright (C) 2018, 2019 neonious GmbH
 
@@ -33,6 +33,9 @@ software, both in source code and compiled form, and associated documentation fi
         macOS
 
       For any other architectures, please contact neonious.
+
+    Combining and/or running low.js with a user program consisting of JavaScript files and
+    native modules based on the low native API never make this a derived or combined work.
 
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for
