@@ -532,7 +532,7 @@ class ClientRequest extends stream.Writable {
         */        }
 
         var agent = options.agent;
-        if (typeof agent.addRequest !== 'function') {
+        if (agent && typeof agent.addRequest !== 'function') {
             throw new ERR_INVALID_ARG_TYPE('options.agent',
                 ['Agent-like Object', 'undefined', 'false'],
                 agent);
@@ -541,7 +541,7 @@ class ClientRequest extends stream.Writable {
 
         var protocol = options.protocol;
 
-        var port = options.port = options.port || agent.defaultPort;
+        var port = options.port = options.port || (agent && agent.defaultPort);
         var host = options.host = validateHost(options.hostname, 'hostname') ||
             validateHost(options.host, 'host') || 'localhost';
 
@@ -609,7 +609,7 @@ class ClientRequest extends stream.Writable {
                 hostHeader = `[${hostHeader}]`;
             }
 
-            if (port && +port !== agent.defaultPort) {
+            if (port && (!agent || +port !== agent.defaultPort)) {
                 hostHeader += ':' + port;
             }
 
