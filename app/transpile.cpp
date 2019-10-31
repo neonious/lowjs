@@ -89,12 +89,6 @@ int transpile(duk_context *ctx)
     // [code babel result codeOut]
     duk_get_prop_string(ctx, -1, "code");
 
-char txt[80];
-sprintf(txt, "aa%d", rand());
-    FILE *f = fopen(txt, "w");
-    fprintf(f, duk_get_string(ctx, -1));
-    fclose(f);
-
     duk_remove(ctx, -2);
     duk_remove(ctx, -2);
     duk_remove(ctx, -2);
