@@ -617,7 +617,7 @@ class ClientRequest extends stream.Writable {
             this._httpHeadersLowerCase['host'] = hostHeader;
         }
 
-        if (!this.shouldKeepAlive) {
+        if (!this.shouldKeepAlive && !this._httpHeadersLower2Name['connection']) {
             this._httpHeadersLower2Name['connection'] = 'Connection';
             this._httpHeadersLowerCase['connection'] = 'close';
         }
