@@ -15,7 +15,6 @@
 
 
 // Global variables
-low_main_t *transpile_context;
 int transpile_babel_stash, transpile_config_stash;
 
 extern low_system_t g_low_system;
@@ -31,14 +30,19 @@ static duk_ret_t init_transpile_safe(duk_context *ctx, void *udata)
     duk_get_prop_string(ctx, 0, "exports");
     transpile_babel_stash = low_add_stash(ctx, 1);
 
-    duk_push_string(ctx, "{\"presets\": [\"es2015\"] }");
+    // see node_modules/@babel/standalone/src/generated/plugins.js for supported plugins
+    duk_push_string(ctx, "{"
+        "\"presets\": [\"es2015\"],"
+        "\"plugins\": [\"proposal-object-rest-spread\"],"
+        "\"parserOpts\": {\"allowReturnOutsideFunction\": true"
+    "}}");
     duk_json_decode(ctx, 2);
     transpile_config_stash = low_add_stash(ctx, 2);
 
     return true;
 }
 
-bool init_transpile()
+bool init_transpile(low_main_t *low)
 {
     int len = strlen(g_low_system.lib_path);
     char babel_path[len + 16];
@@ -51,14 +55,7 @@ bool init_transpile()
         return false;
     }
 
-    transpile_context = low_init();
-    if(!transpile_context)
-        return EXIT_FAILURE;
-
-    if(!low_lib_init(transpile_context))
-        return false;
-
-    duk_context *ctx = low_get_duk_context(transpile_context);
+    duk_context *ctx = low_get_duk_context(low);
     if(duk_safe_call(
         ctx,
         init_transpile_safe,
@@ -70,6 +67,7 @@ bool init_transpile()
     }
     duk_pop(ctx);
 
+    low->module_transpile_hook = transpile;
     return true;
 }
 
@@ -78,54 +76,28 @@ bool init_transpile()
 //  transpile
 // -----------------------------------------------------------------------------
 
-static duk_ret_t transpile_safe(duk_context *ctx, void *udata)
+int transpile(duk_context *ctx)
 {
-    const char *in_data = *(const char **)(((uintptr_t *)udata)[0]);
-    int in_len = *(int *)(((uintptr_t *)udata)[1]);
-
     low_push_stash(ctx, transpile_babel_stash, false);
     duk_push_string(ctx, "transform");
-    duk_push_lstring(ctx, in_data, in_len);
+    duk_dup(ctx, -3);
     low_push_stash(ctx, transpile_config_stash, false);
-    duk_call_prop(ctx, 0, 2);
+
+    // [code babel result]
+    duk_call_prop(ctx, -4, 2);
+
+    // [code babel result codeOut]
     duk_get_prop_string(ctx, -1, "code");
 
+char txt[80];
+sprintf(txt, "aa%d", rand());
+    FILE *f = fopen(txt, "w");
+    fprintf(f, duk_get_string(ctx, -1));
+    fclose(f);
+
+    duk_remove(ctx, -2);
+    duk_remove(ctx, -2);
+    duk_remove(ctx, -2);
+
     return 1;
-}
-
-bool transpile(const char *in_data, int in_len,
-               char **out_data, int *out_len,
-               const char **err, bool *err_malloc)
-{
-    duk_context *ctx = low_get_duk_context(transpile_context);
-    uintptr_t data[2] = {(uintptr_t)&in_data, (uintptr_t)&in_len};
-
-    if(duk_safe_call(
-        ctx,
-        transpile_safe,
-        data, 0, 1) != DUK_EXEC_SUCCESS)
-    {
-        duk_get_prop_string(ctx, -1, "message");
-        *err = strdup(duk_require_string(ctx, -1));
-        duk_pop_2(ctx);
-
-        if(!*err)
-            *err = "memory full";
-        else
-            *err_malloc = true;
-
-        return false;
-    }
-
-    *out_data = strdup(duk_require_string(ctx, -1));
-    if(!*out_data)
-    {
-        *err = "memory full";
-        return false;
-    }
-
-    *out_len = duk_get_length(ctx, -1);
-    duk_pop(ctx);
-
-    return true;
 }

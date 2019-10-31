@@ -163,20 +163,26 @@ int main(int argc, char *argv[])
     if(!low)
         return EXIT_FAILURE;
 
+    if(!low_lib_init(low))
+        goto err;
+
     if(optTranspile)
     {
-        if(!init_transpile())
-            return EXIT_FAILURE;
-
-        low_module_set_transpile_hook(low, transpile);
+        if(!init_transpile(low))
+            goto err;
     }
 
-    bool ok = false;
-    if(low_lib_init(low) && low_module_main(low, argc > 1 ? argv[1] : NULL))
-        ok = low_loop_run(low);
+    if(!low_module_main(low, argc > 1 ? argv[1] : NULL))
+        goto err;
+    if(!low_loop_run(low))
+        goto err;
 
     low_destroy(low);
     low_system_destroy();
+    return EXIT_SUCCESS;
 
-    return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+err:
+    low_destroy(low);
+    low_system_destroy();
+    return EXIT_FAILURE;
 }

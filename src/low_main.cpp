@@ -385,8 +385,7 @@ low_main_t *low_init()
     if(!low->cwd)
         return NULL;
 #else
-    if(g_low_system.signal_pipe_fd == -1)
-        g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
+    g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     return low;

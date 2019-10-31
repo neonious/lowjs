@@ -17,11 +17,6 @@ struct low_main_t;
 void low_module_init(duk_context *ctx);
 
 extern "C" bool low_module_main(low_main_t *low, const char *path);
-extern "C" void low_module_set_transpile_hook(low_main_t *low,
-        bool (*transpile)(
-            const char *in_data, int in_len,
-            char **out_data, int *out_len,
-            const char **err, bool *err_malloc));
 
 bool low_module_make_native(low_main_t *low,
                             const char *name,

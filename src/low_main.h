@@ -87,10 +87,7 @@ struct low_main_t
     char *cwd;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    bool (*module_transpile_hook)(
-            const char *in_data, int in_len,
-            char **out_data, int *out_len,
-            const char **err, bool *err_malloc);
+    int (*module_transpile_hook)(duk_context *ctx);
 };
 
 typedef enum

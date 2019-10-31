@@ -5,12 +5,12 @@
 #ifndef __TRANSPILE_H__
 #define __TRANSPILE_H__
 
-#include <stdbool.h>
+#include "low_main.h"
 
-bool init_transpile();
+#include <duktape.h>
 
-bool transpile(const char *in_data, int in_len,
-               char **out_data, int *out_len,
-               const char **err, bool *err_malloc);
+bool init_transpile(low_main_t *low);
+
+int transpile(duk_context *ctx);
 
 #endif /* __TRANSPILE_H__ */
