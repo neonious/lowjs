@@ -1,21 +1,16 @@
-IMPORTANT: This repository neither includes the ESP32 internals nor the neonious one IDE. Thus, most development happens outside of the repository. Thus, see the [Change Log](https://www.neonious.com/documentation/changelog) for more activity.
-
 # lowjs
 
-low.js is a port of Node.JS with far lower system requirements.
-
-+ low.js starts up instantly, while Node.js does not (0.6 to 1.5 seconds wait time on Raspberry Pi 2).
-
-+ low.js only uses a fraction of the disk space and memory which Node.js requires, leaving more resources for other processes.
-
-+ With low.js, you can program JavaScript applications utilizing the full Node.js API and run them not only on normal PCs, but also on embedded devices, such as ones based on the $3 ESP32 microcontroller with Wifi on-board.
+low.js is a free to use and open sourced port of the JavaScript runtime Node.js with far lower system requirements, allowing it to run on cheap, power-efficient microcontroller boards based on the ESP32-WROVER module.
+It also runs on Linux based systems as a smaller, faster booting alternative to Node.JS.
 
 For more information on low.js, please visit http://www.lowjs.org/ .
+
+This repository neither includes the ESP32 internals nor the neonious IDE. Thus, most development happens outside of the repository. Thus, see the [Change Log](https://www.neonious.com/documentation/changelog) for more activity.
 
 
 ## First steps / documentation
 
-To try out low.js on a PC, try out the [webserver example](https://github.com/neonious/lowjs/tree/master/examples/webserver) in the repository, which you can run with both low.js and Node.js.
+To try out low.js on a PC, try out the [chat webserver example](https://github.com/neonious/lowjs/tree/master/examples/chat_ws_webserver) in the repository, which you can run with both low.js and Node.js.
 
 To try out low.js on a ESP32-WROVER, try out the [examples on our homepage](https://www.lowjs.org/examples/getting-started.html) on your own board.
 
@@ -24,7 +19,7 @@ The documentation is located at [lowjs documentation](https://www.neonious.com/D
 
 ## Compile from source
 
-In case the binary distributions available at http://www.lowjs.org/ do not work for your needs,  you can compile from source.
+In case the [binary distributions](https://www.lowjs.org/downloads.html) do not fit your needs, you can compile from source.
 
 Before compiling, make sure you have the following software installed:
 

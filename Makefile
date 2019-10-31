@@ -129,6 +129,3 @@ deps/open62541/build/bin/libopen62541.a:
 dist: all
 	chmod 755 util/dist-build.sh
 	util/dist-build.sh
-
-docs: $(shell find lib_js_esp32)
-	node node_modules/jsdoc/jsdoc.js lib_js_esp32 -c jsdoc.conf.json -d docs

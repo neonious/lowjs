@@ -1,8 +1,17 @@
 ================================================================================
-= neonious one + low.js for ESP32 Change Log								   =
-= 																			   =
-= Now part of the lowjs repo to show progress in the whole project			   =
+= low.js for ESP32 Change Log                                                  =
+= Now part of the lowjs repo to show progress in the whole project             =
 ================================================================================
+
+
+Version 20191017
+
+- Modules mysql and node-fetch work
+- Many other modules now work which previously did not work. Please uninstall
+  and install them again before testing
+- Added internal timers module as needed by some modules (a simple wrapper to
+  the global timers functions)
+- Fixed some quirks with http/https, making it more stable
 
 
 Version 20190923
