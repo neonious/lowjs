@@ -8,13 +8,11 @@ For more information on low.js, please visit http://www.lowjs.org/ .
 This repository neither includes the ESP32 internals nor the neonious IDE. Thus, most development happens outside of the repository. Thus, see the [Change Log](https://www.neonious.com/documentation/changelog) for more activity.
 
 
-## First steps / documentation
+## First steps
 
 To try out low.js on a PC, try out the [chat webserver example](https://github.com/neonious/lowjs/tree/master/examples/chat_ws_webserver) in the repository, which you can run with both low.js and Node.js.
 
 To try out low.js on a ESP32-WROVER, try out the [examples on our homepage](https://www.lowjs.org/examples/getting-started.html) on your own board.
-
-The documentation is located at [lowjs documentation](https://www.neonious.com/Documentation/lowjs).
 
 
 ## Compile from source
