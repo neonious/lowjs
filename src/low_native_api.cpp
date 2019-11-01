@@ -242,7 +242,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
 
 void *native_api_load(const char *data, unsigned int size, const char **err, bool *err_malloc)
 {
-#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
+#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__)
     const Elf_Ehdr *hdr;
     const Elf_Phdr *phdr;
     const Elf_Shdr *shdr;
