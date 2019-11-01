@@ -35,12 +35,31 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             duk_pop_n(ctx, duk_get_top(ctx));
         }
 
+        bool doNextTick = false;
         if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
         {
             low_push_stash(ctx, low->signal_call_id, false);
             duk_push_string(ctx, "beforeExit");
-            duk_call(ctx, 1);
+            duk_push_int(ctx, 0);
+            duk_call(ctx, 2);
             duk_pop_n(ctx, duk_get_top(ctx));
+
+            /*
+             * For this code to work:
+             *   process.on('beforeExit', (code) => { console.log('Process beforeExit event with code: ', code); });
+             * we must allow process.nextTicks to not cause a new beforeExit.
+             */
+            // Handle process.nextTick / low_call_next_tick
+            while(!low->duk_flag_stop && duk_get_top(low->next_tick_ctx))
+            {
+                int num_args = duk_require_int(low->next_tick_ctx, -1);
+                duk_pop(low->next_tick_ctx);
+                duk_xmove_top(ctx, low->next_tick_ctx, num_args + 1);
+                duk_call(ctx, num_args);
+                duk_pop_n(ctx, duk_get_top(ctx));
+            }
+
+            doNextTick = true;
         }
         if(low->duk_flag_stop || (!low->run_ref && !low->loop_callback_first))
         {
@@ -48,10 +67,35 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             {
                 low_push_stash(ctx, low->signal_call_id, false);
                 duk_push_string(ctx, "exit");
-                duk_call(ctx, 1);
+                duk_push_int(ctx, 0);
+                duk_call(ctx, 2);
                 duk_pop_n(ctx, duk_get_top(ctx));
             }
             break;
+        }
+        else if(doNextTick)
+            continue;
+
+        if(low->loop_callback_first)
+        {
+            pthread_mutex_lock(&low->loop_thread_mutex);
+
+            LowLoopCallback *callback = low->loop_callback_first;
+
+            low->loop_callback_first = callback->mNext;
+            if(!low->loop_callback_first)
+                low->loop_callback_last = NULL;
+            callback->mNext = NULL;
+
+            pthread_mutex_unlock(&low->loop_thread_mutex);
+            if(!callback->OnLoop())
+                delete callback;
+
+            int index = duk_get_top(ctx);
+            if(index)
+                duk_pop_n(ctx, index);
+
+            continue;
         }
 
         int millisecs = -1;
@@ -114,9 +158,10 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             }
         }
 
-        pthread_mutex_lock(&low->loop_thread_mutex);
         if(!low->loop_callback_first)
         {
+            pthread_mutex_lock(&low->loop_thread_mutex);
+
             duk_debugger_cooperate(ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
@@ -152,7 +197,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
                 }
 
                 pthread_cond_timedwait(
-                &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
+                    &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
             }
             else
                 pthread_cond_wait(&low->loop_thread_cond,
@@ -160,26 +205,9 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        }
-        if(low->loop_callback_first)
-        {
-            LowLoopCallback *callback = low->loop_callback_first;
-
-            low->loop_callback_first = callback->mNext;
-            if(!low->loop_callback_first)
-                low->loop_callback_last = NULL;
-            callback->mNext = NULL;
 
             pthread_mutex_unlock(&low->loop_thread_mutex);
-            if(!callback->OnLoop())
-                delete callback;
-
-            int index = duk_get_top(ctx);
-            if(index)
-                duk_pop_n(ctx, index);
         }
-        else
-            pthread_mutex_unlock(&low->loop_thread_mutex);
     }
 
     return 0;

@@ -67,19 +67,22 @@ duk_ret_t low_gc(duk_context *ctx)
 
 static duk_ret_t low_process_exit(duk_context *ctx)
 {
+    int code = duk_get_int(ctx, 0);
+
     low_main_t *low = duk_get_low_context(ctx);
     if(low->signal_call_id)
     {
         low_push_stash(ctx, low->signal_call_id, false);
         duk_push_string(ctx, "exit");
-        duk_call(ctx, 1);
+        duk_push_int(ctx, code);
+        duk_call(ctx, 2);
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
     low->duk_flag_stop = 1;
     duk_throw(ctx);
 #else
     low_system_destroy();
-    exit(duk_get_int(ctx, 0));
+    exit(code);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     return 0;
@@ -92,18 +95,12 @@ static duk_ret_t low_process_exit(duk_context *ctx)
 
 static duk_ret_t low_process_abort(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
-    if(low->signal_call_id)
-    {
-        low_push_stash(ctx, low->signal_call_id, false);
-        duk_push_string(ctx, "exit");
-        duk_call(ctx, 1);
-    }
-
 #if LOW_ESP32_LWIP_SPECIALITIES
     console_log("e", "Process aborted.");
 
+    low_main_t *low = duk_get_low_context(ctx);
     low->duk_flag_stop = 1;
+
     duk_throw(ctx);
 #else
     abort();

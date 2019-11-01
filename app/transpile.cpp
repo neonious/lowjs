@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-//  transpile.c
+//  transpile.cpp
 // -----------------------------------------------------------------------------
 
 #include "transpile.h"
@@ -32,7 +32,7 @@ static duk_ret_t init_transpile_safe(duk_context *ctx, void *udata)
 
     // see node_modules/@babel/standalone/src/generated/plugins.js for supported plugins
     duk_push_string(ctx, "{"
-        "\"presets\": [\"es2015\"],"
+        "\"presets\": [\"es2015\", \"stage-3\"],"
         "\"plugins\": [\"proposal-object-rest-spread\"],"
         "\"parserOpts\": {\"allowReturnOutsideFunction\": true"
     "}}");
