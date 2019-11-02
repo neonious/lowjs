@@ -153,7 +153,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
     if(!mIsRequest || mReadData || !mSocket)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, EAGAIN, "read");
+        low_push_error(mLow->duk_ctx, EAGAIN, "read");
         low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
@@ -303,7 +303,7 @@ void LowHTTPDirect::Write(unsigned char *data,
        mWriteCallID || mWriteDone || !mSocket)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, EAGAIN, "write");
+        low_push_error(mLow->duk_ctx, EAGAIN, "write");
         low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
@@ -508,7 +508,7 @@ bool LowHTTPDirect::OnLoop()
             duk_put_prop_string(mLow->duk_ctx, -2, "code");
         }
         else
-            low_push_error(mLow, ECONNRESET, "read");
+            low_push_error(mLow->duk_ctx, ECONNRESET, "read");
         mReadError = mHTTPError = false;
 
         Detach();

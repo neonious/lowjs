@@ -42,7 +42,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
         {
             int err = errno;
             duk_dup(low->duk_ctx, 4);
-            low_push_error(low, err, "inet_pton");
+            low_push_error(ctx, err, "inet_pton");
             low_call_next_tick(low->duk_ctx, 1);
             return 0;
         }
@@ -57,7 +57,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
         {
             int err = errno;
             duk_dup(low->duk_ctx, 4);
-            low_push_error(low, err, "inet_pton");
+            low_push_error(ctx, err, "inet_pton");
             low_call_next_tick(low->duk_ctx, 1);
             return 0;
         }
@@ -69,7 +69,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
     if(!datagram)
     {
         duk_dup(low->duk_ctx, 4);
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         low_call_next_tick(low->duk_ctx, 1);
         return 0;
     }
@@ -81,7 +81,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
         delete datagram;
 
         duk_dup(ctx, 4);
-        low_push_error(low, err, syscall);
+        low_push_error(ctx, err, syscall);
         low_call_next_tick(ctx, 1);
     }
     else

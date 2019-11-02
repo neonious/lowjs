@@ -98,7 +98,7 @@ bool LowDNSWorker::OnLoop()
         if (mError)
         {
             low_push_stash(mLow->duk_ctx, mCallID, true);
-            low_push_error(mLow, mError, "getnameinfo");
+            low_push_error(mLow->duk_ctx, mError, "getnameinfo");
             duk_call(mLow->duk_ctx, 1);
         }
         else
@@ -127,7 +127,7 @@ bool LowDNSWorker::OnLoop()
         if (mError)
         {
             low_push_stash(mLow->duk_ctx, mCallID, true);
-            low_push_error(mLow, mError, "getaddrinfo");
+            low_push_error(mLow->duk_ctx, mError, "getaddrinfo");
             duk_call(mLow->duk_ctx, 1);
         }
         else

@@ -71,7 +71,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
             {
                 int err = errno;
                 duk_dup(ctx, 5);
-                low_push_error(low, err, "inet_pton");
+                low_push_error(ctx, err, "inet_pton");
                 low_call_next_tick(ctx, 1);
                 return 0;
             }
@@ -86,7 +86,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
             {
                 int err = errno;
                 duk_dup(ctx, 5);
-                low_push_error(low, err, "inet_pton");
+                low_push_error(ctx, err, "inet_pton");
                 low_call_next_tick(ctx, 1);
                 return 0;
             }
@@ -112,7 +112,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
     if(!server)
     {
         duk_dup(ctx, 5);
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         low_call_next_tick(ctx, 1);
         return 0;
     }
@@ -124,7 +124,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
         delete server;
 
         duk_dup(ctx, 5);
-        low_push_error(low, err, syscall);
+        low_push_error(ctx, err, syscall);
         low_call_next_tick(ctx, 1);
     }
     else
@@ -192,7 +192,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
             {
                 int err = errno;
                 duk_dup(ctx, 5);
-                low_push_error(low, err, "inet_pton");
+                low_push_error(ctx, err, "inet_pton");
                 low_call_next_tick(ctx, 1);
                 return 0;
             }
@@ -207,7 +207,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
             {
                 int err = errno;
                 duk_dup(ctx, 5);
-                low_push_error(low, err, "inet_pton");
+                low_push_error(ctx, err, "inet_pton");
                 low_call_next_tick(ctx, 1);
                 return 0;
             }
@@ -236,7 +236,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
         if(!host)
         {
             duk_dup(ctx, 5);
-            low_push_error(low, ENOMEM, "malloc");
+            low_push_error(ctx, ENOMEM, "malloc");
             low_call_next_tick(ctx, 1);
             return 0;
         }
@@ -246,7 +246,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
     {
         low_free(host);
         duk_dup(ctx, 5);
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         low_call_next_tick(ctx, 1);
         return 0;
     }
@@ -258,7 +258,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
         delete socket;
 
         duk_dup(ctx, 5);
-        low_push_error(low, err, syscall);
+        low_push_error(ctx, err, syscall);
         low_call_next_tick(ctx, 1);
 
         return 0;
@@ -278,7 +278,7 @@ duk_ret_t low_net_setsockopt(duk_context *ctx)
     if(!duk_is_undefined(ctx, 4))
         if(!low_set_raw_mode(duk_require_boolean(ctx, 4)))
         {
-            low_push_error(low, errno, "tcsetattr");
+            low_push_error(ctx, errno, "tcsetattr");
             duk_throw(ctx);
         }
 

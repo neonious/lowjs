@@ -22,7 +22,7 @@ void *low_alloc_throw(duk_context *ctx, size_t size)
     void *data = low_alloc(size);
     if(!data)
     {
-        low_push_error(duk_get_low_context(ctx), ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     return data;

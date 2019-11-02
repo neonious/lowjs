@@ -38,7 +38,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
             my_cert = (char *)low_alloc(cert_len + 1);
             if(!my_cert)
             {
-                low_push_error(low, ENOMEM, "malloc");
+                low_push_error(ctx, ENOMEM, "malloc");
                 duk_throw(ctx);
             }
             memcpy(my_cert, cert, cert_len);
@@ -62,7 +62,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
             {
                 if(malloc_cert)
                     low_free(my_cert);
-                low_push_error(low, ENOMEM, "malloc");
+                low_push_error(ctx, ENOMEM, "malloc");
                 duk_throw(ctx);
             }
             memcpy(my_key, key, key_len);
@@ -109,7 +109,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
                     low_free(my_cert);
                 if(malloc_key)
                     low_free(my_key);
-                low_push_error(low, ENOMEM, "malloc");
+                low_push_error(ctx, ENOMEM, "malloc");
                 duk_throw(ctx);
             }
             char *my_ca_ptr = my_ca;
@@ -155,7 +155,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
                     low_free(my_cert);
                 if(malloc_key)
                     low_free(my_key);
-                low_push_error(low, ENOMEM, "malloc");
+                low_push_error(ctx, ENOMEM, "malloc");
                 duk_throw(ctx);
             }
             memcpy(my_ca, ca, ca_len);

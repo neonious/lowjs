@@ -77,6 +77,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"low_push_stash", (uintptr_t)low_push_stash},
 
     {"low_push_buffer", (uintptr_t)low_push_buffer},
+    {"low_push_error", (uintptr_t)low_push_error},
 
     {"low_alloc_throw", (uintptr_t)low_alloc_throw},
 

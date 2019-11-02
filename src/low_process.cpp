@@ -122,7 +122,7 @@ static duk_ret_t low_process_cwd(duk_context *ctx)
     char path[1024];
     if(!getcwd(path, sizeof(path)))
     {
-        low_push_error(duk_get_low_context(ctx), errno, "getcwd");
+        low_push_error(ctx, errno, "getcwd");
         duk_throw(ctx);
     }
 
@@ -146,7 +146,7 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
     char *cwd = low_strdup(path);
     if(!cwd)
     {
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
 
@@ -155,7 +155,7 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
 #else
     if(chdir(path) < 0)
     {
-        low_push_error(duk_get_low_context(ctx), errno, "getcwd");
+        low_push_error(ctx, errno, "getcwd");
         duk_throw(ctx);
     }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -202,13 +202,13 @@ duk_ret_t low_process_info(duk_context *ctx)
     char *path = (char *)low_alloc(PROC_PIDPATHINFO_MAXSIZE);
     if(!path)
     {
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     if(proc_pidpath(getpid(), path, PROC_PIDPATHINFO_MAXSIZE) <= 0)
     {
         free(path);
-        low_push_error(low, errno, "proc_pidpath");
+        low_push_error(ctx, errno, "proc_pidpath");
         duk_throw(ctx);
     }
 #else
@@ -217,14 +217,14 @@ duk_ret_t low_process_info(duk_context *ctx)
     char *path = (char *)low_alloc(MAX_PATH_LEN + 1);
     if(!path)
     {
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     memset(path, 0, MAX_PATH_LEN + 1);
     if(readlink("/proc/self/exe", path, MAX_PATH_LEN) < 0)
     {
         free(path);
-        low_push_error(low, ENOMEM, "readlink");
+        low_push_error(ctx, ENOMEM, "readlink");
         duk_throw(ctx);
     }
 #endif /* __APPLE__ */
@@ -438,7 +438,7 @@ duk_ret_t low_tty_info(duk_context *ctx)
     struct winsize w;
     if(ioctl(0, TIOCGWINSZ, &w) < 0)
     {
-        low_push_error(low, errno, "ioctl");
+        low_push_error(ctx, errno, "ioctl");
         duk_throw(ctx);
     }
 
@@ -481,7 +481,7 @@ duk_ret_t low_hrtime(duk_context *ctx)
     struct timespec ts;
     if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
     {
-        low_push_error(duk_get_low_context(ctx), errno, "clock_gettime");
+        low_push_error(ctx, errno, "clock_gettime");
         duk_throw(ctx);
     }
 #endif /* __APPLE__ */

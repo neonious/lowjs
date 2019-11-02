@@ -303,7 +303,7 @@ int low_tick_count()
 //  low_push_error
 // -----------------------------------------------------------------------------
 
-void low_push_error(struct low_t *low, int error, const char *syscall)
+void low_push_error(duk_context *ctx, int error, const char *syscall)
 {
     const char *low_errcode[LOW_NUM_ERROR_CODES] = {
         "EUNKNOWN",        "ENODATA",       "EFORMERR",
@@ -687,13 +687,13 @@ void low_push_error(struct low_t *low, int error, const char *syscall)
     if(!message[0])
         strerror_r(error, message, sizeof(message) - 16 - strlen(syscall));
     sprintf(message + strlen(message), " (at %s)", syscall);
-    duk_push_error_object(low->duk_ctx, DUK_ERR_ERROR, message);
-    duk_push_string(low->duk_ctx, code);
-    duk_put_prop_string(low->duk_ctx, -2, "code");
-    duk_push_int(low->duk_ctx, -error);
-    duk_put_prop_string(low->duk_ctx, -2, "errno");
-    duk_push_string(low->duk_ctx, syscall);
-    duk_put_prop_string(low->duk_ctx, -2, "syscall");
+    duk_push_error_object(ctx, DUK_ERR_ERROR, message);
+    duk_push_string(ctx, code);
+    duk_put_prop_string(ctx, -2, "code");
+    duk_push_int(ctx, -error);
+    duk_put_prop_string(ctx, -2, "errno");
+    duk_push_string(ctx, syscall);
+    duk_put_prop_string(ctx, -2, "syscall");
 }
 
 // -----------------------------------------------------------------------------

@@ -156,7 +156,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     {
         low_remove_stash(low->duk_ctx, thisIndex);
 
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
 
@@ -167,7 +167,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
         low_remove_stash(low->duk_ctx, thisIndex);
         UA_Client_delete(client);
 
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     config->timeout = timeout;
@@ -181,7 +181,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
             low_remove_stash(low->duk_ctx, thisIndex);
             UA_Client_delete(client);
 
-            low_push_error(low, ENOMEM, "malloc");
+            low_push_error(ctx, ENOMEM, "malloc");
             duk_throw(ctx);
         }
 
@@ -201,7 +201,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
         low_remove_stash(low->duk_ctx, thisIndex);
         UA_Client_delete(client);
 
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     return 0;
@@ -659,7 +659,7 @@ int opcua_uaclient_subnode(duk_context *ctx)
             pathSize, &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]);
     if(!browsePath.relativePath.elements)
     {
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         duk_throw(ctx);
     }
     browsePath.relativePath.elementsSize = pathSize;

@@ -352,7 +352,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     if(mDirect || mReadData)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, EAGAIN, "read");
+        low_push_error(mLow->duk_ctx, EAGAIN, "read");
         low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
@@ -424,7 +424,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     if(mDirect || mWriteData)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, EAGAIN, "write");
+        low_push_error(mLow->duk_ctx, EAGAIN, "write");
         low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
@@ -474,14 +474,14 @@ void LowSocket::Shutdown(int callIndex)
     duk_dup(mLow->duk_ctx, callIndex);
     if(!mConnected)
     {
-        low_push_error(mLow, ENOTCONN, "shutdown");
+        low_push_error(mLow->duk_ctx, ENOTCONN, "shutdown");
         low_call_next_tick(mLow->duk_ctx, 1);
     }
     else if(Shutdown() < 0)
     {
         int err = errno;
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, err, "shutdown");
+        low_push_error(mLow->duk_ctx, err, "shutdown");
     }
     else
     {
@@ -542,7 +542,7 @@ void LowSocket::KeepAlive(bool enable, int secs)
     int opt = enable;
     if(setsockopt(FD(), SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(int)) < 0)
     {
-        low_push_error(mLow, errno, "setsockopt");
+        low_push_error(mLow->duk_ctx, errno, "setsockopt");
         duk_throw(mLow->duk_ctx);
     }
 
@@ -554,7 +554,7 @@ void LowSocket::KeepAlive(bool enable, int secs)
         if(setsockopt(FD(), IPPROTO_TCP, TCP_KEEPIDLE, &secs, sizeof(int)) < 0)
 #endif /* #ifdef __APPLE__ */
         {
-            low_push_error(mLow, errno, "setsockopt");
+            low_push_error(mLow->duk_ctx, errno, "setsockopt");
             duk_throw(mLow->duk_ctx);
         }
     }
@@ -569,7 +569,7 @@ void LowSocket::NoDelay(bool enable)
     int opt = enable;
     if(setsockopt(FD(), IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(int)) < 0)
     {
-        low_push_error(mLow, errno, "setsockopt");
+        low_push_error(mLow->duk_ctx, errno, "setsockopt");
         duk_throw(mLow->duk_ctx);
     }
 }
@@ -1271,5 +1271,5 @@ void LowSocket::PushError(int call)
         duk_put_prop_string(ctx, -2, "syscall");
     }
     else
-        low_push_error(mLow, error, syscall);
+        low_push_error(mLow->duk_ctx, error, syscall);
 }

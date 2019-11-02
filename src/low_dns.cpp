@@ -142,7 +142,7 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
 
     if(err)
     {
-        low_push_error(low, err, "ares_get_servers_ports");
+        low_push_error(ctx, err, "ares_get_servers_ports");
         duk_throw(ctx);
     }
 
@@ -258,7 +258,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
             {
                 if(list)
                     ares_free_data(list);
-                low_push_error(low, errno, "inet_pton");
+                low_push_error(ctx, errno, "inet_pton");
                 duk_throw(ctx);
             }
         }
@@ -269,7 +269,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
             {
                 if(list)
                     ares_free_data(list);
-                low_push_error(low, errno, "inet_pton");
+                low_push_error(ctx, errno, "inet_pton");
                 duk_throw(ctx);
             }
         }
@@ -283,7 +283,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
     pthread_mutex_unlock(&low->resolvers_mutex);
     if(err)
     {
-        low_push_error(low, err, "ares_set_servers_ports");
+        low_push_error(ctx, err, "ares_set_servers_ports");
         duk_throw(ctx);
     }
 #else
@@ -321,7 +321,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
         pthread_mutex_unlock(&low->resolvers_mutex);
 
         duk_dup(ctx, 4);
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         low_call_next_tick(ctx, 1);
         return 0;
     }
@@ -361,7 +361,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
         pthread_mutex_unlock(&low->resolvers_mutex);
 
         duk_dup(ctx, 2);
-        low_push_error(low, ENOMEM, "malloc");
+        low_push_error(ctx, ENOMEM, "malloc");
         low_call_next_tick(ctx, 1);
         return 0;
     }
@@ -371,7 +371,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
     if(error)
     {
         duk_dup(ctx, 2);
-        low_push_error(low, error, "inet_pton");
+        low_push_error(ctx, error, "inet_pton");
         low_call_next_tick(ctx, 1);
         return 0;
     }

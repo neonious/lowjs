@@ -98,7 +98,7 @@ void LowFSMisc::Rename(const char *old_name, const char *new_name)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName || !mNewName)
     {
-        low_push_error(mLow, ENOMEM, "rename");
+        low_push_error(mLow->duk_ctx, ENOMEM, "rename");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -131,7 +131,7 @@ void LowFSMisc::Unlink(const char *file_name)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "rename");
+        low_push_error(mLow->duk_ctx, ENOMEM, "rename");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -164,7 +164,7 @@ void LowFSMisc::Stat(const char *file_name)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "rename");
+        low_push_error(mLow->duk_ctx, ENOMEM, "rename");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -197,7 +197,7 @@ void LowFSMisc::Access(const char *file_name, int mode)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "mkdir");
+        low_push_error(mLow->duk_ctx, ENOMEM, "mkdir");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -231,7 +231,7 @@ void LowFSMisc::ReadDir(const char *file_name, bool withFileTypes)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "mkdir");
+        low_push_error(mLow->duk_ctx, ENOMEM, "mkdir");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -265,7 +265,7 @@ void LowFSMisc::MkDir(const char *file_name, bool recursive, int mode)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "mkdir");
+        low_push_error(mLow->duk_ctx, ENOMEM, "mkdir");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -300,7 +300,7 @@ void LowFSMisc::RmDir(const char *file_name)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!mOldName)
     {
-        low_push_error(mLow, ENOMEM, "rmdir");
+        low_push_error(mLow->duk_ctx, ENOMEM, "rmdir");
         duk_throw(mLow->duk_ctx);
 
         return;
@@ -493,21 +493,21 @@ bool LowFSMisc::OnLoop()
     if(mError)
     {
         if(mPhase == LOWFSMISC_PHASE_RENAME)
-            low_push_error(mLow, mError, "rename");
+            low_push_error(mLow->duk_ctx, mError, "rename");
         else if(mPhase == LOWFSMISC_PHASE_UNLINK)
-            low_push_error(mLow, mError, "unlink");
+            low_push_error(mLow->duk_ctx, mError, "unlink");
         else if(mPhase == LOWFSMISC_PHASE_STAT)
-            low_push_error(mLow, mError, "stat");
+            low_push_error(mLow->duk_ctx, mError, "stat");
         else if(mPhase == LOWFSMISC_PHASE_ACCESS)
-            low_push_error(mLow, mError, "access");
+            low_push_error(mLow->duk_ctx, mError, "access");
         else if(mPhase == LOWFSMISC_PHASE_READDIR)
-            low_push_error(mLow, mError, "readdir");
+            low_push_error(mLow->duk_ctx, mError, "readdir");
         else if(mPhase == LOWFSMISC_PHASE_MKDIR)
-            low_push_error(mLow, mError, "mkdir");
+            low_push_error(mLow->duk_ctx, mError, "mkdir");
         else if(mPhase == LOWFSMISC_PHASE_RMDIR)
-            low_push_error(mLow, mError, "rmdir");
+            low_push_error(mLow->duk_ctx, mError, "rmdir");
         else
-            low_push_error(mLow, mError, "stat");
+            low_push_error(mLow->duk_ctx, mError, "stat");
 
         if(!isAsync)
             duk_throw(mLow->duk_ctx);

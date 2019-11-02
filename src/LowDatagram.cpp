@@ -119,7 +119,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
     if(mSendCallID)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        low_push_error(mLow, EAGAIN, "write");
+        low_push_error(mLow->duk_ctx, EAGAIN, "write");
         low_call_next_tick(mLow->duk_ctx, 1);
         return;
     }
@@ -133,7 +133,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
         {
             int err = errno;
             duk_dup(mLow->duk_ctx, callIndex);
-            low_push_error(mLow, err, "inet_pton");
+            low_push_error(mLow->duk_ctx, err, "inet_pton");
             low_call_next_tick(mLow->duk_ctx, 1);
             return;
         }
@@ -148,7 +148,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
         {
             int err = errno;
             duk_dup(mLow->duk_ctx, callIndex);
-            low_push_error(mLow, err, "inet_pton");
+            low_push_error(mLow->duk_ctx, err, "inet_pton");
             low_call_next_tick(mLow->duk_ctx, 1);
             return;
         }
@@ -169,7 +169,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
         if(len > 0)
             duk_push_null(mLow->duk_ctx);
         else
-            low_push_error(mLow, err, "sendto");
+            low_push_error(mLow->duk_ctx, err, "sendto");
         low_call_next_tick(mLow->duk_ctx, 1);
     }
     else
@@ -266,7 +266,7 @@ bool LowDatagram::OnLoop()
         low_push_stash(mLow->duk_ctx, mMessageCallID, false);
         if(mRecvLen == -1)
         {
-            low_push_error(mLow, mRecvErr, syscall);
+            low_push_error(mLow->duk_ctx, mRecvErr, syscall);
             duk_call(mLow->duk_ctx, 1);
         }
         else
@@ -307,7 +307,7 @@ bool LowDatagram::OnLoop()
         mSendBufferID = 0;
 
         if(mSendLen == -1)
-            low_push_error(mLow, mSendErr, "sendto");
+            low_push_error(mLow->duk_ctx, mSendErr, "sendto");
         else
             duk_push_null(mLow->duk_ctx);
         duk_call(mLow->duk_ctx, 1);

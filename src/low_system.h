@@ -7,6 +7,8 @@
 
 #include "low_config.h"
 
+#include "duktape.h"
+
 #if LOW_HAS_TERMIOS
 #include <termios.h>
 #endif /* LOW_HAS_TERMIOS */
@@ -69,7 +71,7 @@ extern "C"
 bool low_set_raw_mode(bool mode);
 int low_tick_count();
 
-void low_push_error(struct low_t *low, int error, const char *syscall);
+void low_push_error(duk_context *ctx, int error, const char *syscall);
 
 void low_error_errno();
 void low_error(const char *txt);
