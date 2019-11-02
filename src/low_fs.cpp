@@ -60,9 +60,7 @@ duk_ret_t low_fs_open(duk_context *ctx)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     LowFile *file =
-      new(low_new) LowFile(low, path, iflags, duk_is_undefined(ctx, 3) ? 2 : 3);
-    if(!file)
-        duk_generic_error(ctx, "out of memory");
+      new(ctx) LowFile(low, path, iflags, duk_is_undefined(ctx, 3) ? 2 : 3);
 
     return 0;
 }
@@ -113,10 +111,7 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
     iflags |= O_CLOEXEC; // on spawn, close file
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    LowFile *file = new(low_new) LowFile(low, path, iflags, 0);
-    if(!file)
-        duk_generic_error(ctx, "out of memory");
-
+    LowFile *file = new(ctx) LowFile(low, path, iflags, 0);
     while(true)
     {
         low_loop_clear_callback(low, file);

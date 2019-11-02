@@ -473,7 +473,10 @@ duk_ret_t low_hrtime(duk_context *ctx)
 #else
     struct timespec ts;
     if(clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
-        low_error_errno();
+    {
+        low_push_error(duk_get_low_context(ctx), errno, "clock_gettime");
+        duk_throw(ctx);
+    }
 #endif /* __APPLE__ */
 
     t = (((uint64_t)ts.tv_sec) * NANOS_PER_SEC + ts.tv_nsec);

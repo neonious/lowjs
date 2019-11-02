@@ -50,7 +50,11 @@ enum class low_new_ident
 };
 #define low_new low_new_ident::low_new_ident
 
-void *operator new(size_t size, low_new_ident ident) noexcept;
+inline void *operator new(size_t size, low_new_ident ident) noexcept     { return low_alloc(size); }
+inline void *operator new[](size_t size, low_new_ident ident) noexcept   { return low_alloc(size); }
+
+inline void *operator new(size_t size, duk_context *ctx)                 { return low_alloc_throw(ctx, size); }
+inline void *operator new[](size_t size, duk_context *ctx)               { return low_alloc_throw(ctx, size); }
 
 template<typename T> class low_allocator : public std::allocator<T>
 {

@@ -78,10 +78,7 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
 #if LOW_INCLUDE_CARES_RESOLVER
     low_t *low = duk_get_low_context(ctx);
 
-    LowDNSResolver *resolver = new(low_new) LowDNSResolver(low);
-    if(!resolver)
-        duk_generic_error(ctx, "out of memory");
-
+    LowDNSResolver *resolver = new(ctx) LowDNSResolver(low);
     if(!resolver->Init())
     {
         delete resolver;

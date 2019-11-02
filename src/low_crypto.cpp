@@ -19,9 +19,7 @@ duk_ret_t low_crypto_create_hash(duk_context *ctx)
     const char *type = duk_require_string(ctx, 1);
 
     int len = strlen(type);
-    char *typeUpper = (char *)low_alloc(len + 1);
-    if(!typeUpper)
-        duk_generic_error(low->duk_ctx, "out of memory");
+    char *typeUpper = (char *)low_alloc_throw(ctx, len + 1);
     for(int i = 0; i < len; i++)
         typeUpper[i] = toupper((unsigned)type[i]);
     typeUpper[len] = 0;

@@ -27,10 +27,7 @@ duk_ret_t low_fs_rename(duk_context *ctx)
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
-
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
     fl->Rename(old_name, new_name);
     fl->Run(2);
     return 0;
@@ -45,10 +42,7 @@ duk_ret_t low_fs_unlink(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
-
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
     fl->Unlink(file_name);
     fl->Run(1);
     return 0;
@@ -63,10 +57,7 @@ duk_ret_t low_fs_stat(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
-
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
     fl->Stat(file_name);
     fl->Run(1);
     return 0;
@@ -82,9 +73,7 @@ duk_ret_t low_fs_access(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     int mode, callIndex;
     if(duk_is_undefined(ctx, 2))
@@ -113,9 +102,7 @@ duk_ret_t low_fs_readdir(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     bool withFileTypes = false;
     int callIndex;
@@ -145,9 +132,7 @@ duk_ret_t low_fs_mkdir(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     bool recursive = false;
     int mode = 0777;
@@ -180,9 +165,7 @@ duk_ret_t low_fs_rmdir(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     int callIndex;
     if(duk_is_undefined(ctx, 2))
@@ -208,9 +191,7 @@ duk_ret_t low_fs_rename_sync(duk_context *ctx)
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     fl->Rename(old_name, new_name);
     fl->Run();
@@ -228,9 +209,7 @@ duk_ret_t low_fs_unlink_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     fl->Unlink(file_name);
     fl->Run();
@@ -249,9 +228,7 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     fl->Stat(file_name);
     fl->Run();
@@ -270,9 +247,7 @@ duk_ret_t low_fs_access_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     int mode;
     if(duk_is_undefined(ctx, 2))
@@ -297,9 +272,7 @@ duk_ret_t low_fs_readdir_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     bool withFileTypes;
     int callIndex;
@@ -326,9 +299,7 @@ duk_ret_t low_fs_mkdir_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     bool recursive = false;
     int mode = 0777;
@@ -359,10 +330,7 @@ duk_ret_t low_fs_rmdir_sync(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
-    LowFSMisc *fl = new(low_new) LowFSMisc(low);
-    if(!fl)
-        duk_generic_error(ctx, "out of memory");
-
+    LowFSMisc *fl = new(ctx) LowFSMisc(low);
     fl->RmDir(file_name);
     fl->Run();
     delete fl;
