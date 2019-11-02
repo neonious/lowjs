@@ -700,7 +700,7 @@ public:
     void *userdata;
 };
 
-void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority,
+void low_call_thread(duk_context *ctx, low_thread thread, int priority,
                      void (*func)(void *userdata), void *userdata)
 {
     low_t *low = duk_get_low_context(ctx);
@@ -712,7 +712,7 @@ void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority,
 
     case LOW_THREAD_WORKER:
         low_data_set_callback(low, new LowCallDataCallback(low, func, userdata),
-            less_priority ? LOW_DATA_THREAD_PRIORITY_MODIFY : LOW_DATA_THREAD_PRIORITY_READ);
+            priority ? LOW_DATA_THREAD_PRIORITY_MODIFY : LOW_DATA_THREAD_PRIORITY_READ);
         break;
 
     default:
@@ -731,7 +731,7 @@ low_thread low_get_current_thread(duk_context *ctx)
 
     pthread_t thread = pthread_self();
     if(thread == low->web_thread)
-        return LOW_THREAD_SOCKET;
+        return LOW_THREAD_IMMEDIATE;
 
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
         if(thread == low->data_thread[i])
@@ -769,18 +769,29 @@ void low_destroy(low_t *low)
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
         pthread_join(low->data_thread[i], NULL);
 
-    // Then we close all FDs and delete all classes behind the callbacks
-    while(low->loop_callback_first) // before FDs important for LowDNSResolver!
-        delete low->loop_callback_first;
-    while(low->data_callback_first[0])
-        delete low->data_callback_first[0];
-    while(low->data_callback_first[1])
-        delete low->data_callback_first[1];
-    for(auto iter = low->fds.begin(); iter != low->fds.end();)
+    try
     {
-        auto iter2 = iter;
-        iter++;
-        delete iter2->second;
+        // Then we close all FDs and delete all classes behind the callbacks
+        while(low->loop_callback_first) // before FDs important for LowDNSResolver!
+            delete low->loop_callback_first;
+        while(low->data_callback_first[0])
+            delete low->data_callback_first[0];
+        while(low->data_callback_first[1])
+            delete low->data_callback_first[1];
+        for(auto iter = low->fds.begin(); iter != low->fds.end();)
+        {
+            auto iter2 = iter;
+            iter++;
+            delete iter2->second;
+        }
+    }
+    catch(std::exception &e)
+    {
+        fprintf(stderr, "Fatal exception: %s\n", e.what());
+    }
+    catch(...)
+    {
+        fprintf(stderr, "Fatal exception\n");
     }
 
     close(low->web_thread_pipe[0]);

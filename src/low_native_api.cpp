@@ -65,7 +65,6 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
     {"low_load_module", (uintptr_t)low_load_module},
 
     {"low_call_thread", (uintptr_t)low_call_thread},
-    {"low_set_socket_events", (uintptr_t)low_set_socket_events},
     {"low_get_current_thread", (uintptr_t)low_get_current_thread},
 
     {"low_set_timeout", (uintptr_t)low_set_timeout},

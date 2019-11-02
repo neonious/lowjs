@@ -665,12 +665,3 @@ void low_web_mark_delete(low_t *low, LowFD *fd)
     low_web_thread_break(low);
     pthread_mutex_unlock(&low->web_thread_mutex);
 }
-
-// -----------------------------------------------------------------------------
-//  low_set_socket_events - TODO
-// -----------------------------------------------------------------------------
-
-void low_set_socket_events(duk_context *ctx, int events,
-                           void (*func)(void *userdata), void *userdata)
-{
-}

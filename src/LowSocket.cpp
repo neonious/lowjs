@@ -140,7 +140,7 @@ LowSocket::~LowSocket()
     low_free(mHost);
     if(mDirect)
     {
-        delete mDirect;
+        mDirect->SetSocket(NULL);
         low_free(mReadData);
     }
 

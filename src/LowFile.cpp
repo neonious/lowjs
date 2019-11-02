@@ -331,8 +331,12 @@ bool LowFile::OnLoop()
 {
     if(mClose)
         return false;
-    FinishPhase();
-    return !mClose;
+
+    bool potentiallyClose = mPhase == LOWFILE_PHASE_CLOSING;
+    if(FinishPhase())
+        return !potentiallyClose;
+
+    return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -371,7 +375,6 @@ bool LowFile::FinishPhase()
                     low_push_stash(ctx, callID, true);
                     low_push_error(mLow, mError, mSyscall);
                     duk_call(ctx, 1);
-                    return true;
                 }
                 else
                 {
@@ -439,7 +442,7 @@ bool LowFile::FinishPhase()
                 else
                     duk_push_null(ctx);
                 duk_call(ctx, 1);
-                return true;
+                break;
         }
     }
     else if(mError)

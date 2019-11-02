@@ -28,7 +28,4 @@ void low_web_clear_poll(low_t *low,
                         LowFD *fd); // only call from not-web thread
 void low_web_mark_delete(low_t *low, LowFD *fd);
 
-void low_set_socket_events(duk_context *ctx, int events,
-                           void (*func)(void *userdata), void *userdata);
-
 #endif /* __LOW_WEB_THREAD_H__ */

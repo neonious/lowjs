@@ -65,6 +65,8 @@ LowHTTPDirect::~LowHTTPDirect()
 void LowHTTPDirect::SetSocket(LowSocket *socket)
 {
     mSocket = socket;
+    if(!mSocket)
+        low_loop_set_callback(mLow, this);
 }
 
 // -----------------------------------------------------------------------------
