@@ -8,8 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
   "dependencies": {
+    "@babel/core": "^7.6.4",
+    "@babel/preset-env": "^7.6.3",
     "chalk": "^2.4.1",
     "classnames": "^2.2.6",
     "execa": "^0.10.0",
@@ -20,6 +21,7 @@
     "lodash": "^4.17.10",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
+    "regenerator-runtime": "^0.13.3",
     "typescript": "^3.0.1",
     "yargs": "^12.0.1"
   },

@@ -10,7 +10,7 @@ import assert from 'assert';
 import chalk from 'chalk';
 import read from 'fs-readdir-recursive';
 import * as yargs from 'yargs';
-const babel = require("babel-core");
+const babel = require("@babel/core");
 import { TestResult, ResultType } from './summary/result';
 
 const tmpResults = path.resolve(os.tmpdir(), 'results');
@@ -34,7 +34,7 @@ In no particular order:
 */
 
 process.on('unhandledRejection', (reason, p) => {
-    console.error(chalk.white.bgRed('Unhandled Rejection at: Promise' + p, 'reason:', reason));
+    console.error(chalk.white.bgRed('Unhandled Rejection at: Promise ' + p + ' reason: ' + reason));
     console.error(reason);
 });
 
@@ -222,20 +222,20 @@ async function checkoutIfNotCheckouted() {
 }
 
 function babelTransform(text: string) {
-
-    const ast = require('babylon').parse(text, { allowReturnOutsideFunction: true, sourceType: "module" });
-    const babelResult = babel.transformFromAst(ast, text, {
+    const babelResult = babel.transform(text, {
         presets: [
-            "es2015",
-            "stage-3"
-        ]
+            "@babel/preset-env"
+        ],
+	parserOpts: {
+		allowReturnOutsideFunction: true
+	}
     });
     const { code: compiled } = babelResult;
     assert(compiled);
     return compiled;
 }
 const runtimesource = (async () => {
-    const runtimesource = (await fs.readFile(path.resolve(PROJ_DIR, 'node_modules', 'regenerator-runtime', 'runtime.js'))).toString();
+    const runtimesource = (await fs.readFile(path.resolve(PROJ_DIR, 'test/tests_script/node_modules', 'regenerator-runtime', 'runtime.js'))).toString();
     return runtimesource;
 })()
 async function transformNodeSource(relFile: string, source: string): Promise<string | false> {
@@ -274,7 +274,7 @@ async function runTests() {
                         const ex = e as SyntaxError;
                         console.error('============================================');
                         console.error(chalk.red('ERROR COMPILING FILE'));
-                        console.error(`File: ${file}:${e.loc.line}`);
+                        console.error(`File: ${file}${e.loc ? ':' + e.loc.line : ''}`);
                         console.error('Error:');
                         console.error(e);
                         fileErrors.push({

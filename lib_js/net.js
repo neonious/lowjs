@@ -301,11 +301,14 @@ class Socket extends stream.Duplex {
     // Even though not documented by Node.JS, used in pg module
     get readyState() {
         if(this._socketFD !== undefined && !this.connecting) {
-            if(this.destroyed)
+            if(this.destroyed
+            || (this._writableEOF && this._readableEOF))
                 return 'closed';
     
             if(this._writableEOF)
                 return 'readOnly';
+            if(this._readableEOF)
+                return 'writeOnly';
 
             return 'open';
         } else if(this.connecting)
