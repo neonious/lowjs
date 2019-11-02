@@ -7,9 +7,9 @@
 
 #define LOW_NUM_DATA_THREADS 4
 
+// Enables dns.resolve API but requires additional library c-ares
 #define LOW_INCLUDE_CARES_RESOLVER 1
 
-// Enables dns.resolve API but requires additional library c-ares
 #define LOW_USE_SYSTEM_ALLOC 1
 
 // Poll is superior to select because not limited to FD_SETSIZE sockets

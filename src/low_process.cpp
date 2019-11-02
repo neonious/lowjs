@@ -339,8 +339,15 @@ duk_ret_t low_process_info(duk_context *ctx)
     duk_push_string(ctx, ares_version(NULL));
     duk_put_prop_string(ctx, -2, "ares");
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
+    duk_push_string(ctx, DUK_GIT_DESCRIBE);
+    duk_put_prop_string(ctx, -2, "duktape");
     duk_push_string(ctx, MBEDTLS_VERSION_STRING);
     duk_put_prop_string(ctx, -2, "mbedtls");
+
+    // So node tests work
+    duk_push_string(ctx, "mbedtls " MBEDTLS_VERSION_STRING);
+    duk_put_prop_string(ctx, -2, "openssl");
+
     duk_put_prop_string(ctx, 0, "versions");
     duk_push_string(ctx, "v10.0.0");
     duk_put_prop_string(ctx, 0, "version");
