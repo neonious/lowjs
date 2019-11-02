@@ -36,7 +36,7 @@ using namespace std;
 
 void *low_web_thread_main(void *arg)
 {
-    low_main_t *low = (low_main_t *)arg;
+    low_t *low = (low_t *)arg;
 
 #if LOW_HAS_POLL
     vector<pollfd> fds;
@@ -572,7 +572,7 @@ void *low_web_thread_main(void *arg)
 //  low_web_thread_break
 // -----------------------------------------------------------------------------
 
-void low_web_thread_break(low_main_t *low)
+void low_web_thread_break(low_t *low)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
     neoniousBreakSelect(false);
@@ -586,7 +586,7 @@ void low_web_thread_break(low_main_t *low)
 //  low_web_set_poll_events
 // -----------------------------------------------------------------------------
 
-void low_web_set_poll_events(low_main_t *low, LowFD *fd, short events)
+void low_web_set_poll_events(low_t *low, LowFD *fd, short events)
 {
     pthread_mutex_lock(&low->web_thread_mutex);
 
@@ -611,7 +611,7 @@ void low_web_set_poll_events(low_main_t *low, LowFD *fd, short events)
 //  low_web_clear_poll
 // -----------------------------------------------------------------------------
 
-void low_web_clear_poll(low_main_t *low, LowFD *fd)
+void low_web_clear_poll(low_t *low, LowFD *fd)
 {
     pthread_mutex_lock(&low->web_thread_mutex);
     if(fd->mPollIndex == -1 && !fd->mNextChanged && fd != low->web_changed_last)
@@ -645,7 +645,7 @@ void low_web_clear_poll(low_main_t *low, LowFD *fd)
 //  low_web_mark_delete
 // -----------------------------------------------------------------------------
 
-void low_web_mark_delete(low_main_t *low, LowFD *fd)
+void low_web_mark_delete(low_t *low, LowFD *fd)
 {
     pthread_mutex_lock(&low->web_thread_mutex);
 

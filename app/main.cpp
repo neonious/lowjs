@@ -113,7 +113,7 @@ static void usage(const char *prog_name)
 
 int main(int argc, char *argv[])
 {
-    low_main_t *low;
+    low_t *low;
 
 #ifndef __APPLE__
 	handle_dist_loader(&argc, &argv);

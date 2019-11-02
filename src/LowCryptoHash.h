@@ -14,7 +14,7 @@ using namespace std;
 class LowCryptoHash
 {
   public:
-    LowCryptoHash(low_main_t *low,
+    LowCryptoHash(low_t *low,
                   const mbedtls_md_info_t *info,
                   unsigned char *key,
                   int key_len);
@@ -28,7 +28,7 @@ class LowCryptoHash
     int OutputSize() { return mOutputSize; }
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     int mIndex;
 
     mbedtls_md_context_t mContext;

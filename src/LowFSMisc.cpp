@@ -26,7 +26,7 @@
 //  LowFSMisc::LowFSMisc
 // -----------------------------------------------------------------------------
 
-LowFSMisc::LowFSMisc(low_main_t *low) :
+LowFSMisc::LowFSMisc(low_t *low) :
     LowDataCallback(low), LowLoopCallback(low), mLow(low), mCallID(0),
     mOldName(NULL), mNewName(NULL), mFileEntries(NULL)
 {

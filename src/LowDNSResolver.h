@@ -9,7 +9,7 @@
 
 #include "../deps/c-ares/ares.h"
 
-struct low_main_t;
+struct low_t;
 
 class LowDNSResolver
 {
@@ -17,7 +17,7 @@ class LowDNSResolver
     friend class LowDNSResolver_GetHostByAddr;
 
   public:
-    LowDNSResolver(low_main_t *low);
+    LowDNSResolver(low_t *low);
     virtual ~LowDNSResolver();
 
     bool Init();
@@ -32,7 +32,7 @@ class LowDNSResolver
     static int AresErr(int err);
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
 
     ares_channel mChannel;
     int mIndex, mActiveQueries;
@@ -58,7 +58,7 @@ class LowDNSResolver_Query : public LowLoopCallback
 
   private:
     LowDNSResolver *mResolver;
-    low_main_t *mLow;
+    low_t *mLow;
     ares_channel mChannel;
 
     bool mTTL;
@@ -94,7 +94,7 @@ class LowDNSResolver_GetHostByAddr : public LowLoopCallback
 
   private:
     LowDNSResolver *mResolver;
-    low_main_t *mLow;
+    low_t *mLow;
     ares_channel mChannel;
 
     int mRefID, mCallID, mError;

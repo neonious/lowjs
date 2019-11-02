@@ -21,7 +21,7 @@ int (*gLowOPCUASend)(void *data, unsigned char *buf, int size) = LowOPCUA::OnSen
 //  register_opcua - registers the module "opc-ua"
 // -----------------------------------------------------------------------------
 
-static void setup_module_safe(low_main_t *low, void *data)
+static void setup_module_safe(low_t *low, void *data)
 {
     duk_context *ctx = low_get_duk_context(low);
 
@@ -79,7 +79,7 @@ static void setup_module_safe(low_main_t *low, void *data)
     duk_put_prop_string(ctx, 1, "UAClient");    // add to 1 = exports
 }
 
-bool low_register_opcua(low_main_t *low)
+bool low_register_opcua(low_t *low)
 {
     return low_module_make_native(low, "opc-ua", setup_module_safe, NULL);
 }
@@ -91,7 +91,7 @@ bool low_register_opcua(low_main_t *low)
 
 int opcua_uaclient_constructor(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
 
@@ -214,7 +214,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
 
 int opcua_uaclient_destroy(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -264,7 +264,7 @@ int opcua_uaclient_node(duk_context *ctx)
     int namespac = duk_require_int(ctx, 0);
     int node = duk_require_int(ctx, 1);
 
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -302,7 +302,7 @@ int opcua_uaclient_node(duk_context *ctx)
 
 int opcua_uaclient_create_subscription(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -348,7 +348,7 @@ int opcua_uaclient_create_subscription(duk_context *ctx)
 
 int opcua_uaclient_destroy_subscription(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -407,7 +407,7 @@ int opcua_uaclient_destroy_subscription(duk_context *ctx)
 
 int opcua_uaclient_subscription_add(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -484,7 +484,7 @@ int opcua_uaclient_subscription_add(duk_context *ctx)
 
 int opcua_uaclient_subscription_remove(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -547,7 +547,7 @@ int opcua_uaclient_subscription_remove(duk_context *ctx)
 
 int opcua_uaclient_lookup_props(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -616,7 +616,7 @@ int opcua_uaclient_lookup_props(duk_context *ctx)
 
 int opcua_uaclient_subnode(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     char *path = (char *)duk_require_string(ctx, 0);
 
     int pathSize = 0;
@@ -740,7 +740,7 @@ int opcua_uaclient_subnode(duk_context *ctx)
 
 int opcua_uaclient_children(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -802,7 +802,7 @@ int opcua_uaclient_children(duk_context *ctx)
 
 int opcua_uaclient_read(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -865,7 +865,7 @@ int opcua_uaclient_read(duk_context *ctx)
 
 int opcua_uaclient_write(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -985,7 +985,7 @@ int opcua_uaclient_write(duk_context *ctx)
 
 int opcua_uaclient_call(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
@@ -1055,7 +1055,7 @@ static void clientExecuteRepeatedCallback(LowOPCUA *opcua, UA_ApplicationCallbac
     }
 }
 
-LowOPCUA::LowOPCUA(low_main_t *low, UA_Client *client, int thisIndex, int timeoutMS, const char *url)
+LowOPCUA::LowOPCUA(low_t *low, UA_Client *client, int thisIndex, int timeoutMS, const char *url)
     : LowLoopCallback(low), LowFD(low, LOWFD_TYPE_SOCKET, client->connection.sockfd), mLow(low), mClient(client), mThisIndex(thisIndex), mTimeoutMS(timeoutMS), mMutex(PTHREAD_MUTEX_INITIALIZER), mConnectState(0), mDisabledState(0), mDetachedState(0), mWriteBuffer(NULL), mLastClientHandle(0)
 {
     low->run_ref++;

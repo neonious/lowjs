@@ -7,7 +7,7 @@
 
 #include "duktape.h"
 
-struct low_main_t;
+struct low_t;
 
 struct low_chore_t
 {
@@ -21,7 +21,7 @@ struct low_chore_t
 
 class LowLoopCallback;
 
-extern "C" bool low_loop_run(low_main_t *low);
+bool low_loop_run(low_t *low);
 duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata);
 
 duk_ret_t low_loop_chore_ref(duk_context *ctx);
@@ -34,10 +34,10 @@ int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *d
 void low_clear_timeout(duk_context *ctx, int index);
 
 void low_loop_set_callback(
-    low_main_t *low,
+    low_t *low,
     LowLoopCallback *callback); // may be called from other thread
 void low_loop_clear_callback(
-    low_main_t *low,
+    low_t *low,
     LowLoopCallback *callback); // must be called from main thread
 
 void low_call_next_tick(duk_context *ctx, int num_args);

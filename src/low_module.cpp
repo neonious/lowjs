@@ -60,9 +60,9 @@ void low_module_init(duk_context *ctx)
 //  low_module_make_native
 // -----------------------------------------------------------------------------
 
-bool low_module_make_native(low_main_t *low,
+bool low_module_make_native(low_t *low,
                             const char *name,
-                            void (*setup_cb)(low_main_t *main, void *data),
+                            void (*setup_cb)(low_t *main, void *data),
                             void *setup_cb_data)
 {
     duk_context *ctx = low_get_duk_context(low);
@@ -188,7 +188,7 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
     return 0;
 }
 
-bool low_module_main(low_main_t *low, const char *path)
+bool low_module_main(low_t *low, const char *path)
 {
     try
     {
@@ -489,7 +489,7 @@ bool get_data_block(const char *path,
 
 void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     int flags = 0;
     int len = strlen(path);

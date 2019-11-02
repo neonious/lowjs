@@ -23,7 +23,7 @@
 //  LowFile::LowFile
 // -----------------------------------------------------------------------------
 
-LowFile::LowFile(low_main_t *low, const char *path, int flags, int callID) :
+LowFile::LowFile(low_t *low, const char *path, int flags, int callID) :
     LowFD(low, LOWFD_TYPE_FILE), LowDataCallback(low), LowLoopCallback(low),
     mLow(low), mClose(false)
 {

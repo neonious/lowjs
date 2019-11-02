@@ -23,7 +23,7 @@
 
 duk_ret_t low_fs_rename(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
@@ -42,7 +42,7 @@ duk_ret_t low_fs_rename(duk_context *ctx)
 
 duk_ret_t low_fs_unlink(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -60,7 +60,7 @@ duk_ret_t low_fs_unlink(duk_context *ctx)
 
 duk_ret_t low_fs_stat(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -79,7 +79,7 @@ duk_ret_t low_fs_stat(duk_context *ctx)
 
 duk_ret_t low_fs_access(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -110,7 +110,7 @@ duk_ret_t low_fs_access(duk_context *ctx)
 
 duk_ret_t low_fs_readdir(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -142,7 +142,7 @@ duk_ret_t low_fs_readdir(duk_context *ctx)
 
 duk_ret_t low_fs_mkdir(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -177,7 +177,7 @@ duk_ret_t low_fs_mkdir(duk_context *ctx)
 
 duk_ret_t low_fs_rmdir(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -204,7 +204,7 @@ duk_ret_t low_fs_rmdir(duk_context *ctx)
 
 duk_ret_t low_fs_rename_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *old_name = duk_require_string(ctx, 0);
     const char *new_name = duk_require_string(ctx, 1);
 
@@ -225,7 +225,7 @@ duk_ret_t low_fs_rename_sync(duk_context *ctx)
 
 duk_ret_t low_fs_unlink_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -246,7 +246,7 @@ duk_ret_t low_fs_unlink_sync(duk_context *ctx)
 
 duk_ret_t low_fs_stat_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -267,7 +267,7 @@ duk_ret_t low_fs_stat_sync(duk_context *ctx)
 
 duk_ret_t low_fs_access_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -294,7 +294,7 @@ duk_ret_t low_fs_access_sync(duk_context *ctx)
 
 duk_ret_t low_fs_readdir_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -323,7 +323,7 @@ duk_ret_t low_fs_readdir_sync(duk_context *ctx)
 
 duk_ret_t low_fs_mkdir_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);
@@ -356,7 +356,7 @@ duk_ret_t low_fs_mkdir_sync(duk_context *ctx)
 
 duk_ret_t low_fs_rmdir_sync(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     const char *file_name = duk_require_string(ctx, 0);
 
     LowFSMisc *fl = new(low_new) LowFSMisc(low);

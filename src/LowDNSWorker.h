@@ -10,12 +10,12 @@
 
 #include <arpa/inet.h>
 
-struct low_main_t;
+struct low_t;
 
 class LowDNSWorker : public LowLoopCallback, public LowDataCallback
 {
 public:
-    LowDNSWorker(low_main_t *low);
+    LowDNSWorker(low_t *low);
     virtual ~LowDNSWorker();
 
     bool Lookup(const char *host, int family, int hints, int callIndex);
@@ -26,7 +26,7 @@ protected:
     virtual bool OnData();
 
 private:
-    low_main_t *mLow;
+    low_t *mLow;
 
     char mIP[INET_ADDRSTRLEN];
     char mHost[64], mService[64];

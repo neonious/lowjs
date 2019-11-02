@@ -23,7 +23,7 @@ enum LowSocketType
 const int LOWSOCKET_TRIGGER_READ = 1;
 const int LOWSOCKET_TRIGGER_WRITE = 2;
 
-struct low_main_t;
+struct low_t;
 
 class LowSocketDirect;
 class LowSocket
@@ -31,8 +31,8 @@ class LowSocket
     , public LowLoopCallback
 {
   public:
-    LowSocket(low_main_t *low, int fd); // LOWSOCKET_TYPE_STDINOUT
-    LowSocket(low_main_t *low,
+    LowSocket(low_t *low, int fd); // LOWSOCKET_TYPE_STDINOUT
+    LowSocket(low_t *low,
               int fd,
               struct sockaddr *remoteAddr,
               int acceptCallID,
@@ -40,7 +40,7 @@ class LowSocket
               int directType,
               LowTLSContext *tlsContext,
               bool clearOnReset = true); // LOWSOCKET_TYPE_ACCEPTED
-    LowSocket(low_main_t *low,
+    LowSocket(low_t *low,
               LowSocketDirect *direct,
               int directType,
               LowTLSContext *tlsContext,
@@ -89,7 +89,7 @@ class LowSocket
     int DoWrite();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     LowSocketType mType;
     short mLastEvents;
 

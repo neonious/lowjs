@@ -13,7 +13,7 @@
 
 void *low_data_thread_main(void *arg)
 {
-    low_main_t *low = (low_main_t *)arg;
+    low_t *low = (low_t *)arg;
 
 #if LOW_ESP32_LWIP_SPECIALITIES
     while(true)
@@ -81,7 +81,7 @@ void *low_data_thread_main(void *arg)
 //  low_data_set_callback
 // -----------------------------------------------------------------------------
 
-void low_data_set_callback(low_main_t *low, LowDataCallback *callback,
+void low_data_set_callback(low_t *low, LowDataCallback *callback,
                            int priority)
 {
     pthread_mutex_lock(&low->data_thread_mutex);
@@ -106,7 +106,7 @@ void low_data_set_callback(low_main_t *low, LowDataCallback *callback,
 //  low_data_clear_callback
 // -----------------------------------------------------------------------------
 
-void low_data_clear_callback(low_main_t *low, LowDataCallback *callback)
+void low_data_clear_callback(low_t *low, LowDataCallback *callback)
 {
     pthread_mutex_lock(&low->data_thread_mutex);
     if(low->data_callback_first[0] == callback)

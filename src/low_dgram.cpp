@@ -19,7 +19,7 @@
 
 duk_ret_t low_dgram_bind(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     const char *address = duk_require_string(ctx, 0);
     int port = duk_require_int(ctx, 1);
@@ -105,7 +105,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
 
 duk_ret_t low_dgram_send(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     int fd = duk_require_int(ctx, 0);
     // 1 = array of buffers

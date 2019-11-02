@@ -56,7 +56,7 @@ static void *low_duk_alloc(void *udata, duk_size_t size)
     auto data = low_alloc(size);
     if(!data)
     {
-        low_main_t *low = (low_main_t *)udata;
+        low_t *low = (low_t *)udata;
         duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
     }
     return data;
@@ -76,7 +76,7 @@ static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
     auto data = low_realloc(ptr, size);
     if(!data)
     {
-        low_main_t *low = (low_main_t *)udata;
+        low_t *low = (low_t *)udata;
         duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
     }
     return data;
@@ -90,7 +90,7 @@ static void low_duk_free(void *udata, void *ptr)
     low_free(ptr);
 }
 
-low_main_t *low_init()
+low_t *low_init()
 {
 #if LOW_INCLUDE_CARES_RESOLVER
     int err = ares_library_init_mem(
@@ -102,7 +102,7 @@ low_main_t *low_init()
     }
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-    low_main_t *low = new(low_new) low_main_t();
+    low_t *low = new(low_new) low_t();
     if(!low)
     {
         fprintf(stderr, "Memory full\n");
@@ -406,11 +406,11 @@ err:
 //  duk_get_low_context
 // -----------------------------------------------------------------------------
 
-low_main_t *duk_get_low_context(duk_context *ctx)
+low_t *duk_get_low_context(duk_context *ctx)
 {
     duk_memory_functions funcs;
     duk_get_memory_functions(ctx, &funcs);
-    return (low_main_t *)funcs.udata;
+    return (low_t *)funcs.udata;
 }
 
 
@@ -418,9 +418,9 @@ low_main_t *duk_get_low_context(duk_context *ctx)
 //  low_get_duk_context
 // -----------------------------------------------------------------------------
 
-duk_context *low_get_duk_context(low_main_t *low)
+duk_context *low_get_duk_context(low_t *low)
 {
-    // Used from applications, as low_main_t is not available there
+    // Used from applications, as low_t is not available there
     return low->duk_ctx;
 }
 
@@ -435,7 +435,7 @@ duk_context *low_get_duk_context(low_main_t *low)
 extern "C" void duk_copy_breakpoints(duk_context *from, duk_context *to);
 extern "C" void alloc_use_fund();
 
-bool low_reset(low_main_t *low)
+bool low_reset(low_t *low)
 {
     low->duk_flag_stop = 1;
 
@@ -613,7 +613,7 @@ bool low_reset(low_main_t *low)
 
 static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_heap_stash(ctx);
     low->next_tick_ctx = duk_get_context(ctx, duk_push_thread(ctx));
@@ -631,7 +631,7 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
     return 0;
 }
 
-bool low_lib_init(low_main_t *low)
+bool low_lib_init(low_t *low)
 {
     try
     {
@@ -667,7 +667,7 @@ bool low_lib_init(low_main_t *low)
 class LowCallLoopCallback : public LowLoopCallback
 {
 public:
-    LowCallLoopCallback(low_main_t *low, void (*func)(void *userdata), void *userdata)
+    LowCallLoopCallback(low_t *low, void (*func)(void *userdata), void *userdata)
         : LowLoopCallback(low), func(func), userdata(userdata)
     {
     }
@@ -685,7 +685,7 @@ public:
 class LowCallDataCallback : public LowDataCallback
 {
 public:
-    LowCallDataCallback(low_main_t *low, void (*func)(void *userdata), void *userdata)
+    LowCallDataCallback(low_t *low, void (*func)(void *userdata), void *userdata)
         : LowDataCallback(low), func(func), userdata(userdata)
     {
     }
@@ -703,7 +703,7 @@ public:
 void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority,
                      void (*func)(void *userdata), void *userdata)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     switch(thread)
     {
     case LOW_THREAD_CODE:
@@ -727,7 +727,7 @@ void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority,
 
 low_thread low_get_current_thread(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     pthread_t thread = pthread_self();
     if(thread == low->web_thread)
@@ -745,7 +745,7 @@ low_thread low_get_current_thread(duk_context *ctx)
 //  low_destroy
 // -----------------------------------------------------------------------------
 
-void low_destroy(low_main_t *low)
+void low_destroy(low_t *low)
 {
 #if !LOW_ESP32_LWIP_SPECIALITIES
     g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
@@ -826,7 +826,7 @@ void low_destroy(low_main_t *low)
 
 int low_add_stash(duk_context *ctx, int index)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     if(low->duk_flag_stop)
         return 0;
 

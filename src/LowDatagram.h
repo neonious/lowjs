@@ -17,7 +17,7 @@ class LowDatagram
     , public LowLoopCallback
 {
   public:
-    LowDatagram(low_main_t *low);
+    LowDatagram(low_t *low);
     virtual ~LowDatagram();
 
     bool Bind(struct sockaddr *addr, int addrLen, int callIndex, int &err,
@@ -33,7 +33,7 @@ class LowDatagram
     virtual bool OnLoop();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
 
     int mMessageCallID, mFamily;
 

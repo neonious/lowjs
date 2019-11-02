@@ -14,7 +14,7 @@
 //  LowSignalHandler::LowSignalHandler
 // -----------------------------------------------------------------------------
 
-LowSignalHandler::LowSignalHandler(low_main_t *low, int signal)
+LowSignalHandler::LowSignalHandler(low_t *low, int signal)
     : LowLoopCallback(low), mLow(low), mSignal(signal)
 {
     const char *name;
@@ -53,7 +53,7 @@ LowSignalHandler::LowSignalHandler(low_main_t *low, int signal)
 //  LowSignalHandler::LowSignalHandler
 // -----------------------------------------------------------------------------
 
-LowSignalHandler::LowSignalHandler(low_main_t *low, const char *name)
+LowSignalHandler::LowSignalHandler(low_t *low, const char *name)
     : LowLoopCallback(low), mLow(low), mName(name), mSignal(0)
 {
     low_loop_set_callback(low, this);

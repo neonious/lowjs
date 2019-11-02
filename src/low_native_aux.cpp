@@ -95,7 +95,7 @@ duk_ret_t low_run_in_context_safe(duk_context *ctx, void *udata)
 
 duk_ret_t low_run_in_context(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_global_object(low->duk_ctx); // 4
 

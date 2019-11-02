@@ -19,7 +19,7 @@
 #include <queue>
 
 #define LOW_OPCUA_WRITEBUFFER_SIZE  1024
-bool low_register_opcua(low_main_t *low);
+bool low_register_opcua(low_t *low);
 
 int opcua_uaclient_constructor(duk_context *ctx);
 int opcua_uaclient_destroy(duk_context *ctx);
@@ -66,7 +66,7 @@ struct UA_Client;
 class LowOPCUA : public LowLoopCallback, public LowFD
 {
 public:
-    LowOPCUA(low_main_t *low, struct UA_Client *client, int thisIndex, int timeoutMS, const char *url);
+    LowOPCUA(low_t *low, struct UA_Client *client, int thisIndex, int timeoutMS, const char *url);
     virtual ~LowOPCUA();
 
     void DisconnectAndDetach(int callbackStashIndex);
@@ -94,7 +94,7 @@ protected:
     void PushVariant(UA_Variant *variant);
 
 private:
-    low_main_t *mLow;
+    low_t *mLow;
     int mTimeoutMS;
     int mThisIndex;
 

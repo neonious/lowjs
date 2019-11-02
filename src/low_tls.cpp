@@ -17,7 +17,7 @@
 
 duk_ret_t low_tls_create_context(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     bool isServer = duk_require_boolean(ctx, 1);
 
     char *my_cert = NULL, *my_key = NULL, *my_ca = NULL;
@@ -206,7 +206,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
 
 duk_ret_t low_tls_context_finalizer(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_index");
     int index = duk_require_int(ctx, -1);

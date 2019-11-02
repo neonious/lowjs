@@ -17,7 +17,7 @@
 //  LowDNSWorker::LowDNSWorker
 // -----------------------------------------------------------------------------
 
-LowDNSWorker::LowDNSWorker(low_main_t *low)
+LowDNSWorker::LowDNSWorker(low_t *low)
     : LowLoopCallback(low), LowDataCallback(low), mLow(low), mResult(NULL)
 {
 }

@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-struct low_main_t;
+struct low_t;
 
 enum
 {
@@ -31,7 +31,7 @@ class LowFile
     , public LowLoopCallback
 {
   public:
-    LowFile(low_main_t *low, const char *path, int flags, int callIndex);
+    LowFile(low_t *low, const char *path, int flags, int callIndex);
     virtual ~LowFile();
 
     void Read(int pos, unsigned char *data, int len, int callIndex);
@@ -46,7 +46,7 @@ class LowFile
     virtual bool OnLoop();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     char *mPath;
     int mFlags;
 

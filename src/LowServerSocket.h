@@ -7,12 +7,12 @@
 
 #include "LowFD.h"
 
-struct low_main_t;
+struct low_t;
 
 class LowServerSocket : public LowFD
 {
   public:
-    LowServerSocket(low_main_t *low, bool isHTTP, LowTLSContext *secureContext);
+    LowServerSocket(low_t *low, bool isHTTP, LowTLSContext *secureContext);
     virtual ~LowServerSocket();
 
     bool Listen(struct sockaddr *addr, int addrLen, int callIndex, int &err,
@@ -26,7 +26,7 @@ class LowServerSocket : public LowFD
     virtual bool OnEvents(short events);
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     bool mIsHTTP;
 
     int mFamily, mAcceptCallID;

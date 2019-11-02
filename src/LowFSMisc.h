@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-struct low_main_t;
+struct low_t;
 
 enum
 {
@@ -32,7 +32,7 @@ class LowFSMisc
     , public LowLoopCallback
 {
   public:
-    LowFSMisc(low_main_t *low);
+    LowFSMisc(low_t *low);
     virtual ~LowFSMisc();
 
     void Rename(const char *old_name, const char *new_name);
@@ -53,7 +53,7 @@ class LowFSMisc
     virtual bool OnLoop();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     char *mOldName;
     char *mNewName;
 

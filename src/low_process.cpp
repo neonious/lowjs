@@ -69,7 +69,7 @@ static duk_ret_t low_process_exit(duk_context *ctx)
 {
     int code = duk_get_int(ctx, 0);
 
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     if(low->signal_call_id)
     {
         low_push_stash(ctx, low->signal_call_id, false);
@@ -98,7 +98,7 @@ static duk_ret_t low_process_abort(duk_context *ctx)
 #if LOW_ESP32_LWIP_SPECIALITIES
     console_log("e", "Process aborted.");
 
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     low->duk_flag_stop = 1;
 
     duk_throw(ctx);
@@ -141,7 +141,7 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
     const char *path = duk_require_string(ctx, 0);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     char *cwd = low_strdup(path);
     if(!cwd)
@@ -193,7 +193,7 @@ NOT DONE YET
 
 duk_ret_t low_process_info(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_push_object(ctx);
 #if !LOW_ESP32_LWIP_SPECIALITIES
@@ -426,7 +426,7 @@ duk_ret_t low_tty_info(duk_context *ctx)
     if(!g_low_system.isatty)
         return 0;
 
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     struct winsize w;
     if(ioctl(0, TIOCGWINSZ, &w) < 0)

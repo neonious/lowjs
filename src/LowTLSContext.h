@@ -22,7 +22,7 @@ using namespace std;
 class LowTLSContext
 {
   public:
-    LowTLSContext(low_main_t *low,
+    LowTLSContext(low_t *low,
                   const char *cert = NULL,
                   int certLen = 0,
                   const char *key = NULL,
@@ -41,7 +41,7 @@ class LowTLSContext
     mbedtls_ssl_config &GetSSLConfig() { return conf; }
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     int mRef;
     int mIndex;
 

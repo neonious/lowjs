@@ -21,14 +21,14 @@ enum LowFDType
 class LowFD
 {
     friend void *low_web_thread_main(void *arg);
-    friend bool low_reset(low_main_t *low);
-    friend void low_web_set_poll_events(low_main_t *low, LowFD *fd,
+    friend bool low_reset(low_t *low);
+    friend void low_web_set_poll_events(low_t *low, LowFD *fd,
                                         short events);
-    friend void low_web_clear_poll(low_main_t *low, LowFD *fd);
-    friend void low_web_mark_delete(low_main_t *low, LowFD *fd);
+    friend void low_web_clear_poll(low_t *low, LowFD *fd);
+    friend void low_web_mark_delete(low_t *low, LowFD *fd);
 
 public:
-    LowFD(low_main_t *low, LowFDType type, int fd = -1)
+    LowFD(low_t *low, LowFDType type, int fd = -1)
         : mLow(low), mFD(fd), mAdvertisedFD(-1), mFDType(type),
           mMarkDelete(false), mPollIndex(-1), mPollEvents(0),
           mNextChanged(nullptr), mFDClearOnReset(true)
@@ -74,7 +74,7 @@ protected:
     virtual bool OnEvents(short events) { return true; }
 
 private:
-    low_main_t *mLow;
+    low_t *mLow;
 
     int mFD, mAdvertisedFD;
     LowFDType mFDType;

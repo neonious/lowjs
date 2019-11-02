@@ -11,7 +11,7 @@
 //  LowCryptoHash::LowCryptoHash
 // -----------------------------------------------------------------------------
 
-LowCryptoHash::LowCryptoHash(low_main_t *low,
+LowCryptoHash::LowCryptoHash(low_t *low,
                              const mbedtls_md_info_t *info,
                              unsigned char *key,
                              int key_len) :

@@ -51,7 +51,7 @@ class LowHTTPDirect
     , public LowLoopCallback
 {
   public:
-    LowHTTPDirect(low_main_t *low, bool isServer);
+    LowHTTPDirect(low_t *low, bool isServer);
     virtual ~LowHTTPDirect();
 
     virtual void SetSocket(LowSocket *socket);
@@ -75,7 +75,7 @@ class LowHTTPDirect
     virtual bool OnSocketWrite();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     bool mIsServer, mDetached;
 
     LowSocket *mSocket;

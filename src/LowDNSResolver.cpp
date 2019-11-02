@@ -24,7 +24,7 @@
 //  LowDNSResolver::LowDNSResolver
 // -----------------------------------------------------------------------------
 
-LowDNSResolver::LowDNSResolver(low_main_t *low)
+LowDNSResolver::LowDNSResolver(low_t *low)
     : mLow(low), mIndex(-1), mActiveQueries(0)
 {
 }

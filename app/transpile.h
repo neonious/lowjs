@@ -9,7 +9,7 @@
 
 #include <duktape.h>
 
-bool init_transpile(low_main_t *low);
+bool init_transpile(low_t *low);
 
 int transpile(duk_context *ctx);
 

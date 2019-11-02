@@ -16,17 +16,17 @@
 #define POLLHUP 0x10
 #endif /* LOW_HAS_POLL */
 
-struct low_main_t;
+struct low_t;
 class LowFD;
 
 void *low_web_thread_main(void *arg);
-void low_web_thread_break(low_main_t *low);
+void low_web_thread_break(low_t *low);
 
-void low_web_set_poll_events(low_main_t *low, LowFD *fd, short events);
+void low_web_set_poll_events(low_t *low, LowFD *fd, short events);
 
-void low_web_clear_poll(low_main_t *low,
+void low_web_clear_poll(low_t *low,
                         LowFD *fd); // only call from not-web thread
-void low_web_mark_delete(low_main_t *low, LowFD *fd);
+void low_web_mark_delete(low_t *low, LowFD *fd);
 
 void low_set_socket_events(duk_context *ctx, int events,
                            void (*func)(void *userdata), void *userdata);

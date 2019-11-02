@@ -27,7 +27,7 @@
 //  LowServerSocket::LowServerSocket
 // -----------------------------------------------------------------------------
 
-LowServerSocket::LowServerSocket(low_main_t *low, bool isHTTP,
+LowServerSocket::LowServerSocket(low_t *low, bool isHTTP,
                                  LowTLSContext *secureContext)
     : LowFD(low, LOWFD_TYPE_SERVER), mLow(low), mIsHTTP(isHTTP),
       mAcceptCallID(0), mSecureContext(secureContext)

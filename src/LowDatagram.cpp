@@ -21,7 +21,7 @@
 //  LowDatagram::LowDatagram
 // -----------------------------------------------------------------------------
 
-LowDatagram::LowDatagram(low_main_t *low)
+LowDatagram::LowDatagram(low_t *low)
     : mLow(low), LowFD(low, LOWFD_TYPE_DATAGRAM), LowLoopCallback(low), mMessageCallID(0), mSendCallID(0), mSendBufferID(0), mHasRecv(false)
 {
 }

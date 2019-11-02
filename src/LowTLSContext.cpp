@@ -31,7 +31,7 @@ static void my_debug(void *ctx, int level, const char *file, int line,
     printf("%s:%04d: |%d| %s", basename, line, level, str);
 }
 
-LowTLSContext::LowTLSContext(low_main_t *low, const char *cert, int certLen,
+LowTLSContext::LowTLSContext(low_t *low, const char *cert, int certLen,
                              const char *key, int keyLen, const char *ca,
                              int caLen, bool isServer)
     : mLow(low), mIsOK(false), mHasCert(false), mHasCA(false), mRef(1),

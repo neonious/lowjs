@@ -10,14 +10,14 @@
 class LowSignalHandler : public LowLoopCallback
 {
   public:
-    LowSignalHandler(low_main_t *low, int signal);
-    LowSignalHandler(low_main_t *low, const char *name);
+    LowSignalHandler(low_t *low, int signal);
+    LowSignalHandler(low_t *low, const char *name);
 
   protected:
     virtual bool OnLoop();
 
   private:
-    low_main_t *mLow;
+    low_t *mLow;
     const char *mName;
     int mSignal;
 };

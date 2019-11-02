@@ -76,7 +76,7 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
 duk_ret_t low_dns_new_resolver(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     LowDNSResolver *resolver = new(low_new) LowDNSResolver(low);
     if(!resolver)
@@ -106,7 +106,7 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
 duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -130,7 +130,7 @@ duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
 duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -224,7 +224,7 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
 duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     if(index < 0 || index >= low->resolvers.size())
@@ -304,7 +304,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
 duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);
@@ -346,7 +346,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 {
 #if LOW_INCLUDE_CARES_RESOLVER
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);
@@ -394,7 +394,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 
 duk_ret_t low_dns_resolver_finalizer(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     duk_get_prop_string(ctx, 0, "_handle");
     int index = duk_require_int(ctx, -1);

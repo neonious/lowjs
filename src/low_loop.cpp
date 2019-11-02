@@ -21,7 +21,7 @@ void user_cpu_load(bool active);
 
 duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     while(!low->duk_flag_stop)
     {
@@ -213,7 +213,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
     return 0;
 }
 
-bool low_loop_run(low_main_t *low)
+bool low_loop_run(low_t *low)
 {
     try
     {
@@ -274,7 +274,7 @@ bool low_loop_run(low_main_t *low)
 
 duk_ret_t low_loop_set_chore(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = low_add_stash(ctx, 0);
 
     int delay = duk_require_int(ctx, 1);
@@ -299,7 +299,7 @@ duk_ret_t low_loop_set_chore(duk_context *ctx)
 
 duk_ret_t low_loop_clear_chore(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
 
     auto iter = low->chores.find(index);
@@ -326,7 +326,7 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
 
 int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *data), void *data)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     if(index == 0)
     {
@@ -371,7 +371,7 @@ int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *d
 
 void low_clear_timeout(duk_context *ctx, int index)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     auto iter = low->chores.find(index);
     if(iter == low->chores.end())
@@ -394,7 +394,7 @@ void low_clear_timeout(duk_context *ctx, int index)
 
 duk_ret_t low_loop_chore_ref(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int index = duk_require_int(ctx, 0);
     bool ref = duk_require_boolean(ctx, 1);
 
@@ -420,7 +420,7 @@ duk_ret_t low_loop_chore_ref(duk_context *ctx)
 
 duk_ret_t low_loop_run_ref(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     low->run_ref += duk_require_int(ctx, 0);
     return 0;
 }
@@ -429,7 +429,7 @@ duk_ret_t low_loop_run_ref(duk_context *ctx)
 //  low_loop_set_callback
 // -----------------------------------------------------------------------------
 
-void low_loop_set_callback(low_main_t *low, LowLoopCallback *callback)
+void low_loop_set_callback(low_t *low, LowLoopCallback *callback)
 {
     pthread_mutex_lock(&low->loop_thread_mutex);
     if(callback->mNext || low->loop_callback_last == callback)
@@ -452,7 +452,7 @@ void low_loop_set_callback(low_main_t *low, LowLoopCallback *callback)
 //  low_loop_clear_callback
 // -----------------------------------------------------------------------------
 
-void low_loop_clear_callback(low_main_t *low, LowLoopCallback *callback)
+void low_loop_clear_callback(low_t *low, LowLoopCallback *callback)
 {
     pthread_mutex_lock(&low->loop_thread_mutex);
     if(callback->mNext || low->loop_callback_last == callback)
@@ -489,7 +489,7 @@ void low_loop_clear_callback(low_main_t *low, LowLoopCallback *callback)
 
 void low_call_next_tick(duk_context *ctx, int num_args)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     duk_xmove_top(low->next_tick_ctx, ctx, num_args + 1);
     duk_push_int(low->next_tick_ctx, num_args);
 }

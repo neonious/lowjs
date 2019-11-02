@@ -42,7 +42,7 @@ static duk_ret_t init_transpile_safe(duk_context *ctx, void *udata)
     return true;
 }
 
-bool init_transpile(low_main_t *low)
+bool init_transpile(low_t *low)
 {
     int len = strlen(g_low_system.lib_path);
     char babel_path[len + 16];

@@ -27,7 +27,7 @@
 
 duk_ret_t low_net_listen(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     int family = duk_require_int(ctx, 0);
     const char *address = duk_require_string(ctx, 1);
@@ -149,7 +149,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
 
 duk_ret_t low_net_connect(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
 
     int family = duk_require_int(ctx, 0);
     const char *address = duk_require_string(ctx, 1);
@@ -274,7 +274,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
 
 duk_ret_t low_net_setsockopt(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     if(!duk_is_undefined(ctx, 4))
         if(!low_set_raw_mode(duk_require_boolean(ctx, 4)))
         {
@@ -310,7 +310,7 @@ duk_ret_t low_net_setsockopt(duk_context *ctx)
 
 duk_ret_t low_net_shutdown(duk_context *ctx)
 {
-    low_main_t *low = duk_get_low_context(ctx);
+    low_t *low = duk_get_low_context(ctx);
     int fd = duk_require_int(ctx, 0);
 
     auto iter = low->fds.find(fd);

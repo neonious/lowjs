@@ -27,7 +27,7 @@ class LowDNSResolver;
 class LowTLSContext;
 class LowCryptoHash;
 
-struct low_main_t
+struct low_t
 {
     uint8_t duk_flag_stop;
     bool destroying;
@@ -97,18 +97,15 @@ typedef enum
     LOW_THREAD_SOCKET
 } low_thread;
 
-extern "C"
-{
-    low_main_t *low_init();
-    bool low_lib_init(low_main_t *low);
-    void low_destroy(low_main_t *low);
+low_t *low_init();
+bool low_lib_init(low_t *low);
+void low_destroy(low_t *low);
 
-    duk_context *low_get_duk_context(low_main_t *low);
-    low_main_t *duk_get_low_context(duk_context *ctx);
-}
+duk_context *low_get_duk_context(low_t *low);
+low_t *duk_get_low_context(duk_context *ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-bool low_reset(low_main_t *low);
+bool low_reset(low_t *low);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 void low_call_thread(duk_context *ctx, low_thread thread, bool less_priority, void (*func)(void *userdata), void *userdata);

@@ -303,7 +303,7 @@ int low_tick_count()
 //  low_push_error
 // -----------------------------------------------------------------------------
 
-void low_push_error(struct low_main_t *low, int error, const char *syscall)
+void low_push_error(struct low_t *low, int error, const char *syscall)
 {
     const char *low_errcode[LOW_NUM_ERROR_CODES] = {
         "EUNKNOWN",        "ENODATA",       "EFORMERR",

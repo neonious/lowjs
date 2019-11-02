@@ -31,7 +31,7 @@
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low, int fd) :
+LowSocket::LowSocket(low_t *low, int fd) :
     LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
     mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
     mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
@@ -48,7 +48,7 @@ LowSocket::LowSocket(low_main_t *low, int fd) :
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low,
+LowSocket::LowSocket(low_t *low,
                      int fd,
                      struct sockaddr *remoteAddr,
                      int acceptCallID,
@@ -106,7 +106,7 @@ LowSocket::LowSocket(low_main_t *low,
 //  LowSocket::LowSocket
 // -----------------------------------------------------------------------------
 
-LowSocket::LowSocket(low_main_t *low,
+LowSocket::LowSocket(low_t *low,
                      LowSocketDirect *direct,
                      int directType,
                      LowTLSContext *tlsContext,
