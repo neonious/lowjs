@@ -165,7 +165,7 @@ class Socket extends stream.Duplex {
     }
     _connect(options, family, address, callback) {
         this._updateRef();
-        this._socketFD = native.connect(family, address, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
+        this._socketFD = native.connect(family, address, options.host, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
             if (err) {
                 this.connecting = false;
                 this._updateRef();

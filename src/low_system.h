@@ -48,9 +48,9 @@ struct low_system_t
     const char **argv;
 
     char *main_module_path;
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     char *lib_path;
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_HAS_TERMIOS
     bool isatty, raw_mode;

@@ -38,7 +38,7 @@ LowSocket::LowSocket(low_main_t *low, int fd) :
     mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
     mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
     mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
-    mSSL(NULL)
+    mSSL(NULL), mHost(NULL)
 {
     AdvertiseFD();
     InitSocket(NULL);
@@ -63,7 +63,7 @@ LowSocket::LowSocket(low_main_t *low,
     mDestroyed(false), mCloseCallID(0), mReadData(NULL), mWriteData(NULL),
     mDirect(direct), mDirectType(directType),
     mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
-    mTLSContext(tlsContext), mSSL(NULL)
+    mTLSContext(tlsContext), mSSL(NULL), mHost(NULL)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
@@ -110,6 +110,7 @@ LowSocket::LowSocket(low_main_t *low,
                      LowSocketDirect *direct,
                      int directType,
                      LowTLSContext *tlsContext,
+                     char *host,
                      bool clearOnReset) :
     LowFD(low, LOWFD_TYPE_SOCKET),
     LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_CONNECTED),
@@ -117,7 +118,7 @@ LowSocket::LowSocket(low_main_t *low,
     mWriteCallID(0), mConnected(false), mClosed(false), mDestroyed(false),
     mCloseCallID(0), mReadData(NULL), mWriteData(NULL), mDirect(direct),
     mDirectType(directType), mDirectReadEnabled(direct != NULL),
-    mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL)
+    mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL), mHost(host)
 {
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
@@ -136,6 +137,7 @@ LowSocket::~LowSocket()
 {
     low_web_clear_poll(mLow, this);
 
+    low_free(mHost);
     if(mDirect)
     {
         delete mDirect;
@@ -239,6 +241,20 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
             mAcceptConnectError = true;
             mAcceptConnectSyscall = "mbedtls_ssl_setup";
             return false;
+        }
+
+        if(mHost)
+        {
+            if((ret = mbedtls_ssl_set_hostname(mSSL, mHost)) != 0)
+            {
+                mAcceptConnectErrno = ret;
+                mAcceptConnectErrnoSSL = true;
+                mAcceptConnectError = true;
+                mAcceptConnectSyscall = "mbedtls_ssl_set_hostname";
+                return false;
+            }
+            low_free(mHost);
+            mHost = NULL;
         }
 
         mbedtls_ssl_set_bio(

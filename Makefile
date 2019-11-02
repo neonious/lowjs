@@ -75,12 +75,13 @@ deps/duktape/src-low/duktape.o: deps/duktape/src-low/duktape.c Makefile
 
 -include $(OBJECTS:.o=.d) $(OBJECTS_LOW:.o=.d)
 
-lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js)
+lib/BUILT: util/dukc node_modules/BUILT $(shell find lib_js) util/root-certs.json
 	rm -rf lib lib_js/build
 	cd lib_js && node ../node_modules/typescript/bin/tsc
 	cp node_modules/\@babel/standalone/babel.min.js lib_js/build/babel.js
 	mkdir lib
 	util/dukc lib_js/build lib
+	cp util/root-certs.json lib/internal
 	touch lib/BUILT
 node_modules/BUILT: package.json
 	npm install

@@ -44,6 +44,7 @@ class LowSocket
               LowSocketDirect *direct,
               int directType,
               LowTLSContext *tlsContext,
+              char *host,
               bool clearOnReset = true); // LOWSOCKET_TYPE_CONNECTED
     virtual ~LowSocket();
 
@@ -112,6 +113,7 @@ class LowSocket
 
     LowTLSContext *mTLSContext;
     mbedtls_ssl_context *mSSL;
+    char *mHost;
     bool mSSLWantRead, mSSLWantWrite;
 };
 

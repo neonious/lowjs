@@ -48,7 +48,7 @@ class LowTLSContext
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ssl_config conf;
-    mbedtls_x509_crt srvcert;
+    mbedtls_x509_crt srvcert, cacert;
     mbedtls_pk_context pkey;
 
     bool mIsOK, mHasCert, mHasCA;

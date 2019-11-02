@@ -494,35 +494,35 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     int flags = 0;
     int len = strlen(path);
 
-    bool isLib = memcmp(path, "lib:", 4) == 0;
-    if(isLib)
+    bool isLib = memcmp(path, "lib:", 4) == 0, addLow = false;
+
+    int tillDot;
+    for(tillDot = len; tillDot > 0; tillDot--)
+        if(path[tillDot] == '.')
+            break;
+
+    if(len - tillDot == 5 && path[tillDot] == '.' &&
+    (path[tillDot + 1] == 'j' || path[tillDot + 1] == 'J') &&
+    (path[tillDot + 2] == 's' || path[tillDot + 2] == 'S') &&
+    (path[tillDot + 3] == 'o' || path[tillDot + 3] == 'O') &&
+    (path[tillDot + 4] == 'n' || path[tillDot + 4] == 'N'))
+        flags |= LOW_MODULE_FLAG_JSON;
+    else if(len - tillDot == 4 && path[tillDot] == '.' &&
+    (path[tillDot + 1] == 'l' || path[tillDot + 1] == 'L') &&
+    (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O') &&
+    (path[tillDot + 3] == 'w' || path[tillDot + 2] == 'W'))
+        flags |= LOW_MODULE_FLAG_DUK_FORMAT;
+    else if(len - tillDot == 3 && path[tillDot] == '.' &&
+    (path[tillDot + 1] == 's' || path[tillDot + 1] == 'S') &&
+    (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O'))
+        flags |= LOW_MODULE_FLAG_NATIVE;
+    else if(isLib)
     {
+        addLow = true;
+
         flags |= LOW_MODULE_FLAG_DUK_FORMAT;
         if(strcmp(path, "lib:init") == 0)
             flags |= LOW_MODULE_FLAG_GLOBAL;
-    }
-    else
-    {
-        int tillDot;
-        for(tillDot = len; tillDot > 0; tillDot--)
-            if(path[tillDot] == '.')
-                break;
-
-        if(len - tillDot == 5 && path[tillDot] == '.' &&
-        (path[tillDot + 1] == 'j' || path[tillDot + 1] == 'J') &&
-        (path[tillDot + 2] == 's' || path[tillDot + 2] == 'S') &&
-        (path[tillDot + 3] == 'o' || path[tillDot + 3] == 'O') &&
-        (path[tillDot + 4] == 'n' || path[tillDot + 4] == 'N'))
-            flags |= LOW_MODULE_FLAG_JSON;
-        if(len - tillDot == 4 && path[tillDot] == '.' &&
-        (path[tillDot + 1] == 'l' || path[tillDot + 1] == 'L') &&
-        (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O') &&
-        (path[tillDot + 3] == 'w' || path[tillDot + 2] == 'W'))
-            flags |= LOW_MODULE_FLAG_DUK_FORMAT;
-        if(len - tillDot == 3 && path[tillDot] == '.' &&
-        (path[tillDot + 1] == 's' || path[tillDot + 1] == 'S') &&
-        (path[tillDot + 2] == 'o' || path[tillDot + 2] == 'O'))
-            flags |= LOW_MODULE_FLAG_NATIVE;
     }
 
     const char *cacheName;
@@ -559,7 +559,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
         goto cantLoad;
 
     if(isLib)
-        sprintf(txt, "/lib/%s.low", path + 4);
+        sprintf(txt, addLow ? "/lib/%s.low" : "/lib/%s", path + 4);
     else if(memcmp(path, "module:", 7) == 0)
         sprintf(txt, "/modules%s", path + 7);
     else if(path[0] == '/')
@@ -622,7 +622,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
         if(!txt)
             goto cantLoad;
 
-        sprintf(txt, "%s%s.low", g_low_system.lib_path, path + 4);
+        sprintf(txt, addLow ? "%s%s.low" : "%s%s", g_low_system.lib_path, path + 4);
 
         fd = open(txt, O_RDONLY);
         low_free(txt);
@@ -895,13 +895,13 @@ bool low_module_resolve_c(duk_context *ctx,
     bool is_not_absolute_path = false;
     int i;
     for(i = 0; module_id[i]; i++)
-        if(module_id[i] == '.')
+        if(module_id[i] == '/' && module_id[i + 1] == '.')
         {
             is_not_absolute_path = true;
             break;
         }
-    if(!is_not_absolute_path && i < 1000 && strcmp(module_id, "init") != 0 &&
-       strcmp(module_id, "main") != 0)
+    if(module_id[0] != '.' && !is_not_absolute_path
+    && i < 1000 && strcmp(module_id, "init") != 0 && strcmp(module_id, "main") != 0)
     {
         sprintf(res_id, "lib:%s", module_id);
 
@@ -916,6 +916,13 @@ bool low_module_resolve_c(duk_context *ctx,
 
         // system module
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
+        if(stat(res_id, &st) == 0)
+        {
+            sprintf(res_id, "lib:%s", module_id);
+            return true;
+        }
+
+        sprintf(res_id, "%s%s", g_low_system.lib_path, module_id);
         if(stat(res_id, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);

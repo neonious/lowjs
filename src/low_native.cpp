@@ -55,7 +55,7 @@ duk_function_list_entry g_low_native_methods[] = {
   {"bind", low_dgram_bind, 6},
   {"send", low_dgram_send, 5},
   {"listen", low_net_listen, 7},
-  {"connect", low_net_connect, 5},
+  {"connect", low_net_connect, 6},
   {"setsockopt", low_net_setsockopt, 5},
   {"shutdown", low_net_shutdown, 2},
   {"isIP", low_is_ip, 1},

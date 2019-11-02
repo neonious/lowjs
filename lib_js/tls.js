@@ -12,6 +12,8 @@ class Server extends net.Server {
         }
         if (!options)
             options = {};
+        if(!options.ca)
+            options.ca = module.exports.rootCertificates;
 
         options.secureContext = native.createTLSContext(options, true);
         super(options);
@@ -26,6 +28,8 @@ class TLSSocket extends net.Socket {
         }
         if (!options)
             options = {};
+        if(!options.ca)
+            options.ca = module.exports.rootCertificates;
 
         options.secureContext = native.createTLSContext(options, false);
         super(options);
@@ -97,9 +101,26 @@ function normalizeArgs(args) {
     return arr;
 }
 
+function createSecureContext(options) {
+    if (!options)
+        options = {};
+    if(!options.ca)
+        options.ca = module.exports.rootCertificates;
+
+    return native.createTLSContext(options);
+}
+
+let rootCerts;
+
 module.exports = {
     Server,
-    createSecureContext: native.createTLSContext,
+    createSecureContext,
     createServer,
-    connect
+    connect,
+    get rootCertificates() {
+        if(!rootCerts)
+            rootCerts = require('internal/root-certs.json');
+
+        return rootCerts;
+    }
 }

@@ -70,9 +70,9 @@ duk_ret_t low_net_listen(duk_context *ctx)
             if(inet_pton(AF_INET, address, &addr_in->sin_addr) != 1)
             {
                 int err = errno;
-                duk_dup(low->duk_ctx, 5);
+                duk_dup(ctx, 5);
                 low_push_error(low, err, "inet_pton");
-                low_call_next_tick(low->duk_ctx, 1);
+                low_call_next_tick(ctx, 1);
                 return 0;
             }
             addr_in->sin_port = htons(port);
@@ -85,9 +85,9 @@ duk_ret_t low_net_listen(duk_context *ctx)
             if(inet_pton(AF_INET6, address, &addr_in6->sin6_addr) != 1)
             {
                 int err = errno;
-                duk_dup(low->duk_ctx, 5);
+                duk_dup(ctx, 5);
                 low_push_error(low, err, "inet_pton");
-                low_call_next_tick(low->duk_ctx, 1);
+                low_call_next_tick(ctx, 1);
                 return 0;
             }
             addr_in6->sin6_port = htons(port);
@@ -111,9 +111,9 @@ duk_ret_t low_net_listen(duk_context *ctx)
       new(low_new) LowServerSocket(low, isHTTP, tlsContext);
     if(!server)
     {
-        duk_dup(low->duk_ctx, 5);
+        duk_dup(ctx, 5);
         low_push_error(low, ENOMEM, "malloc");
-        low_call_next_tick(low->duk_ctx, 1);
+        low_call_next_tick(ctx, 1);
         return 0;
     }
 
@@ -182,7 +182,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
     else
 #endif /* LOW_HAS_UNIX_SOCKET */
     {
-        int port = duk_require_int(ctx, 2);
+        int port = duk_require_int(ctx, 3);
         if(family == 4)
         {
             sockaddr_in *addr_in = (sockaddr_in *)addr;
@@ -191,9 +191,9 @@ duk_ret_t low_net_connect(duk_context *ctx)
             if(inet_pton(AF_INET, address, &addr_in->sin_addr) != 1)
             {
                 int err = errno;
-                duk_dup(low->duk_ctx, 4);
+                duk_dup(ctx, 5);
                 low_push_error(low, err, "inet_pton");
-                low_call_next_tick(low->duk_ctx, 1);
+                low_call_next_tick(ctx, 1);
                 return 0;
             }
             addr_in->sin_port = htons(port);
@@ -206,9 +206,9 @@ duk_ret_t low_net_connect(duk_context *ctx)
             if(inet_pton(AF_INET6, address, &addr_in6->sin6_addr) != 1)
             {
                 int err = errno;
-                duk_dup(low->duk_ctx, 4);
+                duk_dup(ctx, 5);
                 low_push_error(low, err, "inet_pton");
-                low_call_next_tick(low->duk_ctx, 1);
+                low_call_next_tick(ctx, 1);
                 return 0;
             }
             addr_in6->sin6_port = htons(port);
@@ -216,9 +216,9 @@ duk_ret_t low_net_connect(duk_context *ctx)
     }
 
     LowTLSContext *tlsContext = NULL;
-    if(duk_is_object(ctx, 3))
+    if(duk_is_object(ctx, 4))
     {
-        duk_get_prop_string(ctx, 3, "_index");
+        duk_get_prop_string(ctx, 4, "_index");
 
         int index = duk_require_int(ctx, -1);
 
@@ -229,22 +229,35 @@ duk_ret_t low_net_connect(duk_context *ctx)
         tlsContext = low->tlsContexts[index];
     }
 
-    LowSocket *socket = new(low_new) LowSocket(low, NULL, 0, tlsContext);
+    char *host = NULL;
+    if(tlsContext)
+    {
+        host = low_strdup(duk_require_string(ctx, 2));
+        if(!host)
+        {
+            duk_dup(ctx, 5);
+            low_push_error(low, ENOMEM, "malloc");
+            low_call_next_tick(ctx, 1);
+            return 0;
+        }
+    }
+    LowSocket *socket = new(low_new) LowSocket(low, NULL, 0, tlsContext, host);
     if(!socket)
     {
-        duk_dup(low->duk_ctx, 4);
+        low_free(host);
+        duk_dup(ctx, 5);
         low_push_error(low, ENOMEM, "malloc");
-        low_call_next_tick(low->duk_ctx, 1);
+        low_call_next_tick(ctx, 1);
         return 0;
     }
 
     int err;
     const char *syscall;
-    if(!socket->Connect(addr, addrLen, 4, err, syscall))
+    if(!socket->Connect(addr, addrLen, 5, err, syscall))
     {
         delete socket;
 
-        duk_dup(ctx, 4);
+        duk_dup(ctx, 5);
         low_push_error(low, err, syscall);
         low_call_next_tick(ctx, 1);
 
