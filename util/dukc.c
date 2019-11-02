@@ -58,7 +58,7 @@ char handle1(const char *fPathIn, const char *fPathOut)
     memcpy(file_name + 4, fPathIn + pos, end - pos);
     file_name[4 + end - pos] = '\0';
 
-    printf("Writing %s...\n", file_name);
+    printf("+ %s...\n", file_name);
 
     // Read in file
     FILE *f = fopen(fPathIn, "r");
@@ -136,7 +136,6 @@ char handle1(const char *fPathIn, const char *fPathOut)
     }
     fclose(f);
 
-    printf("Written %s.\n", file_name);
     return 1;
 }
 

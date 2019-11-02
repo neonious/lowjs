@@ -19,12 +19,10 @@ class Socket extends stream.Duplex {
         super({
             allowHalfOpen: options && options.allowHalfOpen,
             read(size) {
-                if (options && !this.readable)
-                    throw new Error("reading from stream not allowed");
                 if (this._socketHTTPWrapped)
                     throw new Error("socket is an http stream, writing not allowed");
 
-                if (this.connecting) {
+                if (this._socketFD === undefined || this.connecting) {
                     this._waitConnect = size;
                     this._updateRef();
                     return;
@@ -55,8 +53,6 @@ class Socket extends stream.Duplex {
                 });
             },
             write(chunk, encoding, callback) {
-                if (options && !this.writable)
-                    throw new Error("writing to stream not allowed");
                 if (this._socketHTTPWrapped)
                     throw new Error("socket is an http stream, reading not allowed");
 
@@ -80,10 +76,16 @@ class Socket extends stream.Duplex {
                 });
             },
             final(callback) {
+                if (this._socketFD === undefined || this.connecting) {
+                    this._waitConnect = null;
+                    this._updateRef();
+                    return;
+                }
+
                 if (this._readableEOF) {
                     this.destroy();
                     callback();
-                } else
+                } else if(this._socketFD)
                     native.shutdown(this._socketFD, callback);
             },
             destroy(err, callback) {
@@ -108,9 +110,8 @@ class Socket extends stream.Duplex {
             }
         });
 
-        this.readable = this._socketFD === undefined ? true : (options ? !!options.readable : false);
-        this.writable = this._socketFD === undefined ? true : (options ? !!options.writable : false);
-
+        this.readable = this._socketFD === undefined ? false : (options ? !!options.readable : false);
+        this.writable = this._socketFD === undefined ? false : (options ? !!options.writable : false);
         if (this._socketFD === undefined)
             this.cork();
 
@@ -138,6 +139,8 @@ class Socket extends stream.Duplex {
             normalized = normalizeArgs(args);
         let options = normalized[0];
         let cb = normalized[1];
+        if (!options.host)
+            options.host = '127.0.0.1';
 
         let family = options.port === undefined ? 0 : native.isIP(options.host);
         if (options.port === undefined || family)
@@ -167,7 +170,9 @@ class Socket extends stream.Duplex {
         this._updateRef();
         this._socketFD = native.connect(family, address, options.host, options.port | 0, this._secureContext, (err, fd, family, localHost, localPort, remoteHost, remotePort) => {
             if (err) {
+                delete this._socketFD;
                 this.connecting = false;
+
                 this._updateRef();
 
                 this.emit('error', err);
@@ -183,7 +188,10 @@ class Socket extends stream.Duplex {
                 return;
             }
 
-            this._socketFD = fd;
+            if(!this._readableEOF)
+                this.readable = true;
+            if(!this._writableEOF)
+                this.writable = true; 
             native.setsockopt(this._socketFD, this._sockoptKeepaliveEnabled, this._sockoptKeepaliveSecs, this._sockoptNoDelay);
             if (family == 4)
                 this.remoteFamily = 'IPv4';
@@ -201,12 +209,21 @@ class Socket extends stream.Duplex {
             if (this._waitConnect !== undefined) {
                 let size = this._waitConnect;
                 delete this._waitConnect;
-                this._socketReading = true;
 
-                let buf = new Buffer(size);
-                native.read(this._socketFD, buf, 0, size, null, (err, bytesRead) => {
-                    this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
-                });
+                if(size === null) {
+                    if (this._readableEOF) {
+                        this.destroy();
+                        callback();
+                    } else if(this._socketFD)
+                        native.shutdown(this._socketFD, callback);
+                } else {
+                    this._socketReading = true;
+
+                    let buf = new Buffer(size);
+                    native.read(this._socketFD, buf, 0, size, null, (err, bytesRead) => {
+                        this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
+                    });
+                }
             }
 
             this.emit('connect');
@@ -227,7 +244,7 @@ class Socket extends stream.Duplex {
         this._sockoptKeepaliveEnabled = !!setting;
         if (msecs)
             this._sockoptKeepaliveSecs = ~~(msecs / 1000);
-        if (!this.connecting && !this.destroyed && !this.connecting)
+        if (!this.connecting && !this.destroyed && this._socketFD !== undefined)
             native.setsockopt(this._socketFD, this._sockoptKeepaliveEnabled, this._sockoptKeepaliveSecs);
         return this;
     }
@@ -235,7 +252,7 @@ class Socket extends stream.Duplex {
     setNoDelay(enable) {
         // backwards compatibility: assume true when `enable` is omitted
         this._sockoptNoDelay = enable === undefined ? true : !!enable;
-        if (!this.connecting && !this.destroyed && !this.connecting)
+        if (!this.connecting && !this.destroyed && this._socketFD !== undefined)
             native.setsockopt(this._socketFD, undefined, undefined, this._sockoptNoDelay);
         return this;
     }
@@ -268,7 +285,7 @@ class Socket extends stream.Duplex {
         return this;
     }
     _updateRef() {
-        if (this._ref && !this.destroyed && (this.connecting || this._waitConnect || this._socketReading || this._socketWriting)) {
+        if (this._ref && !this.destroyed && (this.connecting || this._waitConnect !== undefined || this._socketReading || this._socketWriting)) {
             if (!this._refSet) {
                 native.runRef(1);
                 this._refSet = true;
@@ -279,6 +296,22 @@ class Socket extends stream.Duplex {
                 this._refSet = false;
             }
         }
+    }
+
+    // Even though not documented by Node.JS, used in pg module
+    get readyState() {
+        if(this._socketFD !== undefined && !this.connecting) {
+            if(this.destroyed)
+                return 'closed';
+    
+            if(this._writableEOF)
+                return 'readOnly';
+
+            return 'open';
+        } else if(this.connecting)
+            return 'opening';
+        else
+            return 'closed';
     }
 }
 
@@ -353,7 +386,7 @@ class Server extends events.EventEmitter {
         let cb = normalized[1];
 
         if (!options.host)
-            options.host = '::';
+            options.host = '127.0.0.1';
         let family = options.port === undefined ? 0 : native.isIP(options.host);
         if (options.port === undefined || family)
             this._listen(options, family, options.port === undefined ? options.path : options.host, cb);

@@ -71,6 +71,7 @@ class Readable extends EventEmitter {
         this.destroyed = true;
 
         this._readableEOF = this._readableState.finished = true;
+        this.readable = false;
 
         this._destroy(err, (err) => {
             if (err) {
@@ -174,8 +175,10 @@ class Readable extends EventEmitter {
         }
         this.emit('push', chunk);
 
-        if (chunk === null)
+        if (chunk === null) {
             this._readableEOF = true;
+            this.readable = false;
+        }
         if (this._readableObjectMode || chunk === null || chunk.length) {
             if (this.readableFlowing === true) {
                 if (chunk === null) {
@@ -511,6 +514,7 @@ class Writable extends EventEmitter {
             this.once('finish', callback);
 
         this._writableEOF = true;
+        this.writable = false;
         this._writableCorkCount = 0;
         if (!this._writableWriting)
             this._writableNext();
@@ -554,6 +558,7 @@ Duplex.prototype.destroy = function (err) {
     this._readableEOF = this._readableState.finished = true;
     this._writableBuf = [];
     this._writableEOF = this._writableState.finished = true;
+    this.readable = this.writable = false;
 
     this._destroy(err, (err) => {
         if (err) {

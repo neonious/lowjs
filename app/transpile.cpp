@@ -16,6 +16,7 @@
 
 // Global variables
 int transpile_babel_stash, transpile_config_stash;
+bool transpile_output;
 
 extern low_system_t g_low_system;
 
@@ -33,7 +34,7 @@ static duk_ret_t init_transpile_safe(duk_context *ctx, void *udata)
     // see node_modules/@babel/standalone/src/generated/plugins.js for supported plugins
     duk_push_string(ctx, "{"
         "\"presets\": [\"es2015\", \"stage-3\"],"
-        "\"plugins\": [\"proposal-object-rest-spread\"],"
+        "\"plugins\": [\"proposal-object-rest-spread\", \"transform-async-to-generator\"],"
         "\"parserOpts\": {\"allowReturnOutsideFunction\": true"
     "}}");
     duk_json_decode(ctx, 2);
@@ -42,7 +43,7 @@ static duk_ret_t init_transpile_safe(duk_context *ctx, void *udata)
     return true;
 }
 
-bool init_transpile(low_t *low)
+bool init_transpile(low_t *low, bool output)
 {
     int len = strlen(g_low_system.lib_path);
     char babel_path[len + 16];
@@ -68,6 +69,8 @@ bool init_transpile(low_t *low)
     duk_pop(ctx);
 
     low->module_transpile_hook = transpile;
+
+    transpile_output = output;
     return true;
 }
 
@@ -88,6 +91,14 @@ int transpile(duk_context *ctx)
 
     // [code babel result codeOut]
     duk_get_prop_string(ctx, -1, "code");
+    if(transpile_output)
+    {
+        // To reset console
+        low_system_destroy();
+
+        printf("%s\n", duk_get_string(ctx, -1));
+        exit(EXIT_SUCCESS);
+    }
 
     duk_remove(ctx, -2);
     duk_remove(ctx, -2);

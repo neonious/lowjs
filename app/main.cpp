@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    bool optTranspile = false;
+    bool optTranspile = false, optTranspileOutput = false;
     char **restArgv = NULL;
 
     for(int i = 1; i < argc; i++)
@@ -147,6 +147,11 @@ int main(int argc, char *argv[])
         }
         else if(strcmp(argv[i], "--transpile") == 0)
             optTranspile = true;
+        else if(strcmp(argv[i], "--transpile-output") == 0)
+        {
+            optTranspile = true;
+            optTranspileOutput = true;
+        }
         else
         {
             usage(argv[0]);
@@ -168,7 +173,7 @@ int main(int argc, char *argv[])
 
     if(optTranspile)
     {
-        if(!init_transpile(low))
+        if(!init_transpile(low, optTranspileOutput))
             goto err;
     }
 
