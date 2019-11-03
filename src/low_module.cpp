@@ -554,7 +554,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     if(len > 1000)
         goto cantLoad;
 
-    txt = (char *)duk_push_fixed_buffer(ctx, 1024);
+    txt = (char *)low_alloc(1024);
     if(!txt)
         goto cantLoad;
 
@@ -915,14 +915,22 @@ bool low_module_resolve_c(duk_context *ctx,
         duk_pop_3(ctx);
 
         // system module
+#if LOW_ESP32_LWIP_SPECIALITIES
+        sprintf(res_id, "/lib/%s.low", module_id);
+#else
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(stat(res_id, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);
             return true;
         }
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+        sprintf(res_id, "/lib/%s", module_id);
+#else
         sprintf(res_id, "%s%s", g_low_system.lib_path, module_id);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(stat(res_id, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);

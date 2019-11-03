@@ -195,8 +195,20 @@ duk_ret_t low_process_info(duk_context *ctx)
 {
     low_t *low = duk_get_low_context(ctx);
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+    duk_push_array(ctx);
+
+    duk_push_string(ctx, "low");
+    duk_dup(ctx, -1);
+    duk_dup(ctx, -1);
+    duk_put_prop_string(ctx, 0, "execPath");
+    duk_put_prop_string(ctx, 0, "argv0");
+    duk_put_prop_index(ctx, -2, 0);
+    duk_put_prop_string(ctx, 0, "argv");
+
     duk_push_object(ctx);
-#if !LOW_ESP32_LWIP_SPECIALITIES
+    duk_put_prop_string(ctx, 0, "env");
+#else
 
 #ifdef __APPLE__
     char *path = (char *)low_alloc(PROC_PIDPATHINFO_MAXSIZE);
@@ -258,6 +270,7 @@ duk_ret_t low_process_info(duk_context *ctx)
         duk_put_prop_string(ctx, 0, "argv0");
     }
 
+    duk_push_object(ctx);
     for(int i = 0; environ && environ[i]; i++)
     {
         int j;
@@ -278,8 +291,8 @@ duk_ret_t low_process_info(duk_context *ctx)
             duk_put_prop_string(ctx, -2, environ[i]);
         }
     }
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
     duk_put_prop_string(ctx, 0, "env");
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     duk_push_c_function(ctx, low_process_exit, 1);
     duk_put_prop_string(ctx, 0, "exit");

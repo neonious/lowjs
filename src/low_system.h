@@ -50,16 +50,15 @@ struct low_system_t
     const char **argv;
 
     char *main_module_path;
-
     char *lib_path;
+
+    int signal_pipe_fd;
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_HAS_TERMIOS
     bool isatty, raw_mode;
     struct termios orig_termios;
 #endif /* LOW_HAS_TERMIOS */
-
-    int signal_pipe_fd;
 };
 
 extern "C"

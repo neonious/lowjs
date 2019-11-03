@@ -5,6 +5,7 @@
 #define __register_frame __register_frame_other_proto
 
 #include "low_native_api.h"
+#include "low_config.h"
 
 #include "low_alloc.h"
 #include "low_main.h"
@@ -20,9 +21,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if !LOW_ESP32_LWIP_SPECIALITIES
 #include <sys/mman.h>
 #include <unwind.h>
 #include <dlfcn.h>
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
 #if defined(__x86_64__) || defined(__aarch64__)
 #include <sys/elf64.h>
@@ -51,6 +55,8 @@
 #undef __register_frame
 extern "C" void __register_frame(const void *);
 
+
+#if !LOW_ESP32_LWIP_SPECIALITIES
 
 // Constants
 extern low_system_t g_low_system;
@@ -723,6 +729,8 @@ range_error:
     return NULL;
 #endif
 }
+
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
 
 // -----------------------------------------------------------------------------
