@@ -388,9 +388,7 @@ class Server extends events.EventEmitter {
         let options = normalized[0];
         let cb = normalized[1];
 
-        if (!options.host)
-            options.host = '127.0.0.1';
-        let family = options.port === undefined ? 0 : native.isIP(options.host);
+        let family = options.port === undefined ? 0 : (options.host ? native.isIP(options.host) : 4);
         if (options.port === undefined || family)
             this._listen(options, family, options.port === undefined ? options.path : options.host, cb);
         else

@@ -36,6 +36,12 @@
 #include <time.h>
 #endif /* __APPLE__ */
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+#include <lwip/sockets.h>
+#define ioctl lwip_ioctl
+#include "esp_log.h"
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
 // Global variables
 low_system_t g_low_system;
 
@@ -88,15 +94,12 @@ static void low_system_crash(int sig)
 
 bool low_system_init(int argc, const char *argv[])
 {
-    g_low_system.argc = argc;
-    g_low_system.argv = argv;
-
     srand(time(NULL));
 
+#if LOW_HAS_SYS_SIGNALS
     // Setup signal handler
     g_low_system.signal_pipe_fd = -1;
 
-#if LOW_HAS_SYS_SIGNALS
     struct sigaction action;
 
     memset(&action, 0, sizeof(action));
@@ -119,9 +122,10 @@ bool low_system_init(int argc, const char *argv[])
     sigaction(SIGSEGV, &action, NULL);
 #endif /* LOW_HAS_SYS_SIGNALS */
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-    g_low_system.lib_path = (char *)"/lib/";
-#else
+#if !LOW_ESP32_LWIP_SPECIALITIES
+    g_low_system.argc = argc;
+    g_low_system.argv = argv;
+
     g_low_system.lib_path = NULL;
 
     const char lib_add_path[] = "../lib/";
@@ -732,7 +736,7 @@ void low_error(const char *txt)
 #endif
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    // error is printed by modified DukTape in ESP32 version
+    ESP_LOGE("low_system", "%s\n", txt);
 #else
     fprintf(stderr, "%s\n", txt);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */

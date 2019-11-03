@@ -729,7 +729,11 @@ low_thread low_get_current_thread(duk_context *ctx)
 {
     low_t *low = duk_get_low_context(ctx);
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+    auto thread = xTaskGetCurrentTaskHandle();
+#else
     pthread_t thread = pthread_self();
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(thread == low->web_thread)
         return LOW_THREAD_IMMEDIATE;
 
