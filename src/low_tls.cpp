@@ -170,7 +170,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
     if(!context->IsOK())
     {
         delete context;
-        duk_generic_error(ctx, "SSL context error CA LEN %d %d", (int)ca_len, (int)strlen((char *)my_ca));
+        duk_generic_error(ctx, "SSL context error");
     }
     if(malloc_cert)
         low_free(my_cert);
