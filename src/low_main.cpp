@@ -432,7 +432,7 @@ duk_context *low_get_duk_context(low_t *low)
 // -----------------------------------------------------------------------------
 
 // Part of lowjs_esp32 source
-extern "C" void duk_copy_breakpoints(duk_context *from, duk_context *to);
+void duk_copy_breakpoints(duk_context *from, duk_context *to);
 extern "C" void alloc_use_fund();
 
 bool low_reset(low_t *low)
