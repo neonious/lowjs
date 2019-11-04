@@ -210,14 +210,15 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         mNodeFamily = 0; // UNIX
 
     u_long mode = 1;
-    if(ioctl(FD(), FIONBIO, &mode) < 0)
-    {
-        mAcceptConnectErrno = errno;
-        mAcceptConnectErrnoSSL = false;
-        mAcceptConnectError = true;
-        mAcceptConnectSyscall = "ioctl";
-        return false;
-    }
+    if(FD() != 1 && FD() != 2)
+        if(ioctl(FD(), FIONBIO, &mode) < 0)
+        {
+            mAcceptConnectErrno = errno;
+            mAcceptConnectErrnoSSL = false;
+            mAcceptConnectError = true;
+            mAcceptConnectSyscall = "ioctl";
+            return false;
+        }
 
     if(mTLSContext)
     {
@@ -408,18 +409,20 @@ void neoniousConsoleInput(char *data, int len, int fd);
 
 void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
-    if(FD() >= 0 && FD() <= 2)
+    if(FD() >= 1 && FD() <= 2)
     {
+#if LOW_ESP32_LWIP_SPECIALITIES
         neoniousConsoleInput((char *)data, len, FD());
+#else
+        ::write(FD(), data, len);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_null(mLow->duk_ctx);
         duk_push_int(mLow->duk_ctx, len);
-        low_call_next_tick(mLow->duk_ctx, 2);
+        duk_call(mLow->duk_ctx, 2);
         return;
     }
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     if(mDirect || mWriteData)
     {
