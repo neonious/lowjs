@@ -37,8 +37,6 @@
 #endif /* __APPLE__ */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-#include <lwip/sockets.h>
-#define ioctl lwip_ioctl
 #include "esp_log.h"
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -209,11 +207,13 @@ err:
 
 void low_system_destroy()
 {
+#if !LOW_ESP32_LWIP_SPECIALITIES
     u_long mode = 0;
-
     ioctl(0, FIONBIO, &mode);
     ioctl(1, FIONBIO, &mode);
     ioctl(2, FIONBIO, &mode);
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+
     low_set_raw_mode(false);
 
 #if !LOW_ESP32_LWIP_SPECIALITIES

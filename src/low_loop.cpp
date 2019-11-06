@@ -490,6 +490,7 @@ void low_loop_clear_callback(low_t *low, LowLoopCallback *callback)
 void low_call_next_tick(duk_context *ctx, int num_args)
 {
     low_t *low = duk_get_low_context(ctx);
+    duk_require_stack(low->next_tick_ctx, num_args + 2);
     duk_xmove_top(low->next_tick_ctx, ctx, num_args + 1);
     duk_push_int(low->next_tick_ctx, num_args);
 }
