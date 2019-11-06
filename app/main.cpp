@@ -99,11 +99,12 @@ static void usage(const char *prog_name)
     printf("Usage: %s [options] [script.js [arguments]]\n", prog_name);
     printf("\n");
     printf("Options\n");
-    printf("  -t, --transpile    Transpile JavaScript on-the-fly with Babel\n");
-    printf("                     This is slow! Use only for testing.\n");
+    printf("  --transpile          Transpile JavaScript on-the-fly with Babel\n");
+    printf("                       This is slow! Use only for testing.\n");
+    printf("  --transpile-output   Output the transpiled main file\n");
     printf("\n");
-    printf("  -h, --help         Show this message (no other arg allowed)\n");
-    printf("  -v, --version      Show low.js version (no other arg allowed)\n");
+    printf("  -h, --help           Show this message (no other arg allowed)\n");
+    printf("  -v, --version        Show low.js version (no other arg allowed)\n");
 }
 
 
@@ -160,6 +161,12 @@ int main(int argc, char *argv[])
     }
     if(!restArgv)
         argc = 1;
+
+    if(optTranspileOutput && argc == 1)
+    {
+        usage(argv[0]);
+        return EXIT_SUCCESS;
+    }
 
     if(!low_system_init(argc, (const char **)(restArgv ? restArgv : argv)))
         return EXIT_FAILURE;
