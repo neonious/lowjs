@@ -38,7 +38,10 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "esp_log.h"
+#include <lwip/sockets.h>
+#define ioctl lwip_ioctl
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
 
 // Global variables
 low_system_t g_low_system;
@@ -207,12 +210,8 @@ err:
 
 void low_system_destroy()
 {
-#if !LOW_ESP32_LWIP_SPECIALITIES
     u_long mode = 0;
     ioctl(0, FIONBIO, &mode);
-    ioctl(1, FIONBIO, &mode);
-    ioctl(2, FIONBIO, &mode);
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     low_set_raw_mode(false);
 

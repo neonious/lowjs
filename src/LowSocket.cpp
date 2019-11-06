@@ -209,9 +209,12 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
     else
         mNodeFamily = 0; // UNIX
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
     u_long mode = 1;
+#if LOW_ESP32_LWIP_SPECIALITIES
+    if(!(FD() >= 0 && FD() <= 2))
+#else
     if(FD() != 1 && FD() != 2)
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(ioctl(FD(), FIONBIO, &mode) < 0)
         {
             mAcceptConnectErrno = errno;
@@ -220,7 +223,6 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
             mAcceptConnectSyscall = "ioctl";
             return false;
         }
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     if(mTLSContext)
     {
