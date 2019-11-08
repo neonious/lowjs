@@ -12,6 +12,7 @@
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #include <map>
@@ -34,7 +35,9 @@ struct low_t
     duk_context *duk_ctx, *next_tick_ctx;
 
     int run_ref, last_stash_index;
+
     int signal_call_id;
+    bool in_uncaught_exception;
 
     map<int,
         low_chore_t,
@@ -45,17 +48,18 @@ struct low_t
       chore_times;
     int last_chore_time;
 
-    pthread_mutex_t loop_thread_mutex;
-    pthread_cond_t loop_thread_cond;
-    LowLoopCallback *loop_callback_first, *loop_callback_last;
-
 #if LOW_ESP32_LWIP_SPECIALITIES
     TaskHandle_t data_thread[LOW_NUM_DATA_THREADS];
     TaskHandle_t web_thread;
+    SemaphoreHandle_t loop_thread_sema;
 #else
     pthread_t data_thread[LOW_NUM_DATA_THREADS];
     pthread_t web_thread;
+    pthread_cond_t loop_thread_cond;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    pthread_mutex_t loop_thread_mutex;
+
+    LowLoopCallback *loop_callback_first, *loop_callback_last;
 
     bool data_thread_done;
     pthread_mutex_t data_thread_mutex;

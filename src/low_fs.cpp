@@ -118,6 +118,13 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
         if(file->FinishPhase())
             break;
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+        {
+            duk_debugger_cooperate(low->duk_ctx);
+            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
+        }
+#else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
         {
@@ -125,6 +132,7 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
             pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
         }
         pthread_mutex_unlock(&low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     duk_push_int(ctx, file->FD());
@@ -187,6 +195,13 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
             return 0;
         }
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+        {
+            duk_debugger_cooperate(low->duk_ctx);
+            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
+        }
+#else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
         {
@@ -194,6 +209,7 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
             pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
         }
         pthread_mutex_unlock(&low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     return 0;
@@ -298,6 +314,13 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
         if(file->FinishPhase())
             return 0;
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+        {
+            duk_debugger_cooperate(low->duk_ctx);
+            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
+        }
+#else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
         {
@@ -305,6 +328,7 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
             pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
         }
         pthread_mutex_unlock(&low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     return 0;

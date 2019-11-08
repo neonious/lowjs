@@ -157,7 +157,9 @@ low_t *low_init()
     low->resolvers_active = 0;
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-    if(pthread_mutex_init(&low->loop_thread_mutex, NULL) != 0)
+#if LOW_ESP32_LWIP_SPECIALITIES
+    low->loop_thread_sema = xSemaphoreCreateBinary();
+    if(!low->loop_thread_sema)
     {
 #if LOW_INCLUDE_CARES_RESOLVER
         pthread_mutex_destroy(&low->resolvers_mutex);
@@ -165,13 +167,27 @@ low_t *low_init()
         pthread_mutex_destroy(&low->ref_mutex);
         goto err;
     }
+#else
     if(pthread_cond_init(&low->loop_thread_cond, NULL) != 0)
     {
 #if LOW_INCLUDE_CARES_RESOLVER
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+        goto err;
+    }
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    if(pthread_mutex_init(&low->loop_thread_mutex, NULL) != 0)
+    {
+#if LOW_INCLUDE_CARES_RESOLVER
+        pthread_mutex_destroy(&low->resolvers_mutex);
+#endif /* LOW_INCLUDE_CARES_RESOLVER */
+        pthread_mutex_destroy(&low->ref_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
+        pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         goto err;
     }
     low->loop_callback_first = low->loop_callback_last = NULL;
@@ -182,8 +198,12 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
 
         goto err;
     }
@@ -193,20 +213,29 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
 
         goto err;
     }
+
     if(pthread_cond_init(&low->data_thread_done_cond, NULL) != 0)
     {
 #if LOW_INCLUDE_CARES_RESOLVER
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
         pthread_cond_destroy(&low->data_thread_cond);
 
@@ -243,8 +272,12 @@ low_t *low_init()
             pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
             pthread_mutex_destroy(&low->ref_mutex);
-            pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+            vSemaphoreDelete(low->loop_thread_sema);
+#else
             pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            pthread_mutex_destroy(&low->loop_thread_mutex);
             pthread_mutex_destroy(&low->data_thread_mutex);
             pthread_cond_destroy(&low->data_thread_cond);
             pthread_cond_destroy(&low->data_thread_done_cond);
@@ -270,8 +303,12 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
         pthread_cond_destroy(&low->data_thread_cond);
         pthread_cond_destroy(&low->data_thread_done_cond);
@@ -296,8 +333,12 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
         pthread_cond_destroy(&low->data_thread_cond);
         pthread_cond_destroy(&low->data_thread_done_cond);
@@ -322,8 +363,12 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
         pthread_cond_destroy(&low->data_thread_cond);
         pthread_cond_destroy(&low->data_thread_done_cond);
@@ -359,8 +404,12 @@ low_t *low_init()
         pthread_mutex_destroy(&low->resolvers_mutex);
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         pthread_mutex_destroy(&low->ref_mutex);
-        pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        vSemaphoreDelete(low->loop_thread_sema);
+#else
         pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        pthread_mutex_destroy(&low->loop_thread_mutex);
         pthread_mutex_destroy(&low->data_thread_mutex);
         pthread_cond_destroy(&low->data_thread_cond);
         pthread_cond_destroy(&low->data_thread_done_cond);
@@ -387,6 +436,7 @@ low_t *low_init()
 #else
     g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+    low->in_uncaught_exception = false;
 
     return low;
 
@@ -595,6 +645,7 @@ bool low_reset(low_t *low)
     low->cwd = low_strdup("/");
     if(!low->cwd)
         return false;
+    low->in_uncaught_exception = false;
 
     low->fds[0] = new(low_new) LowSocket(low, 0);
     low->fds[1] = new(low_new) LowSocket(low, 1);
@@ -808,8 +859,12 @@ void low_destroy(low_t *low)
     pthread_mutex_destroy(&low->web_thread_mutex);
     pthread_cond_destroy(&low->web_thread_done_cond);
 
-    pthread_mutex_destroy(&low->loop_thread_mutex);
+#if LOW_ESP32_LWIP_SPECIALITIES
+    vSemaphoreDelete(low->loop_thread_sema);
+#else
     pthread_cond_destroy(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    pthread_mutex_destroy(&low->loop_thread_mutex);
 
     if(low->duk_ctx)
         duk_destroy_heap(low->duk_ctx);

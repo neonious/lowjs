@@ -69,8 +69,9 @@ bool LowSignalHandler::OnLoop()
         return false;
 
     low_push_stash(mLow->duk_ctx, mLow->signal_call_id, false);
+    duk_push_string(mLow->duk_ctx, "emit");
     duk_push_string(mLow->duk_ctx, mName);
-    duk_call(mLow->duk_ctx, 1);
+    duk_call_prop(mLow->duk_ctx, -3, 1);
     if(!duk_require_boolean(mLow->duk_ctx, -1) &&
        (mSignal == SIGTERM || mSignal == SIGINT || mSignal == SIGHUP))
     {

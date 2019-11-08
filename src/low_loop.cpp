@@ -17,6 +17,7 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 void user_cpu_load(bool active);
+bool lowjs_esp32_loop_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
@@ -34,14 +35,20 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             duk_call(ctx, num_args);
             duk_pop_n(ctx, duk_get_top(ctx));
         }
+        if(lowjs_esp32_loop_tick())
+        {
+            duk_pop_n(ctx, duk_get_top(ctx));
+            continue;
+        }
 
         bool doNextTick = false;
         if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
         {
             low_push_stash(ctx, low->signal_call_id, false);
+            duk_push_string(low->duk_ctx, "emit");
             duk_push_string(ctx, "beforeExit");
             duk_push_int(ctx, 0);
-            duk_call(ctx, 2);
+            duk_call_prop(ctx, -4, 2);
             duk_pop_n(ctx, duk_get_top(ctx));
 
             /*
@@ -66,9 +73,10 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             if(!low->duk_flag_stop && low->signal_call_id)
             {
                 low_push_stash(ctx, low->signal_call_id, false);
+                duk_push_string(low->duk_ctx, "emit");
                 duk_push_string(ctx, "exit");
                 duk_push_int(ctx, 0);
-                duk_call(ctx, 2);
+                duk_call_prop(ctx, -4, 2);
                 duk_pop_n(ctx, duk_get_top(ctx));
             }
             break;
@@ -160,15 +168,18 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
         if(!low->loop_callback_first)
         {
-            pthread_mutex_lock(&low->loop_thread_mutex);
-
             duk_debugger_cooperate(ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(false);
+#else
+            pthread_mutex_lock(&low->loop_thread_mutex);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
             if(millisecs >= 0)
             {
+#if LOW_ESP32_LWIP_SPECIALITIES
+                xSemaphoreTake(low->loop_thread_sema, millisecs);
+#else
                 /*
                 // TODO under os x
                 pthread_condattr_t attr;
@@ -180,14 +191,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
                 struct timespec ts;
                 int secs = millisecs / 1000;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-                struct timeval tv;
-                gettimeofday(&tv, NULL);
-                ts.tv_sec = tv.tv_sec;
-                ts.tv_nsec = tv.tv_usec * 1000;
-#else
                 clock_gettime(CLOCK_REALTIME, &ts);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 ts.tv_sec += secs;
                 ts.tv_nsec += (millisecs - secs * 1000) * 1000000;
                 if(ts.tv_nsec >= 1000000000)
@@ -198,15 +202,22 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
                 pthread_cond_timedwait(
                     &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             }
             else
+            {
+#if LOW_ESP32_LWIP_SPECIALITIES
+                xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
+#else
                 pthread_cond_wait(&low->loop_thread_cond,
                                 &low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+            }
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(true);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-
+#else
             pthread_mutex_unlock(&low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         }
     }
 
@@ -236,17 +247,21 @@ bool low_loop_run(low_t *low)
                     }
 
                     low_push_stash(low->duk_ctx, low->signal_call_id, false);
+                    duk_push_string(low->duk_ctx, "emit");
                     duk_push_string(low->duk_ctx, "uncaughtException");
-                    duk_dup(low->duk_ctx, -3);
-                    duk_call(low->duk_ctx, 2);
+                    duk_dup(low->duk_ctx, -4);
+                    low->in_uncaught_exception = true;
+                    duk_call_prop(low->duk_ctx, -4, 2);
+                    low->in_uncaught_exception = false;
 
                     if(!duk_require_boolean(low->duk_ctx, -1))
                     {
-                        duk_pop(low->duk_ctx);
+                        duk_pop_2(low->duk_ctx);
                         low_duk_print_error(low->duk_ctx);
                         duk_pop(low->duk_ctx);
                         return false;
                     }
+                    duk_pop_3(low->duk_ctx);
                 }
             }
             else
@@ -264,6 +279,8 @@ bool low_loop_run(low_t *low)
     {
         fprintf(stderr, "Fatal exception\n");
     }
+    low->in_uncaught_exception = false;
+
     return false;
 }
 
@@ -444,7 +461,11 @@ void low_loop_set_callback(low_t *low, LowLoopCallback *callback)
         low->loop_callback_first = callback;
     low->loop_callback_last = callback;
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+    xSemaphoreGive(low->loop_thread_sema);
+#else
     pthread_cond_signal(&low->loop_thread_cond);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     pthread_mutex_unlock(&low->loop_thread_mutex);
 }
 

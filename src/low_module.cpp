@@ -220,17 +220,21 @@ bool low_module_main(low_t *low, const char *path)
                     }
 
                     low_push_stash(low->duk_ctx, low->signal_call_id, false);
+                    duk_push_string(low->duk_ctx, "emit");
                     duk_push_string(low->duk_ctx, "uncaughtException");
-                    duk_dup(low->duk_ctx, -3);
-                    duk_call(low->duk_ctx, 2);
+                    duk_dup(low->duk_ctx, -4);
+                    low->in_uncaught_exception = true;
+                    duk_call_prop(low->duk_ctx, -4, 2);
+                    low->in_uncaught_exception = false;
 
                     if(!duk_require_boolean(low->duk_ctx, -1))
                     {
-                        duk_pop(low->duk_ctx);
+                        duk_pop_2(low->duk_ctx);
                         low_duk_print_error(low->duk_ctx);
                         duk_pop(low->duk_ctx);
                         return false;
                     }
+                    duk_pop_3(low->duk_ctx);
                 }
             }
             else
@@ -248,6 +252,7 @@ bool low_module_main(low_t *low, const char *path)
     {
         fprintf(stderr, "Fatal exception\n");
     }
+    low->in_uncaught_exception = false;
 
     return false;
 }

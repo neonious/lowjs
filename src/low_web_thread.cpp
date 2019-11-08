@@ -21,8 +21,9 @@
 #endif /* LOW_HAS_POLL */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-extern "C" void neoniousBreakSelect(bool fromInterrupt);
-void neoniousWebThreadTick();
+extern "C" void lowjs_esp32_break_web(bool fromInterrupt);
+void lowjs_esp32_web_tick();
+
 extern int gWebThreadNextTick;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -316,7 +317,7 @@ void *low_web_thread_main(void *arg)
             while(timeout2 <= 0)
             {
                 low->web_thread_notinevents = true;
-                neoniousWebThreadTick();
+                lowjs_esp32_web_tick();
                 low->web_thread_notinevents = false;
                 timeout2 = gWebThreadNextTick - low_tick_count();
             }
@@ -359,7 +360,7 @@ void *low_web_thread_main(void *arg)
             if(!count)
             {
                 low->web_thread_notinevents = true;
-                neoniousWebThreadTick();
+                lowjs_esp32_web_tick();
                 low->web_thread_notinevents = false;
             }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -575,7 +576,7 @@ void *low_web_thread_main(void *arg)
 void low_web_thread_break(low_t *low)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
-    neoniousBreakSelect(false);
+    lowjs_esp32_break_web(false);
 #else
     char c = '!';
     write(low->web_thread_pipe[1], &c, 1);

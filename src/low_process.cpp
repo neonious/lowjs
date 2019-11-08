@@ -73,9 +73,10 @@ static duk_ret_t low_process_exit(duk_context *ctx)
     if(low->signal_call_id)
     {
         low_push_stash(ctx, low->signal_call_id, false);
+        duk_push_string(ctx, "emit");
         duk_push_string(ctx, "exit");
         duk_push_int(ctx, code);
-        duk_call(ctx, 2);
+        duk_call_prop(ctx, -4, 2);
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
     low->duk_flag_stop = 1;
@@ -365,7 +366,7 @@ duk_ret_t low_process_info(duk_context *ctx)
     duk_push_string(ctx, "v10.0.0");
     duk_put_prop_string(ctx, 0, "version");
 
-    low->signal_call_id = low_add_stash(ctx, 1);
+    low->signal_call_id = low_add_stash(ctx, 0);
     return 0;
 }
 
