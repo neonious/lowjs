@@ -35,11 +35,13 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             duk_call(ctx, num_args);
             duk_pop_n(ctx, duk_get_top(ctx));
         }
+#if LOW_ESP32_LWIP_SPECIALITIES
         if(lowjs_esp32_loop_tick())
         {
             duk_pop_n(ctx, duk_get_top(ctx));
             continue;
         }
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         bool doNextTick = false;
         if(!low->duk_flag_stop && !low->run_ref && !low->loop_callback_first && low->signal_call_id)
