@@ -94,19 +94,22 @@ class Socket extends stream.Duplex {
                     delete this._timeout;
                 }
 
-                native.close(this._socketFD, (err2) => {
-                    if (err2) {
-                        callback(err2);
-                        return;
-                    }
+                if(this._socketFD)
+                    native.close(this._socketFD, (err2) => {
+                        if (err2) {
+                            callback(err2);
+                            return;
+                        }
 
-                    this.unref();
-                    if (this._socketServer && this._socketServer.connections) {
-                        if (--this._socketServer.connections == 0 && !this._socketServer.listening)
-                            this._socketServer.emit('close');
-                    }
+                        this.unref();
+                        if (this._socketServer && this._socketServer.connections) {
+                            if (--this._socketServer.connections == 0 && !this._socketServer.listening)
+                                this._socketServer.emit('close');
+                        }
+                        callback(err);
+                    });
+                else
                     callback(err);
-                });
             }
         });
 
