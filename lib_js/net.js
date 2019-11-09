@@ -192,6 +192,7 @@ class Socket extends stream.Duplex {
                 this.readable = true;
             if(!this._writableEOF)
                 this.writable = true; 
+
             native.setsockopt(this._socketFD, this._sockoptKeepaliveEnabled, this._sockoptKeepaliveSecs, this._sockoptNoDelay);
             if (family == 4)
                 this.remoteFamily = 'IPv4';
@@ -452,7 +453,8 @@ class Server extends events.EventEmitter {
             this.connections++;
 
             let socket = new Socket();
-
+            socket.readable = true;
+            socket.writable = true;
             socket._socketServer = this;
             socket._socketFD = fd;
             if (family == 4)
