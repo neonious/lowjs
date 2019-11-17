@@ -4,6 +4,21 @@
 ================================================================================
 
 
+Version 20191117 / Version 1.3.0
+
+- Many optimizations, some bug fixes, also:
+- low.js now includes the same root certificates as Node.JS does, no need to
+  load them explicity anymore
+- Support for native modules in low.js Pro (IDE + OTA version)!
+  See https://www.github.com/neonious/low_native_api .
+  Extensive documentation will arrive in December 2019
+- Module pg works
+- Support for process.on('uncaughtException', ...)
+- Settings object can now only be used for low.js parameters
+- PC version: Support for --transpile and --transpile-output for debugging
+- PC version: Support for command line arguments
+
+
 Version 20191017
 
 - Modules mysql and node-fetch work
