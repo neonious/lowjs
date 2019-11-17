@@ -27,7 +27,7 @@ duk_ret_t low_module_require(duk_context *ctx);
 duk_ret_t low_module_resolve(duk_context *ctx);
 duk_ret_t low_module_make(duk_context *ctx);
 
-void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack);
+extern "C" void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack);
 bool low_module_resolve_c(duk_context *ctx,
                           const char *module_id,
                           const char *parent_id,

@@ -70,7 +70,7 @@ extern "C"
 bool low_set_raw_mode(bool mode);
 int low_tick_count();
 
-void low_push_error(duk_context *ctx, int error, const char *syscall);
+extern "C" void low_push_error(duk_context *ctx, int error, const char *syscall);
 
 void low_error_errno();
 void low_error(const char *txt);

@@ -34,12 +34,12 @@ extern "C"
 
     char *low_strdup(const char *str);
 
+    void *low_alloc_throw(duk_context *ctx, size_t size);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 #endif /* LOW_USE_SYSTEM_ALLOC */
-
-void *low_alloc_throw(duk_context *ctx, size_t size);
 
 #ifdef __cplusplus
 #include <memory>

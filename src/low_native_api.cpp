@@ -254,7 +254,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     const Elf_Shdr *shdr;
 
     bool exec_has = false;
-    unsigned int exec_min, exec_max, exec_size;
+    uintptr_t exec_min, exec_max, exec_size;
     char *exec = NULL;
     const char *strings;
     const Elf_Sym *syms;
@@ -309,20 +309,18 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     shdr = (const Elf_Shdr *)(data + hdr->e_shoff);
 
     // Get image size
-    for (int i = 0; i < hdr->e_phnum; i++)
-        if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
-            if(phdr[i].p_filesz > phdr[i].p_memsz)
-                goto range_error;
-            if(size < phdr[i].p_offset + phdr[i].p_filesz)
-                goto range_error;
+    for(int i = 0; i < hdr->e_shnum; i++)
+    {
+        if(!shdr[i].sh_size)
+            continue;
 
-            uintptr_t end = phdr[i].p_vaddr + phdr[i].p_memsz;
-            if(!exec_has || exec_min > phdr[i].p_vaddr)
-                exec_min = phdr[i].p_vaddr;
-            if(!exec_has || exec_max < end)
-                exec_max = end;
-            exec_has = true;
-        }
+        uintptr_t end = shdr[i].sh_addr + shdr[i].sh_size;
+        if(!exec_has || exec_min > shdr[i].sh_addr)
+            exec_min = shdr[i].sh_addr;
+        if(!exec_has || exec_max < end)
+            exec_max = end;
+        exec_has = true;
+    }
     if(!exec_has)
     {
         *err = "File is not an ELF file.";
@@ -343,15 +341,21 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 
     exec -= exec_min;
     for(int i = 0; i < hdr->e_phnum; i++)
-        if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
+        if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz)
+        {
             const char *start = data + phdr[i].p_offset;
             char *taddr = phdr[i].p_vaddr + exec;
-            memmove(taddr, start, phdr[i].p_filesz);
+            uintptr_t size = exec_max - phdr[i].p_vaddr;
+            if(size > phdr[i].p_filesz)
+                size = phdr[i].p_filesz;
+            memmove(taddr, start, size);
         }
 
     // Get entry point
-    for(int i=0; i < hdr->e_shnum; i++) {
-        if (shdr[i].sh_type == SHT_DYNSYM) {
+    for(int i=0; i < hdr->e_shnum; i++)
+    {
+        if (shdr[i].sh_type == SHT_DYNSYM)
+        {
             if(shdr[i].sh_link >= hdr->e_shnum)
                 goto range_error;
 
@@ -669,6 +673,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 && shdr[j].sh_addr >= shdr[i].sh_addr + shdr[i].sh_size
                 && shdr[j].sh_addr < shdr[i].sh_addr + shdr[i].sh_size + 4)
                 {
+                    munmap(base, exec_size);
                     *err = "There must not be a section right after .eh_frame, please use low_native_api linker script.";
                     return NULL;
                 }
@@ -683,7 +688,8 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
 
     // Call constructors, send destructors to atexit
     for(int i = 0; i < hdr->e_shnum; i++)
-        if (shdr[i].sh_type == SHT_PREINIT_ARRAY) {
+        if (shdr[i].sh_type == SHT_PREINIT_ARRAY)
+        {
             uintptr_t *calls = (uintptr_t *)(data + shdr[i].sh_offset);
             for(int j = 0; j < shdr[i].sh_size / sizeof(uintptr_t); j++) {
                 if(*calls && *calls != (uintptr_t)-1)
