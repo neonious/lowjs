@@ -83,9 +83,9 @@ public:
 protected:
     static void OnConnect(struct UA_Client *client, void *userdata, uint32_t requestId, void *data);
 
-    static void OnTimeout(void *data);
+    static void OnTimeout(duk_context *ctx, void *data);
 
-    static void OnTaskTimeout(void *data);
+    static void OnTaskTimeout(duk_context *ctx, void *data);
     static UA_StatusCode OnPublishNotification(struct UA_Client *client, UA_ExtensionObject *msg, void *data);
 
     virtual bool OnLoop();

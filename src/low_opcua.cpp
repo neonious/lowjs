@@ -1204,7 +1204,7 @@ void LowOPCUA::OnConnect(UA_Client *client, void *userdata, UA_UInt32 requestId,
 //  LowOPCUA::OnTimeout
 // -----------------------------------------------------------------------------
 
-void LowOPCUA::OnTimeout(void *data)
+void LowOPCUA::OnTimeout(duk_context *ctx, void *data)
 {
     LowOPCUA *opcua = (LowOPCUA *)data;
 
@@ -1257,7 +1257,7 @@ void LowOPCUA::OnTaskCallback(
 //  LowOPCUA::OnTaskTimeout
 // -----------------------------------------------------------------------------
 
-void LowOPCUA::OnTaskTimeout(void *data)
+void LowOPCUA::OnTaskTimeout(duk_context *ctx, void *data)
 {
     LowOPCUATask *task = (LowOPCUATask *)data;
     LowOPCUA *opcua = task->opcua;

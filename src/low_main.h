@@ -112,7 +112,7 @@ low_t *duk_get_low_context(duk_context *ctx);
 bool low_reset(low_t *low);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-extern "C" void low_call_thread(duk_context *ctx, low_thread thread, int priority, void (*func)(void *userdata), void *userdata);
+extern "C" void low_call_thread(duk_context *ctx, low_thread thread, int priority, void (*func)(duk_context *ctx, void *userdata), void *userdata);
 extern "C" low_thread low_get_current_thread(duk_context *ctx);
 
 extern "C" int low_add_stash(duk_context *ctx, int index);

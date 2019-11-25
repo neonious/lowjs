@@ -129,13 +129,13 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
                 if(iterData->second.oneshot == 2)
                 {
                     // C version
-                    void (*call)(void *data) = iterData->second.call;
+                    void (*call)(duk_context *ctx, void *data) = iterData->second.call;
                     void *data = iterData->second.data;
                     if(iterData->second.ref)
                         low->run_ref--;
                     low->chores.erase(iterData);
 
-                    call(data);
+                    call(ctx, data);
 
                     int index = duk_get_top(ctx);
                     if(index)
@@ -343,7 +343,7 @@ duk_ret_t low_loop_clear_chore(duk_context *ctx)
 //  low_set_timeout
 // -----------------------------------------------------------------------------
 
-int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *data), void *data)
+int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(duk_context *ctx, void *userdata), void *userdata)
 {
     low_t *low = duk_get_low_context(ctx);
 
@@ -377,7 +377,7 @@ int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *d
     chore.oneshot = 2;  // C
     chore.ref = false;
     chore.call = call;
-    chore.data = data;
+    chore.data = userdata;
 
     low->chore_times.insert(pair<int, int>(chore.stamp, index));
     return index;

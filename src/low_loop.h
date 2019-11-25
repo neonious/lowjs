@@ -15,7 +15,7 @@ struct low_chore_t
     unsigned char oneshot, ref;
 
     // If oneshot == 2, C version
-    void (*call)(void *data);
+    void (*call)(duk_context *ctx, void *data);
     void *data;
 };
 
@@ -30,7 +30,7 @@ duk_ret_t low_loop_run_ref(duk_context *ctx);
 duk_ret_t low_loop_set_chore(duk_context *ctx);
 duk_ret_t low_loop_clear_chore(duk_context *ctx);
 
-extern "C" int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(void *data), void *data);
+extern "C" int low_set_timeout(duk_context *ctx, int index, int delay, void (*call)(duk_context *ctx, void *userdata), void *userdata);
 extern "C" void low_clear_timeout(duk_context *ctx, int index);
 
 void low_loop_set_callback(

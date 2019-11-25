@@ -718,41 +718,45 @@ bool low_lib_init(low_t *low)
 class LowCallLoopCallback : public LowLoopCallback
 {
 public:
-    LowCallLoopCallback(low_t *low, void (*func)(void *userdata), void *userdata)
-        : LowLoopCallback(low), func(func), userdata(userdata)
+    LowCallLoopCallback(low_t *low, void (*func)(duk_context *ctx, void *userdata), void *userdata)
+        : LowLoopCallback(low), func(func), ctx(low->duk_ctx), userdata(userdata)
     {
     }
 
     bool OnLoop()
     {
-        func(userdata);
+        func(ctx, userdata);
         return false;
     }
 
-    void (*func)(void *userdata);
+    void (*func)(duk_context *ctx, void *userdata);
+
+    duk_context *ctx;
     void *userdata;
 };
 
 class LowCallDataCallback : public LowDataCallback
 {
 public:
-    LowCallDataCallback(low_t *low, void (*func)(void *userdata), void *userdata)
-        : LowDataCallback(low), func(func), userdata(userdata)
+    LowCallDataCallback(low_t *low, void (*func)(duk_context *ctx, void *userdata), void *userdata)
+        : LowDataCallback(low), func(func), ctx(low->duk_ctx), userdata(userdata)
     {
     }
 
     bool OnData()
     {
-        func(userdata);
+        func(ctx, userdata);
         return false;
     }
 
-    void (*func)(void *userdata);
+    void (*func)(duk_context *ctx, void *userdata);
+
+    duk_context *ctx;
     void *userdata;
 };
 
 void low_call_thread(duk_context *ctx, low_thread thread, int priority,
-                     void (*func)(void *userdata), void *userdata)
+                     void (*func)(duk_context *ctx, void *userdata), void *userdata)
 {
     low_t *low = duk_get_low_context(ctx);
     switch(thread)
