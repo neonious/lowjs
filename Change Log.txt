@@ -4,6 +4,15 @@
 ================================================================================
 
 
+Version 20191125 / Version 1.3.2
+
+This update is only important if you write C/C++ native modules.
+
+- Small update to low native API functions low_call_thread and low_set_timeout
+- Added the low.js native API documentation at
+  https://www.neonious.com/lowjs/documentation/lowjs-for-esp32-api.html
+
+
 Version 20191124 / Version 1.3.1 / only for ESP32
 
 - Fixed deadlock when changing DNS servers
