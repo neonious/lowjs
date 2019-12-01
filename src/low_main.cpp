@@ -613,6 +613,8 @@ bool low_reset(low_t *low)
         duk_destroy_heap(low->duk_ctx);
     }
 
+    low_set_raw_mode(false);
+
     // After finalizers.. they must not use DukTape heap!
 #if LOW_INCLUDE_CARES_RESOLVER
     for(int i = 0; i < low->resolvers.size(); i++)
@@ -904,6 +906,8 @@ int low_add_stash(duk_context *ctx, int index)
     if(low->duk_flag_stop)
         return 0;
 
+    if(index < 0)
+        index += duk_get_top(ctx);
     if(duk_is_undefined(ctx, index))
         return 0;
 

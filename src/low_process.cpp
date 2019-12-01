@@ -45,7 +45,9 @@ void console_log(const char *loglevel, const char *txt);
 #define NANOS_PER_MICROSEC 1000
 
 // Global variables
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES
+extern int gProcessStdinJSObject;
+#else
 extern char **environ;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -197,6 +199,10 @@ duk_ret_t low_process_info(duk_context *ctx)
     low_t *low = duk_get_low_context(ctx);
 
 #if LOW_ESP32_LWIP_SPECIALITIES
+    duk_get_prop_string(ctx, -1, "stdin");
+    gProcessStdinJSObject = low_add_stash(ctx, duk_get_top_index(ctx));
+    duk_pop(ctx);
+
     duk_push_array(ctx);
 
     duk_push_string(ctx, "low");
@@ -441,6 +447,7 @@ duk_ret_t low_os_info(duk_context *ctx)
 //  low_tty_info
 // -----------------------------------------------------------------------------
 
+#if !LOW_ESP32_LWIP_SPECIALITIES
 duk_ret_t low_tty_info(duk_context *ctx)
 {
 #if LOW_HAS_TERMIOS
@@ -466,6 +473,7 @@ duk_ret_t low_tty_info(duk_context *ctx)
     return 0;
 #endif /* LOW_HAS_TERMIOS */
 }
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
 // -----------------------------------------------------------------------------
 //  low_hrtime

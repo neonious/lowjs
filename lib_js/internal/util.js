@@ -9,8 +9,6 @@ let signals = {}; // TODO
 
 const errmap = { 'get': function (err) { return null; } };
 
-const noCrypto = !process.versions.mbedtls;
-
 const experimentalWarnings = new Set();
 
 const colorRegExp = /\u001b\[\d\d?m/g; // eslint-disable-line no-control-regex
@@ -77,7 +75,7 @@ function decorateErrorStack(err) {
 }
 
 function assertCrypto() {
-    if (noCrypto)
+    if (!process.versions.mbedtls)
         throw new ERR_NO_CRYPTO();
 }
 

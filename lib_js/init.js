@@ -1135,48 +1135,6 @@ Object.defineProperty(
   );
 
 exports.process = new events.EventEmitter();
-native.processInfo(process);
-// required for test for node in axios module, file /lib/defaults.js
-// the test is:
-// Object.prototype.toString.call(process) === '[object process]'
-Object.defineProperty(
-    process, 
-    Symbol.toStringTag, 
-    {
-        writable:false,
-        enumerable:false,
-        configurable:true,
-        value:'process'
-    }
-);
-
-process.hrtime = function hrtime(time) {
-    const hrValues = new Uint32Array(3);
-    native.hrtime(hrValues);
-
-    if (time !== undefined) {
-        if (!Array.isArray(time)) {
-            throw new ERR_INVALID_ARG_TYPE('time', 'Array', time);
-        }
-        if (time.length !== 2) {
-            throw new ERR_OUT_OF_RANGE('time', 2, time.length);
-        }
-
-        const sec = (hrValues[0] * 0x100000000 + hrValues[1]) - time[0];
-        const nsec = hrValues[2] - time[1];
-        const needsBorrow = nsec < 0;
-        return [needsBorrow ? sec - 1 : sec, needsBorrow ? nsec + 1e9 : nsec];
-    }
-
-    return [
-        hrValues[0] * 0x100000000 + hrValues[1],
-        hrValues[2]
-    ];
-};
-
-require('internal/util');       // keep stack shallow with esp32 (less memory movements)
-require('dns');                // keep stack shallow with esp32 (less memory movements)
-require('internal/util/types');       // keep stack shallow with esp32 (less memory movements)
 
 let ttyinfo = native.ttyInfo();
 if (ttyinfo) {
@@ -1234,6 +1192,46 @@ process.stdin.on('pause', () => {
 process.stdin.on('resume', () => {
     process.stdin.ref();
 });
+
+// required for test for node in axios module, file /lib/defaults.js
+// the test is:
+// Object.prototype.toString.call(process) === '[object process]'
+Object.defineProperty(
+    process, 
+    Symbol.toStringTag, 
+    {
+        writable:false,
+        enumerable:false,
+        configurable:true,
+        value:'process'
+    }
+);
+
+process.hrtime = function hrtime(time) {
+    const hrValues = new Uint32Array(3);
+    native.hrtime(hrValues);
+
+    if (time !== undefined) {
+        if (!Array.isArray(time)) {
+            throw new ERR_INVALID_ARG_TYPE('time', 'Array', time);
+        }
+        if (time.length !== 2) {
+            throw new ERR_OUT_OF_RANGE('time', 2, time.length);
+        }
+
+        const sec = (hrValues[0] * 0x100000000 + hrValues[1]) - time[0];
+        const nsec = hrValues[2] - time[1];
+        const needsBorrow = nsec < 0;
+        return [needsBorrow ? sec - 1 : sec, needsBorrow ? nsec + 1e9 : nsec];
+    }
+
+    return [
+        hrValues[0] * 0x100000000 + hrValues[1],
+        hrValues[2]
+    ];
+};
+
+native.processInfo(process);
 
 exports.console = require('console');
 

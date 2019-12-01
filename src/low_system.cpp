@@ -224,6 +224,7 @@ void low_system_destroy()
 //  low_set_raw_mode -
 // -----------------------------------------------------------------------------
 
+#if !LOW_ESP32_LWIP_SPECIALITIES
 bool low_set_raw_mode(bool mode)
 {
 #if LOW_HAS_TERMIOS
@@ -269,6 +270,8 @@ bool low_set_raw_mode(bool mode)
     return false;
 #endif /* LOW_HAS_TERMIOS */
 }
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+
 
 // -----------------------------------------------------------------------------
 //  low_tick_count - give monotic tick count in ms
