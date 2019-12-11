@@ -268,7 +268,7 @@ class ServerResponse extends stream.Writable {
             this.statusMessage = "unknown";
 
         let len = -1;
-        let contentLen = this._httpHeadersLowerCase['Content-Length'];
+        let contentLen = this._httpHeadersLowerCase['content-length'];
         let chunked = false;
 
         /*
@@ -759,7 +759,7 @@ class ClientRequest extends stream.Writable {
         this.headersSent = true;
 
         let len = -1;
-        let contentLen = this._httpHeadersLowerCase['Content-Length'];
+        let contentLen = this._httpHeadersLowerCase['content-length'];
         let chunked = false;
         if (contentLen === undefined) {
             if (this.method === 'GET' ||
