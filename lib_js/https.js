@@ -217,7 +217,8 @@ class Server extends tls.Server {
         }
         super(options);
 
-        this.on('request', acceptCallback);
+        if(acceptCallback)
+            this.on('request', acceptCallback);
         this._serverIncomingMessage = options && options.IncomingMessage ? options.IncomingMessage : httpInternal.IncomingMessage;
         this._serverServerResponse = options && options.ServerResponse ? options.ServerResponse : httpInternal.ServerResponse;
 
