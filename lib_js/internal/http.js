@@ -703,7 +703,7 @@ class ClientRequest extends stream.Writable {
 
             let message = new IncomingMessage();
             message._httpMain = this;
-            // this._httpMessage = message;
+            this._httpMessage = message;
 
             message.connection = message.socket = socket;
 
@@ -783,6 +783,20 @@ class ClientRequest extends stream.Writable {
         headersAsTxt += '\r\n';
 
         native.httpWriteHead(this.connection._socketFD, headersAsTxt, len, chunked);
+    }
+
+    abort() {
+        this.aborted = true;
+        if(this._httpMessage)
+            this._httpMessage.aborted = true;
+
+        this.emit('abort');
+        if(this._httpMessage)
+            this._httpMessage.emit('aborted');
+        if(this._httpMessage)
+            this._httpMessage.destroy();
+        else
+            this.destroy();
     }
 }
 

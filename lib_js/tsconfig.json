@@ -7,6 +7,9 @@
         "rootDir": "./",
         "baseUrl": "./",
         "outDir": "./build",
+	"noStrictGenericChecks": true,
+	"skipLibCheck": true,
+	"strictFunctionTypes": false,
         "lib": [
             "es2015",
             "dom"
