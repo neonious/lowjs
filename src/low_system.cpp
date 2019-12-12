@@ -733,12 +733,18 @@ void low_error(const char *txt)
 {
     output_backtrace();
 #else
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+void console_log(const char *loglevel, const char *txt);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
 void low_error(const char *txt)
 {
 #endif
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-    ESP_LOGE("low_system", "%s\n", txt);
+    console_log("e", txt);
+    console_log("e", "\n");
 #else
     fprintf(stderr, "%s\n", txt);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
