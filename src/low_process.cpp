@@ -99,7 +99,7 @@ static duk_ret_t low_process_exit(duk_context *ctx)
 static duk_ret_t low_process_abort(duk_context *ctx)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
-    console_log("e", "Process aborted.");
+    console_log("e", "Process aborted.\n");
 
     low_t *low = duk_get_low_context(ctx);
     low->duk_flag_stop = 1;
