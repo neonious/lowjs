@@ -17,6 +17,8 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 void user_cpu_load(bool active);
+void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
+
 bool lowjs_esp32_loop_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -170,17 +172,16 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
         if(!low->loop_callback_first)
         {
-            duk_debugger_cooperate(ctx);
-
 #if LOW_ESP32_LWIP_SPECIALITIES
             user_cpu_load(false);
 #else
+            duk_debugger_cooperate(ctx);
             pthread_mutex_lock(&low->loop_thread_mutex);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
             if(millisecs >= 0)
             {
 #if LOW_ESP32_LWIP_SPECIALITIES
-                xSemaphoreTake(low->loop_thread_sema, millisecs);
+                code_wait_loop_thread(millisecs);
 #else
                 /*
                 // TODO under os x
@@ -209,7 +210,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             else
             {
 #if LOW_ESP32_LWIP_SPECIALITIES
-                xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
+                code_wait_loop_thread();
 #else
                 pthread_cond_wait(&low->loop_thread_cond,
                                 &low->loop_thread_mutex);

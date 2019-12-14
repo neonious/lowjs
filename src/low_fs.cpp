@@ -13,6 +13,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+
 // -----------------------------------------------------------------------------
 //  low_fs_open
 // -----------------------------------------------------------------------------
@@ -120,10 +125,7 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
 
 #if LOW_ESP32_LWIP_SPECIALITIES
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
-        }
+            code_wait_loop_thread();
 #else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
@@ -197,10 +199,7 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
 
 #if LOW_ESP32_LWIP_SPECIALITIES
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
-        }
+            code_wait_loop_thread();
 #else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
@@ -316,10 +315,7 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
 
 #if LOW_ESP32_LWIP_SPECIALITIES
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            xSemaphoreTake(low->loop_thread_sema, portMAX_DELAY);
-        }
+            code_wait_loop_thread();
 #else
         pthread_mutex_lock(&low->loop_thread_mutex);
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
