@@ -3,6 +3,37 @@
 = Now part of the lowjs repo to show progress in the whole project             =
 ================================================================================
 
+To flash the newest version of low.js, use lowsync version >= 1.4.0!
+
+
+Version 20191215 / Version 1.4.0
+This update applies to both low.js and lowsync.
+
+Documentation for the new features will follow after New Year!
+
+- lowsync monitor now handles input, output, terminal resizing, and all both in
+  normal and raw mode. The script
+
+    require('repl').start();
+
+  run on the microcontroller, functions 100 % interactively in the lowsync
+  monitor
+
+- Create custom firmware files with factory state file system, static files,
+  npm modules and custom settings with lowsync build
+
+- These can be flashed via lowsync flash
+
+- These can also be flashed by the user program itself using
+  require('lowsys').createFirmwareStream
+  (for example after it being uploaded in the browser)
+
+- lowsync sync supports one-way sync via parameters --pc-to-mc and --mc-to-pc
+
+- Implemented http(s).ClientRequest.abort(), small fixes with http(s)
+- Fixed lowsync --no-transpile option
+- Fixed auto kicking of watchdog in the event loop
+
 
 Version 20191125 / Version 1.3.2
 
