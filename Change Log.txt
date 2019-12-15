@@ -28,7 +28,7 @@ Documentation for the new features will follow after New Year!
   require('lowsys').createFirmwareStream
   (for example after it being uploaded in the browser)
 
-- lowsync sync supports one-way sync via parameters --pc-to-mc and --mc-to-pc
+- lowsync sync supports one-way sync via parameters --to-mc and --to-pc
 
 - lowsync now uses Babel 7, upgraded from Babel 6
 
