@@ -30,6 +30,8 @@ Documentation for the new features will follow after New Year!
 
 - lowsync sync supports one-way sync via parameters --pc-to-mc and --mc-to-pc
 
+- lowsync now uses Babel 7, upgraded from Babel 6
+
 - Implemented http(s).ClientRequest.abort(), small fixes with http(s)
 - Fixed lowsync --no-transpile option
 - Fixed auto kicking of watchdog in the event loop
