@@ -6,6 +6,16 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20191219 / Version 1.4.1
+This update applies only to low.js on ESP32
+
+- Fixed deadlock when installing / uninstalling modules
+
+- If the microcontroller's factory resetting gets interrupted by a
+  microcontroller reset, the LEDs now also blink red when the factory reset is
+  restarted after the microcontroller reset.
+
+
 Version 20191215 / Version 1.4.0
 This update applies to both low.js and lowsync.
 
