@@ -21,6 +21,7 @@ extern low_system_t g_low_system;
 extern duk_function_list_entry g_low_native_methods[];
 #if LOW_ESP32_LWIP_SPECIALITIES
 extern duk_function_list_entry g_low_native_neon_methods[];
+extern bool gInRequire;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
@@ -168,14 +169,21 @@ static duk_ret_t low_module_main_safe(duk_context *ctx, void *udata)
     if(path)
     {
         char *res_id = (char *)duk_push_fixed_buffer(ctx, 1024);
+#if LOW_ESP32_LWIP_SPECIALITIES
+        gInRequire = true;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(!low_module_resolve_c(ctx, path, ".", res_id))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES
+            gInRequire = false;
             if(!neonious_start_result("FILE_NOT_FOUND"))
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
                 duk_type_error(ctx, "cannot resolve module '%s'", path);
             return 1;
         }
+#if LOW_ESP32_LWIP_SPECIALITIES
+        gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
         neonious_start_result(NULL);
@@ -297,12 +305,21 @@ duk_ret_t low_module_require(duk_context *ctx)
         duk_pop(ctx);
 
     // We always resolve with our own function
+#if LOW_ESP32_LWIP_SPECIALITIES
+    gInRequire = true;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(!low_module_resolve_c(ctx, id, parent_id, res_id))
     {
+#if LOW_ESP32_LWIP_SPECIALITIES
+        gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         duk_type_error(
           ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
     }
+#if LOW_ESP32_LWIP_SPECIALITIES
+    gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     // Try to find in cache
     low_load_module(ctx, res_id, true);
@@ -374,13 +391,22 @@ duk_ret_t low_module_resolve(duk_context *ctx)
     while(popCount--)
         duk_pop(ctx);
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+    gInRequire = true;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     if(low_module_resolve_c(ctx, id, parent_id, res_id))
     {
+#if LOW_ESP32_LWIP_SPECIALITIES
+        gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         duk_push_string(ctx, res_id);
         return 1;
     }
     else
     {
+#if LOW_ESP32_LWIP_SPECIALITIES
+        gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
         duk_type_error(
           ctx, "cannot resolve module '%s', parent '%s'", id, parent_id);
         return 1;
@@ -553,6 +579,8 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     struct stat st;
 
 #if LOW_ESP32_LWIP_SPECIALITIES
+    gInRequire = true;
+
     char *txt;
     bool try2 = false;
 
@@ -614,8 +642,11 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     if(0)
     {
     cantFind:
+        gInRequire = false;
         duk_type_error(ctx, "cannot find module '%s'", path);
     }
+
+    gInRequire = false;
 #else
     int fd;
     if(isLib)
@@ -871,6 +902,9 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     return;
 
 cantLoad:
+#if LOW_ESP32_LWIP_SPECIALITIES
+    gInRequire = false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     duk_type_error(ctx, "cannot read module '%s' into memory", path);
 }
 
