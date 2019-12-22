@@ -179,24 +179,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
        mReadError || mHTTPError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        if(mReadError || mHTTPError)
-        {
-            low_push_stash(mLow->duk_ctx, mRequestCallID, false);
-            if(mReadError)
-                mSocket->PushError(0);
-            else
-            {
-                duk_push_error_object(
-                  mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
-                duk_push_string(mLow->duk_ctx, "ERR_HTTP_PARSER");
-                duk_put_prop_string(mLow->duk_ctx, -2, "code");
-            }
-            mReadError = mHTTPError = false;
-
-            Detach();
-            low_call_next_tick(mLow->duk_ctx, 1);
-        }
-        else
+        if(mReadPos || LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed)
         {
             duk_push_null(mLow->duk_ctx);
             mReadData = NULL;
@@ -254,6 +237,23 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
             }
             else
                 low_call_next_tick(mLow->duk_ctx, 3);
+        }
+        else
+        {
+            low_push_stash(mLow->duk_ctx, mRequestCallID, false);
+            if(mReadError)
+                mSocket->PushError(0);
+            else
+            {
+                duk_push_error_object(
+                  mLow->duk_ctx, DUK_ERR_ERROR, "HTTP data not valid");
+                duk_push_string(mLow->duk_ctx, "ERR_HTTP_PARSER");
+                duk_put_prop_string(mLow->duk_ctx, -2, "code");
+            }
+            mReadError = mHTTPError = false;
+
+            Detach();
+            low_call_next_tick(mLow->duk_ctx, 1);
         }
     }
     else
