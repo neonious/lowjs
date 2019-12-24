@@ -6,6 +6,16 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20191224 / Version 1.4.2
+
+- fixed a problem with setTimeout/setInterval introduced in 20191215
+- lowsys.restart now takes a boolean, if true it restarts the microcontroller
+  instead of only the program
+- low native modules can now use floating point
+  (added software floating point functions)
+- fixed http/https connection reset error when server closes after response
+
+
 Version 20191219 / Version 1.4.1
 This update applies only to low.js on ESP32
 
