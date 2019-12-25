@@ -25,4 +25,8 @@
 
 #define LOW_ESP32_LWIP_SPECIALITIES 0
 
+#ifndef LOW_LIB_PATH
+#define LOW_LIB_PATH "../lib/"
+#endif
+
 #endif /* __LOW_CONFIG_H__ */
