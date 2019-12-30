@@ -129,7 +129,7 @@ bool low_system_init(int argc, const char *argv[])
 
     g_low_system.lib_path = NULL;
 
-    const char lib_add_path[] = "../lib/";
+    const char lib_add_path[] = LOW_LIB_PATH;
     int lib_add_path_len = sizeof(lib_add_path) - 1;
 
 #ifdef __APPLE__
