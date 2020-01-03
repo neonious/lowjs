@@ -6,6 +6,19 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200103 / Version 1.4.3
+
+- example program is not preinstalled on low.js basic, too
+- lowsync supports removing IDE from low.js Pro in custom firmware for more space
+- fixed deadlock scenarios
+- preinstalled example program's map file is correct, so breakpoints work
+  reliably
+- fixed http responses before end of requests scenarios
+- writing on finished streams no longer possible
+- streamlined looking up files in library paths
+- fixed editor setting bug in neonious IDE
+
+
 Version 20191224 / Version 1.4.2
 
 - fixed a problem with setTimeout/setInterval introduced in 20191215
