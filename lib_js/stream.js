@@ -445,6 +445,8 @@ class Writable extends EventEmitter {
     }
 
     write(chunk, encoding, callback) {
+        if (this._writableState.finished)
+            return false;
         if (this._writableEOF)
             return false;
 

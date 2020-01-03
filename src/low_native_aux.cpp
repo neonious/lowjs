@@ -109,7 +109,6 @@ duk_ret_t low_run_in_context(duk_context *ctx)
         duk_dup(low->duk_ctx, 4);
         duk_set_global_object(low->duk_ctx);
 
-        duk_dup(low->duk_ctx, -1);
         duk_throw(ctx);
         return 0;
     }

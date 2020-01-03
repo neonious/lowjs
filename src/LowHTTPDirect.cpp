@@ -179,7 +179,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
        mReadError || mHTTPError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
-        if(mReadPos || LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed)
+        if(mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed)
         {
             duk_push_null(mLow->duk_ctx);
             mReadData = NULL;
@@ -228,7 +228,6 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                 else
                 {
                     Detach();
-
                     duk_push_boolean(mLow->duk_ctx,
                                      !mClosed && mWriteDone &&
                                        !mWriteBufferCount);
@@ -364,7 +363,9 @@ void LowHTTPDirect::Write(unsigned char *data,
             mSocket->PushError(1);
             mWriteError = false;
 
-            Detach();
+            // Do not detach, we might still have things to read
+            // Happens if server response is before end of our client request
+//                Detach();
             low_call_next_tick(mLow->duk_ctx, 1);
         }
         else
@@ -378,20 +379,16 @@ void LowHTTPDirect::Write(unsigned char *data,
         if(!mWriteBufferCount &&
            mWriteDone) // we need to recheck b/c of duk_call
         {
-            if(!mIsServer)
+            if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
             {
-                if(!mShutdown && !mWriteChunkedEncoding &&
-                   (mWriteLen < 0 || mWritePos != mWriteLen))
+                if(!mShutdown)
                 {
                     mSocket->Shutdown();
+                    mSocket->TriggerDirect(LOWSOCKET_TRIGGER_WRITE);
                     mShutdown = true;
                 }
             }
-            else if((!mWriteChunkedEncoding &&
-                     (mWriteLen < 0 || mWritePos != mWriteLen)) ||
-                    mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
-                mSocket->Close();
-            else
+            else if(mIsServer)
                 Init();
         }
     }
@@ -446,10 +443,8 @@ void LowHTTPDirect::DoWrite()
 
 bool LowHTTPDirect::OnLoop()
 {
-    if(!mSocket)
-        return false;
     if(!mRequestCallID)
-        return true;
+        return mSocket ? true : false;
 
     if(!mIsRequest && mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER && mAtTrailer)
     {
@@ -495,10 +490,10 @@ bool LowHTTPDirect::OnLoop()
         mIsRequest = true;
         duk_call(mLow->duk_ctx, 3);
     }
-    if(!mIsRequest && (mClosed || mReadError || mHTTPError))
+    if(!mIsRequest && (mClosed || (mSocket && mReadError) || mHTTPError))
     {
         low_push_stash(mLow->duk_ctx, mRequestCallID, false);
-        if(mReadError)
+        if(mSocket && mReadError)
             mSocket->PushError(0);
         else if(mHTTPError)
         {
@@ -514,6 +509,8 @@ bool LowHTTPDirect::OnLoop()
         Detach();
         duk_call(mLow->duk_ctx, 1);
     }
+    if(!mIsRequest)
+        return mSocket ? true : false;
 
     if(mReadCallID && (mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed))
     {
@@ -523,10 +520,10 @@ bool LowHTTPDirect::OnLoop()
         mReadCallID = 0;
         low_push_stash(mLow->duk_ctx, callID, true);
 
-        if(mReadError || mHTTPError)
+        if((mSocket && mReadError) || mHTTPError)
         {
             low_push_stash(mLow->duk_ctx, mRequestCallID, false);
-            if(mReadError)
+            if(mSocket && mReadError)
                 mSocket->PushError(0);
             else
             {
@@ -602,7 +599,8 @@ bool LowHTTPDirect::OnLoop()
                 duk_call(mLow->duk_ctx, 3);
         }
     }
-    if(!mWriteBufferCount || mWriteError)
+
+    if(!mWriteBufferCount || (mSocket && mWriteError))
     {
         if(mWriteCallID)
         {
@@ -610,12 +608,14 @@ bool LowHTTPDirect::OnLoop()
             mWriteCallID = 0;
             low_push_stash(mLow->duk_ctx, callID, true);
 
-            if(mWriteError)
+            if(mSocket && mWriteError)
             {
                 mSocket->PushError(1);
                 mWriteError = false;
 
-                Detach();
+                // Do not detach, we might still have things to read
+                // Happens if server response is before end of our client request
+//                Detach();
                 duk_call(mLow->duk_ctx, 1);
             }
             else
@@ -630,25 +630,21 @@ bool LowHTTPDirect::OnLoop()
         if(!mWriteBufferCount &&
            mWriteDone) // we need to recheck b/c of duk_call
         {
-            if(!mIsServer)
+            if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
             {
-                if(!mShutdown && !mWriteChunkedEncoding &&
-                   (mWriteLen < 0 || mWritePos != mWriteLen))
+                if(!mShutdown && mSocket)
                 {
                     mSocket->Shutdown();
+                    mSocket->TriggerDirect(LOWSOCKET_TRIGGER_WRITE);
                     mShutdown = true;
                 }
             }
-            else if((!mWriteChunkedEncoding &&
-                     (mWriteLen < 0 || mWritePos != mWriteLen)) ||
-                    mPhase != LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
-                mSocket->Close();
-            else
+            else if(mIsServer)
                 Init();
         }
     }
 
-    return true;
+    return mSocket ? true : false;
 }
 
 // -----------------------------------------------------------------------------
@@ -994,13 +990,18 @@ done:
 // -----------------------------------------------------------------------------
 
 bool LowHTTPDirect::OnSocketWrite()
-{
+{ 
     pthread_mutex_lock(&mMutex);
     DoWrite();
     if(mWriteCallID && (!mWriteBufferCount || mWriteError))
         low_loop_set_callback(mLow, this);
-    bool res = mWriteBufferCount != 0;
+    bool res = mWriteBufferCount != 0 && !mWriteError;
     pthread_mutex_unlock(&mMutex);
 
+    if(mShutdown && !res && mSocket)
+    {
+        mSocket->Close();
+        return false;
+    }
     return res;
 }

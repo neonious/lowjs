@@ -939,7 +939,8 @@ bool low_module_resolve_c(duk_context *ctx,
             is_not_absolute_path = true;
             break;
         }
-    if(module_id[0] != '.' && !is_not_absolute_path
+
+    if(module_id[0] != '.' && module_id[0] != '/' && !is_not_absolute_path
     && i < 1000 && strcmp(module_id, "init") != 0 && strcmp(module_id, "main") != 0)
     {
         sprintf(res_id, "lib:%s", module_id);

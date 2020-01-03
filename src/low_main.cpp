@@ -142,6 +142,8 @@ low_t *low_init()
     low->signal_call_id = 0;
     low->web_thread_done = false;
     low->data_thread_done = false;
+    low->web_thread_at = NULL;
+    low->data_thread_at = NULL;
     low->last_chore_time = low_tick_count();
     low->module_transpile_hook = NULL;
 
@@ -287,7 +289,7 @@ low_t *low_init()
         }
     }
 
-    low->web_thread_done = low->web_thread_notinevents = false;
+    low->web_thread_done = false;
     low->reset_accepts = false;
 #if !LOW_ESP32_LWIP_SPECIALITIES
     if(pipe(low->web_thread_pipe) < 0)
@@ -540,7 +542,7 @@ bool low_reset(low_t *low)
                 }
                 else
                     elem = elem->mNext;
-            }
+            } 
         }
         {
             auto elem = low->data_callback_first[1];

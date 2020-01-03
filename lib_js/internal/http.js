@@ -174,26 +174,32 @@ class IncomingMessage extends stream.Readable {
                         this.push(null);
 
                         if (!this._isServer) {
-                            if (this._httpMain.agent) {
+                            if(this._httpMain.agent) {
                                 let socket = this.socket;
                                 this.connection = this.socket = null;
                                 this._httpMain.connection = this._httpMain.socket = null;
+
+                                delete socket._httpSetup;
                                 if (reuse) {
                                     socket._socketHTTPWrapped = false;
                                     this._httpMain.agent.freeSocket(socket, this._httpMain._agentOptions);
-                                } else
+                                } else {
                                     this._httpMain.agent.removeSocket(socket, this._httpMain._agentOptions);
+                                    socket.destroy();
+                                }
                             }
-                        }
-                        return;
+                        } else
+                            this.connection = this.socket = null;
+                        this._httpMain.destroy();
+                    } else {
+                        this.connection.bytesRead += bytesReadSocket;
+                        this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
                     }
-                    this.connection.bytesRead += bytesReadSocket;
-                    this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
                 });
             },
             destroy(err, callback) {
-                this._httpMain.destroy();
-                callback(err);
+                this._httpMain.destroy(err);
+                callback();
             }
         });
     }
@@ -251,9 +257,10 @@ class ServerResponse extends stream.Writable {
                 });
             },
             destroy(err, callback) {
-                if(this.connection)
-                    this.connection.destroy(err, callback);
-                else
+                if (this.connection) {
+                    this.connection.destroy(err);
+                    callback();
+                } else
                     callback(err);
             }
         });
@@ -500,8 +507,11 @@ class ClientRequest extends stream.Writable {
                 });
             },
             destroy(err, callback) {
-                if (this.connection)
-                    this.connection.destroy(err, callback);
+                if (this.connection) {
+                    this.connection.destroy(err);
+                    callback();
+                } else
+                    callback(err);
             }
         });
         this.cork();
@@ -653,22 +663,32 @@ class ClientRequest extends stream.Writable {
         this._agentOptions = options;
 
         if(socket._httpSetup != this) {
-            let cleanup = (err) => {
+            socket._httpSetup = this;
+            socket.once('close', () => {
                 if(socket._httpSetup != this)
                     return;
 
-                if(err)
-                    socket.destroy(err);
                 if (this.agent && this._agentOptions) {
                     this.agent.removeSocket(socket, this._agentOptions);
                     this.agent = null;
                 }
-            }
+                this.destroy();
+            });
+            socket.once('agentRemove', () => {
+                if(socket._httpSetup != this)
+                    return;
 
-            socket._httpSetup = this;
-            socket.once('close', cleanup);
-            socket.once('agentRemove', cleanup);
-            socket.once('error', cleanup);
+                if (this.agent && this._agentOptions) {
+                    this.agent.removeSocket(socket, this._agentOptions);
+                    this.agent = null;
+                }
+            });
+            socket.once('error', (err) => {
+                if(socket._httpSetup != this)
+                    return;
+
+                    this.emit('error', err);
+            });
         }
 
         if (socket.connecting) {
@@ -689,7 +709,7 @@ class ClientRequest extends stream.Writable {
 
         this.connection = this.socket = socket;
         socket.setTimeout(this.timeout);
-
+    
         native.httpGetRequest(socket._socketFD, (error, data, bytesRead) => {
             if (error) {
                 socket.emit('error', error);

@@ -134,8 +134,13 @@ void *low_web_thread_main(void *arg)
             {
                 if(fds[i].fd >= 0 && fds[i].revents)
                 {
+                    pthread_mutex_lock(&low->web_thread_mutex);
+                    low->web_thread_at = lowFDs[i];
+                    pthread_mutex_unlock(&low->web_thread_mutex);
+
                     if(!lowFDs[i]->OnEvents(fds[i].revents))
                     {
+                        low->web_thread_at = NULL;
                         fds[i].fd = -1;
 
                         // Remove from web thread list
@@ -165,10 +170,9 @@ void *low_web_thread_main(void *arg)
                         fd->mNextChanged = NULL;
                         pthread_mutex_unlock(&low->web_thread_mutex);
 
-                        low->web_thread_notinevents = true;
                         delete fd;
-                        low->web_thread_notinevents = false;
                     }
+                    low->web_thread_at = NULL;
                     count--;
                 }
                 if(fds[i].fd >= 0)
@@ -219,11 +223,9 @@ void *low_web_thread_main(void *arg)
                     fd->mPollIndex = -1;
                 }
 
-                low->web_thread_notinevents = true;
                 pthread_mutex_unlock(&low->web_thread_mutex);
                 delete fd;
                 pthread_mutex_lock(&low->web_thread_mutex);
-                low->web_thread_notinevents = false;
             }
             else if((fd->mFD < 0 || !fd->mPollEvents) && fd->mPollIndex != -1)
             {
@@ -316,9 +318,7 @@ void *low_web_thread_main(void *arg)
             int timeout2 = gWebThreadNextTick - low_tick_count();
             while(timeout2 <= 0)
             {
-                low->web_thread_notinevents = true;
                 lowjs_esp32_web_tick();
-                low->web_thread_notinevents = false;
                 timeout2 = gWebThreadNextTick - low_tick_count();
             }
             if(timeout == -1 || timeout > timeout2)
@@ -358,11 +358,7 @@ void *low_web_thread_main(void *arg)
 
 #if LOW_ESP32_LWIP_SPECIALITIES
             if(!count)
-            {
-                low->web_thread_notinevents = true;
                 lowjs_esp32_web_tick();
-                low->web_thread_notinevents = false;
-            }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #if LOW_INCLUDE_CARES_RESOLVER
@@ -410,8 +406,14 @@ void *low_web_thread_main(void *arg)
                                                                   : 0);
                         if(events)
                         {
+                            pthread_mutex_lock(&low->web_thread_mutex);
+                            low->web_thread_at = fds[i].first;
+                            pthread_mutex_unlock(&low->web_thread_mutex);
+
                             if(!fds[i].first->OnEvents(events))
                             {
+                                low->web_thread_at = NULL;
+
                                 auto fd = fds[i].first;
 
                                 FD_CLR(fds[i].second, &read_set);
@@ -447,10 +449,9 @@ void *low_web_thread_main(void *arg)
                                 fd->mNextChanged = NULL;
                                 pthread_mutex_unlock(&low->web_thread_mutex);
 
-                                low->web_thread_notinevents = true;
                                 delete fd;
-                                low->web_thread_notinevents = false;
                             }
+                            low->web_thread_at = NULL;
                             count--;
                         }
                     }
@@ -482,11 +483,9 @@ void *low_web_thread_main(void *arg)
                         fd->mPollIndex = -1;
                     }
 
-                    low->web_thread_notinevents = true;
                     pthread_mutex_unlock(&low->web_thread_mutex);
                     delete fd;
                     pthread_mutex_lock(&low->web_thread_mutex);
-                    low->web_thread_notinevents = false;
                 }
                 else if((fd->mFD < 0 || !fd->mPollEvents) &&
                         fd->mPollIndex != -1)
@@ -617,7 +616,7 @@ void low_web_clear_poll(low_t *low, LowFD *fd)
     pthread_mutex_lock(&low->web_thread_mutex);
     if(fd->mPollIndex == -1 && !fd->mNextChanged && fd != low->web_changed_last)
     {
-        if(!low->web_thread_notinevents && !low->web_thread_done)   /* TODO can be even more */
+        while(low->web_thread_at && low->web_thread_at == fd)
         {
             low_web_thread_break(low);
             pthread_cond_wait(&low->web_thread_done_cond,
@@ -628,14 +627,14 @@ void low_web_clear_poll(low_t *low, LowFD *fd)
     }
 
     fd->mPollEvents = 0;
-    if(!low->web_thread_done)
-    {
-        if(low->web_changed_last)
-            low->web_changed_last->mNextChanged = fd;
-        else
-            low->web_changed_first = fd;
-        low->web_changed_last = fd;
+    if(low->web_changed_last)
+        low->web_changed_last->mNextChanged = fd;
+    else
+        low->web_changed_first = fd;
+    low->web_changed_last = fd;
 
+    while(low->web_thread_at && low->web_thread_at == fd)
+    {
         low_web_thread_break(low);
         pthread_cond_wait(&low->web_thread_done_cond, &low->web_thread_mutex);
     }

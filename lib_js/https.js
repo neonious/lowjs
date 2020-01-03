@@ -65,7 +65,6 @@ class Agent {
                 }
             }
         }
-        socket.destroy();
 
         if (this.requests[name] && this.requests[name].length) {
             var req = this.requests[name][0];

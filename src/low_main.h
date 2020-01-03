@@ -61,18 +61,19 @@ struct low_t
 
     LowLoopCallback *loop_callback_first, *loop_callback_last;
 
-    bool data_thread_done;
+    LowDataCallback *data_thread_at;
     pthread_mutex_t data_thread_mutex;
     pthread_cond_t data_thread_cond, data_thread_done_cond;
     LowDataCallback *data_callback_first[2], *data_callback_last[2];
+    bool data_thread_done;
 
     pthread_mutex_t web_thread_mutex;
     pthread_cond_t web_thread_done_cond;
 #if !LOW_ESP32_LWIP_SPECIALITIES
     int web_thread_pipe[2];
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-    LowFD *web_changed_first, *web_changed_last;
-    bool web_thread_done, web_thread_notinevents;
+    LowFD *web_thread_at, *web_changed_first, *web_changed_last;
+    bool web_thread_done;
     bool reset_accepts;
 
     map<int, LowFD *, less<int>, low_allocator<pair<const int, LowFD *>>> fds;

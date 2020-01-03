@@ -82,6 +82,7 @@ static duk_ret_t low_process_exit(duk_context *ctx)
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
     low->duk_flag_stop = 1;
+    duk_generic_error(ctx, "abort (should not be visible)");
     duk_throw(ctx);
 #else
     low_system_destroy();
@@ -102,8 +103,9 @@ static duk_ret_t low_process_abort(duk_context *ctx)
     console_log("e", "Process aborted.\n");
 
     low_t *low = duk_get_low_context(ctx);
-    low->duk_flag_stop = 1;
 
+    low->duk_flag_stop = 1;
+    duk_generic_error(ctx, "abort (should not be visible)");
     duk_throw(ctx);
 #else
     abort();

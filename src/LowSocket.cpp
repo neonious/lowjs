@@ -504,15 +504,16 @@ void LowSocket::Shutdown(int callIndex)
 
 int LowSocket::Shutdown()
 {
+    int ret = 0;
     if(mTLSContext)
     {
         if(mSSL)
-            return mbedtls_ssl_close_notify(mSSL); // todo: errnos are wrong
+            ret = mbedtls_ssl_close_notify(mSSL); // todo: errnos are wrong
     }
     else
-        return shutdown(FD(), SHUT_WR);
+        ret = shutdown(FD(), SHUT_WR);
 
-    return 0;
+    return ret;
 }
 
 // -----------------------------------------------------------------------------
@@ -669,8 +670,7 @@ bool LowSocket::OnEvents(short events)
         return true;
     }
 
-    while(mTLSContext && mSSL->state != MBEDTLS_SSL_HANDSHAKE_OVER &&
-          (events & (POLLIN | POLLOUT)))
+    while(mTLSContext && mSSL->state != MBEDTLS_SSL_HANDSHAKE_OVER)
     {
         int ret = mbedtls_ssl_handshake_step(mSSL);
         if(mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
@@ -695,6 +695,7 @@ bool LowSocket::OnEvents(short events)
                 mDirectReadEnabled = false;
                 mDirectWriteEnabled = false;
 
+                low_web_set_poll_events(mLow, this, 0);
                 if(mAcceptConnectCallID)
                 {
                     mAcceptConnectErrno = ret;
@@ -706,7 +707,6 @@ bool LowSocket::OnEvents(short events)
                 else
                     return false;
 
-                low_web_set_poll_events(mLow, this, 0);
                 return true;
             }
 
@@ -716,6 +716,7 @@ bool LowSocket::OnEvents(short events)
             return true;
         }
     }
+
     if(!mConnected)
     {
         int error;
@@ -725,6 +726,7 @@ bool LowSocket::OnEvents(short events)
             error = errno;
         if(error)
         {
+            low_web_set_poll_events(mLow, this, 0);
             if(mAcceptConnectCallID)
             {
                 mAcceptConnectErrno = error;
@@ -747,86 +749,83 @@ bool LowSocket::OnEvents(short events)
             low_loop_set_callback(mLow, this);
     }
 
-    if(!mTLSContext || mSSL->state == MBEDTLS_SSL_HANDSHAKE_OVER)
+    if(mDirect)
     {
-        if(mDirect)
+        if(((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) &&
+            mDirectReadEnabled)
         {
-            if(((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) &&
-               mDirectReadEnabled)
+            if(!mReadData)
             {
-                if(!mReadData)
+                mReadData = (unsigned char *)low_alloc(1024);
+                mReadLen = 1024;
+            }
+            if(mReadData)
+            {
+                mDirectReadEnabled = false; // no race conditions
+                while(true) // required with SSL b/c Read might not always
+                            // be retriggered if SSL still has data
                 {
-                    mReadData = (unsigned char *)low_alloc(1024);
-                    mReadLen = 1024;
-                }
-                if(mReadData)
-                {
-                    mDirectReadEnabled = false; // no race conditions
-                    while(true) // required with SSL b/c Read might not always
-                                // be retriggered if SSL still has data
+                    int len = DoRead();
+                    if(len < 0 && mReadErrno == EAGAIN && !mReadErrnoSSL)
                     {
-                        int len = DoRead();
-                        if(len < 0 && mReadErrno == EAGAIN && !mReadErrnoSSL)
-                        {
-                            mDirectReadEnabled = true;
-                            break;
-                        }
+                        mDirectReadEnabled = true;
+                        break;
+                    }
 
-                        if(len == 0)
-                            mClosed = true;
-                        if(!mDirect->OnSocketData(mReadData, len))
-                            break;
+                    if(len == 0)
+                        mClosed = true;
+                    if(!mDirect->OnSocketData(mReadData, len))
+                        break;
 
-                        if(!mTLSContext)
-                        {
-                            mDirectReadEnabled = true;
-                            break;
-                        }
+                    if(!mTLSContext)
+                    {
+                        mDirectReadEnabled = true;
+                        break;
                     }
                 }
             }
-            if((events & POLLOUT) && mDirectWriteEnabled)
-            {
-                mDirectWriteEnabled = false; // no race conditions
-                if(mDirect->OnSocketWrite())
-                    mDirectWriteEnabled = true;
-            }
-
-            short events = mClosed ? 0
-                                   : (mDirectReadEnabled ? POLLIN : 0) |
-                                       (mDirectWriteEnabled ? POLLOUT : 0);
-            low_web_set_poll_events(mLow, this, events);
         }
-        else
+        if((events & POLLOUT) && mDirectWriteEnabled)
         {
-            bool change = false;
-            if((events & (POLLIN | POLLHUP | POLLERR)) && mReadData &&
-               !mReadPos)
-            {
-                int len = DoRead();
-                if(len == 0)
-                    mClosed = true;
-
-                if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
-                {
-                    mReadPos = len;
-                    change = true;
-                }
-            }
-            if((events & POLLOUT) && mWriteData && !mWritePos)
-            {
-                int len = DoWrite();
-                if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
-                {
-                    mWritePos = len;
-                    change = true;
-                }
-            }
-
-            low_web_set_poll_events(mLow, this, 0);
-            if(change)
-                low_loop_set_callback(mLow, this);
+            mDirectWriteEnabled = false; // no race conditions
+            if(mDirect->OnSocketWrite())
+                mDirectWriteEnabled = true;
         }
+
+        short events = mClosed ? 0
+                                : (mDirectReadEnabled ? POLLIN : 0) |
+                                    (mDirectWriteEnabled ? POLLOUT : 0);
+        low_web_set_poll_events(mLow, this, events);
+    }
+    else
+    {
+        bool change = false;
+        if((events & (POLLIN | POLLHUP | POLLERR)) && mReadData &&
+            !mReadPos)
+        {
+            int len = DoRead();
+            if(len == 0)
+                mClosed = true;
+
+            if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+            {
+                mReadPos = len;
+                change = true;
+            }
+        }
+        if((events & POLLOUT) && mWriteData && !mWritePos)
+        {
+            int len = DoWrite();
+            if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+            {
+                mWritePos = len;
+                change = true;
+            }
+        }
+
+        low_web_set_poll_events(mLow, this, 0);
+        if(change)
+            low_loop_set_callback(mLow, this);
     }
 
     return true;
