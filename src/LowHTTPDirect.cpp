@@ -380,14 +380,13 @@ void LowHTTPDirect::Write(unsigned char *data,
         {
             if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
             {
-                if(!mShutdown)
+                if(!mShutdown && mSocket)
                 {
                     mSocket->Shutdown();
-                    mSocket->TriggerDirect(LOWSOCKET_TRIGGER_WRITE);
                     mShutdown = true;
                 }
             }
-            else if(mIsServer)
+            else if(mIsServer && mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
                 Init();
         }
     }
@@ -634,11 +633,10 @@ bool LowHTTPDirect::OnLoop()
                 if(!mShutdown && mSocket)
                 {
                     mSocket->Shutdown();
-                    mSocket->TriggerDirect(LOWSOCKET_TRIGGER_WRITE);
                     mShutdown = true;
                 }
             }
-            else if(mIsServer)
+            else if(mIsServer && mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
                 Init();
         }
     }
@@ -797,7 +795,11 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                     mChunkedParamStart = 0;
                 }
                 else
+                {
                     mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                    if(mIsServer && mWriteDone && !mWriteBufferCount)
+                        Init();
+                }
             }
             setCallback = true;
         }
@@ -913,7 +915,11 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                     param->data[mParamStart - 1] = '\0';
 
                     if(mAtTrailer)
+                    {
                         mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                        if(mIsServer && mWriteDone && !mWriteBufferCount)
+                            Init();
+                    }
                     else
                     {
                         mAtTrailer = true;
@@ -929,7 +935,11 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                         else if(mContentLen != 0)
                             mPhase = LOWHTTPDIRECT_PHASE_BODY;
                         else
+                        {
                             mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
+                            if(mIsServer && mWriteDone && !mWriteBufferCount)
+                                Init();
+                        }
                     }
                     setCallback = true;
                 }
@@ -998,9 +1008,6 @@ bool LowHTTPDirect::OnSocketWrite()
     pthread_mutex_unlock(&mMutex);
 
     if(mShutdown && !res && mSocket)
-    {
-        mSocket->Close();
         return false;
-    }
     return res;
 }
