@@ -1155,7 +1155,7 @@ int LowSocket::write(const unsigned char *data, int len)
         if(size < 0)
         {
             mWriteErrno = errno;
-            mWriteErrnoSSL = true;
+            mWriteErrnoSSL = false;
         }
     }
     return size;
@@ -1204,7 +1204,7 @@ int LowSocket::writev(const struct iovec *iov, int iovcnt)
         if(size < 0)
         {
             mWriteErrno = errno;
-            mWriteErrnoSSL = true;
+            mWriteErrnoSSL = false;
         }
     }
     return size;
