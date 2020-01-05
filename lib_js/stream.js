@@ -392,7 +392,7 @@ class Writable extends EventEmitter {
     }
 
     _writableNext() {
-        if (this._writableDestroy)
+        if (this._writableWriting || this.destroyed)
             return;
         if (this._writableEmittedHighMark && this.writableLength < this.writableHighWaterMark && !this._writableEOF) {
             this._writableEmittedHighMark = false;
@@ -410,11 +410,11 @@ class Writable extends EventEmitter {
                         this.writableLength -= this._writableObjectMode ? 1 : entry[0].length;
                     }
                     let saveBuf = this._writableBuf;
-                    this._writev(newBuf, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } for (let i = 0; i < saveBuf.length; i++) for (let j = 2; j < saveBuf[i].length; j++) saveBuf[i][j](); this._writableNext(); });
+                    this._writev(newBuf, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } for (let i = 0; i < saveBuf.length; i++) for (let j = 2; j < saveBuf[i].length; j++) saveBuf[i][j](); this._writableWriting = false; this._writableNext(); });
                 }
                 let entry = this._writableBuf.shift();
                 this.writableLength -= this._writableObjectMode ? 1 : entry[0].length;
-                this._write(entry[0], entry[1], (err) => { if (err) this.emit('error', err); for (let j = 2; j < entry.length; j++) entry[j](); this._writableNext(); });
+                this._write(entry[0], entry[1], (err) => { if (err) this.emit('error', err); for (let j = 2; j < entry.length; j++) entry[j](); this._writableWriting = false; this._writableNext(); });
             } else {
                 if (this._writableEOF && !this._writableState.finished) {
                     this._writableState.finished = true;
@@ -424,10 +424,8 @@ class Writable extends EventEmitter {
                     else
                         this.emit('finish');
                 }
-                this._writableWriting = false;
             }
-        } else
-            this._writableWriting = false;
+        }
     }
 
     cork() {
@@ -439,7 +437,7 @@ class Writable extends EventEmitter {
         this._writableCorkCount--;
         if (this._writableCorkCount < 0)
             this._writableCorkCount = 0;
-        if (this._writableCorkCount == 0 && !this._writableWriting)
+        if (this._writableCorkCount == 0)
             this._writableNext();
         return this;
     }
@@ -463,7 +461,7 @@ class Writable extends EventEmitter {
 
         if (this._writableCorkCount == 0 && !this._writableWriting) {
             this._writableWriting = true;
-            this._write(chunk, encoding, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } process.nextTick(callback); this._writableNext(); });
+            this._write(chunk, encoding, (err) => { if (err) { this._writableState.errorEmitted = true; this.emit('error', err); } this._writableWriting = false; this._writableNext(); process.nextTick(callback); });
         } else {
             if (!this._writableObjectMode && this._writableBuf.length) {
                 let last = this._writableBuf[this._writableBuf.length - 1];
@@ -518,8 +516,7 @@ class Writable extends EventEmitter {
         this._writableEOF = true;
         this.writable = false;
         this._writableCorkCount = 0;
-        if (!this._writableWriting)
-            this._writableNext();
+        this._writableNext();
 
         return this;
     }

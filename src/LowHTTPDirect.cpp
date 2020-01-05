@@ -376,8 +376,7 @@ void LowHTTPDirect::Write(unsigned char *data,
             low_call_next_tick(mLow->duk_ctx, 2);
         }
 
-        if(!mWriteBufferCount &&
-           mWriteDone) // we need to recheck b/c of duk_call
+        if(!mWriteBufferCount && mWriteDone) // we need to recheck b/c of duk_call
         {
             if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
             {

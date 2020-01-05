@@ -172,7 +172,6 @@ class IncomingMessage extends stream.Readable {
                         }
 
                         this.push(null);
-
                         if (!this._isServer) {
                             if(this._httpMain.agent) {
                                 let socket = this.socket;
@@ -187,11 +186,13 @@ class IncomingMessage extends stream.Readable {
                                     this._httpMain.agent.removeSocket(socket, this._httpMain._agentOptions);
                                     socket.destroy();
                                 }
+                            } else {
+                                this.connection = this.socket = null;
+                                this._httpMain.connection = this._httpMain.socket = null;
                             }
-                        } else
-                            this.connection = this.socket = null;
-                        this._httpMain.destroy();
-                    } else {
+                            this._httpMain.destroy();
+                        }
+                } else {
                         this.connection.bytesRead += bytesReadSocket;
                         this.push(bytesRead != size ? buf.slice(0, bytesRead) : buf);
                     }
@@ -228,6 +229,7 @@ class ServerResponse extends stream.Writable {
 
                 if (!this.headersSent)
                     this._sendHeaders();
+
                 native.httpWrite(this.connection._socketFD, chunk, (err, bytesWrittenSocket) => {
                     if (!this.connection)
                         return;
@@ -249,6 +251,7 @@ class ServerResponse extends stream.Writable {
 
                 if (!this.headersSent)
                     this._sendHeaders();
+
                 native.httpWrite(this.connection._socketFD, null, (err) => {
                     if (err)
                         this.connection.emit('error', err);
