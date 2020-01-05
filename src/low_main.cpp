@@ -142,7 +142,6 @@ low_t *low_init()
     low->signal_call_id = 0;
     low->web_thread_done = false;
     low->data_thread_done = false;
-    low->web_thread_at = NULL;
     low->data_thread_at = NULL;
     low->last_chore_time = low_tick_count();
     low->module_transpile_hook = NULL;

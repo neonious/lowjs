@@ -72,7 +72,7 @@ struct low_t
 #if !LOW_ESP32_LWIP_SPECIALITIES
     int web_thread_pipe[2];
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-    LowFD *web_thread_at, *web_changed_first, *web_changed_last;
+    LowFD *web_changed_first, *web_changed_last;
     bool web_thread_done;
     bool reset_accepts;
 

@@ -129,10 +129,6 @@ class IncomingMessage extends stream.Readable {
             read(size) {
                 if (!this.connection || this.connection.destroyed)
                     return;
-                if (this._isServer && this._httpMain.headersSent) {
-                    this.push(null);
-                    return;
-                }
 
                 let buf = new Buffer(size);
                 this.connection._socketReading = true;
@@ -249,8 +245,12 @@ class ServerResponse extends stream.Writable {
                 if (!this.connection || this.connection.destroyed)
                     return;
 
-                if (!this.headersSent)
+                if (!this.headersSent) {
+                    this._httpHeadersLower2Name["content-length"] = "Content-Length";
+                    this._httpHeadersLowerCase["content-length"] = "0";
                     this._sendHeaders();
+                }
+                this._httpMessage.resume();
 
                 native.httpWrite(this.connection._socketFD, null, (err) => {
                     if (err)
