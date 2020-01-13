@@ -690,7 +690,7 @@ class ClientRequest extends stream.Writable {
                 if(socket._httpSetup != this)
                     return;
 
-                    this.emit('error', err);
+                this.emit('error', err);
             });
         }
 
