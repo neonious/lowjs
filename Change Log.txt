@@ -6,6 +6,12 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200114 / Version 1.4.5
+
+- new settings option network.hostname
+- fixed deadlock
+
+
 Version 20200105 / Version 1.4.4
 
 - example program is not preinstalled on low.js basic, too
