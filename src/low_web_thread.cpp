@@ -153,6 +153,8 @@ void *low_web_thread_main(void *arg)
                                     if(elem->mNextChanged == fd)
                                     {
                                         elem->mNextChanged = fd->mNextChanged;
+                                        if(low->web_changed_last == fd)
+                                            low->web_changed_last = elem;
                                         break;
                                     }
                                     elem = elem->mNextChanged;
@@ -260,7 +262,6 @@ void *low_web_thread_main(void *arg)
 
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
-
 
 #if LOW_ESP32_LWIP_SPECIALITIES
     while(true)
@@ -425,6 +426,8 @@ void *low_web_thread_main(void *arg)
                                             {
                                                 elem->mNextChanged =
                                                     fd->mNextChanged;
+                                                if(low->web_changed_last == fd)
+                                                    low->web_changed_last = elem;
                                                 break;
                                             }
                                             elem = elem->mNextChanged;
