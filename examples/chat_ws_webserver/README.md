@@ -1,6 +1,6 @@
 Simple webserver with chat functionality via WebSocket made for low.js/Node.JS
 
-Run with bin/low lowjs-webserver-example/index.js from lowjs directory
+Run with examples/chat_ws_webserver/index.js from lowjs directory
 and then open the links given with the web browser.
 
 The https link will give a certificate warning, which is correct, because
