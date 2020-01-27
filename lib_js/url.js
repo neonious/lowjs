@@ -939,7 +939,15 @@ function URL(url, urlIfBase) {
         url = urlResolve(urlIfBase, url);
     this.parse(url, false, true);
 
-    // TODO: resort
+    // required by ws/lib/websocket.js
+    if(!this.search)
+        this.search = '';
+    if(!this.username)
+        this.username = '';
+    if(!this.password)
+        this.password = '';
+    if(!this.hash)
+        this.hash = '';
 }
 URL.prototype = Object.create(Url.prototype);
 
