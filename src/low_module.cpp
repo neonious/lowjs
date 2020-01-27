@@ -67,6 +67,8 @@ bool low_module_make_native(low_t *low,
                             void *setup_cb_data)
 {
     duk_context *ctx = low_get_duk_context(low);
+    duk_pop_n(ctx, duk_get_top(ctx));
+
     duk_push_object(ctx); // our new module!
 
     duk_push_string(ctx, name);
