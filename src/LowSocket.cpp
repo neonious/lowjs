@@ -26,6 +26,8 @@
 #include <sys/uio.h>
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
+void add_stats(int index, bool add);
+
 
 // -----------------------------------------------------------------------------
 //  LowSocket::LowSocket
@@ -40,6 +42,10 @@ LowSocket::LowSocket(low_t *low, int fd) :
     mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
     mSSL(NULL), mHost(NULL)
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(0, true);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     AdvertiseFD();
     InitSocket(NULL);
 }
@@ -65,6 +71,10 @@ LowSocket::LowSocket(low_t *low,
     mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
     mTLSContext(tlsContext), mSSL(NULL), mHost(NULL)
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(0, true);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
 
@@ -120,6 +130,10 @@ LowSocket::LowSocket(low_t *low,
     mDirectType(directType), mDirectReadEnabled(direct != NULL),
     mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL), mHost(host)
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(0, true);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
 
@@ -135,6 +149,10 @@ LowSocket::LowSocket(low_t *low,
 
 LowSocket::~LowSocket()
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(0, false);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     low_web_clear_poll(mLow, this);
 
     low_free(mHost);

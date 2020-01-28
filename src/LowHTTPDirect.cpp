@@ -7,8 +7,13 @@
 
 #include "low_alloc.h"
 #include "low_system.h"
+#include "low_config.h"
 
 #include <errno.h>
+
+
+void add_stats(int index, bool add);
+
 
 // -----------------------------------------------------------------------------
 //  LowHTTPDirect::LowHTTPDirect
@@ -22,6 +27,10 @@ LowHTTPDirect::LowHTTPDirect(low_t *low, bool isServer) :
     mClosed(false), mEraseNextN(false), mReadData(NULL), mRemainingRead(NULL),
     mReadError(false), mWriteError(false), mHTTPError(false)
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(1, true);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     pthread_mutex_init(&mMutex, NULL);
     Init();
 }
@@ -32,6 +41,10 @@ LowHTTPDirect::LowHTTPDirect(low_t *low, bool isServer) :
 
 LowHTTPDirect::~LowHTTPDirect()
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(1, false);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     if(mSocket)
         mSocket->SetDirect(NULL, 0);
 
