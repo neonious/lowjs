@@ -1831,6 +1831,8 @@ bool LowOPCUA::OnLoop()
             duk_call_prop(mLow->duk_ctx, -5, 3);
         }
         pthread_mutex_lock(&mMutex);
+        UA_deleteMembers(min, &UA_TYPES[UA_TYPES_MONITOREDITEMNOTIFICATION]);
+        low_free(min);
     }
     pthread_mutex_unlock(&mMutex);
 
