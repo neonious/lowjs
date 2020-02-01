@@ -115,7 +115,7 @@ void *low_web_thread_main(void *arg)
             if(s != 0xFF)
             {
                 LowSignalHandler *signal =
-                    new(low_new) LowSignalHandler(low, s);
+                    new LowSignalHandler(low, s);
                 if(!signal)
                 {
                 } // not much we can do here !
@@ -380,7 +380,7 @@ void *low_web_thread_main(void *arg)
                 if(s != 0xFF)
                 {
                     LowSignalHandler *signal =
-                        new(low_new) LowSignalHandler(low, s);
+                        new LowSignalHandler(low, s);
                     if(!signal)
                     {
                     } // not much we can do here !

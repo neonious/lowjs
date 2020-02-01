@@ -39,13 +39,8 @@ struct low_t
     int signal_call_id;
     bool in_uncaught_exception;
 
-    map<int,
-        low_chore_t,
-        less<int>,
-        low_allocator<pair<const int, low_chore_t>>>
-      chores;
-    multimap<int, int, less<int>, low_allocator<pair<const int, int>>>
-      chore_times;
+    map<int, low_chore_t> chores;
+    multimap<int, int> chore_times;
     int last_chore_time;
 
 #if LOW_ESP32_LWIP_SPECIALITIES
@@ -76,15 +71,15 @@ struct low_t
     bool web_thread_done;
     bool reset_accepts;
 
-    map<int, LowFD *, less<int>, low_allocator<pair<const int, LowFD *>>> fds;
+    map<int, LowFD *, less<int>> fds;
 
 #if LOW_INCLUDE_CARES_RESOLVER
-    vector<LowDNSResolver *, low_allocator<LowDNSResolver *>> resolvers;
+    vector<LowDNSResolver *> resolvers;
     int resolvers_active;
     pthread_mutex_t resolvers_mutex;
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
-    vector<LowTLSContext *, low_allocator<LowTLSContext *>> tlsContexts;
-    vector<LowCryptoHash *, low_allocator<LowCryptoHash *>> cryptoHashes;
+    vector<LowTLSContext *> tlsContexts;
+    vector<LowCryptoHash *> cryptoHashes;
 
     pthread_mutex_t ref_mutex;
 

@@ -102,7 +102,7 @@ low_t *low_init()
     }
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-    low_t *low = new(low_new) low_t();
+    low_t *low = new low_t();
     if(!low)
     {
         fprintf(stderr, "Memory full\n");
@@ -421,9 +421,9 @@ low_t *low_init()
         goto err;
     }
 
-    low->fds[0] = new(low_new) LowSocket(low, 0);
-    low->fds[1] = new(low_new) LowSocket(low, 1);
-    low->fds[2] = new(low_new) LowSocket(low, 2);
+    low->fds[0] = new LowSocket(low, 0);
+    low->fds[1] = new LowSocket(low, 1);
+    low->fds[2] = new LowSocket(low, 2);
     if(!low->fds[0] || !low->fds[1] || !low->fds[2])
     {
         low_destroy(low);
@@ -650,9 +650,9 @@ bool low_reset(low_t *low)
         return false;
     low->in_uncaught_exception = false;
 
-    low->fds[0] = new(low_new) LowSocket(low, 0);
-    low->fds[1] = new(low_new) LowSocket(low, 1);
-    low->fds[2] = new(low_new) LowSocket(low, 2);
+    low->fds[0] = new LowSocket(low, 0);
+    low->fds[1] = new LowSocket(low, 1);
+    low->fds[2] = new LowSocket(low, 2);
     if(!low->fds[0] || !low->fds[1] || !low->fds[2])
         return false;
 

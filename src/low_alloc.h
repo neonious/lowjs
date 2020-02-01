@@ -34,6 +34,8 @@ extern "C"
     void low_free(void *ptr);
 
     char *low_strdup(const char *str);
+    char *low_strcat(const char *str1, const char *str2);
+
     void *low_alloc_throw(duk_context *ctx, size_t size);
 
 #ifdef __cplusplus
@@ -44,37 +46,9 @@ extern "C"
 #ifdef __cplusplus
 #include <memory>
 
-enum class low_new_ident
-{
-    low_new_ident
-};
-#define low_new low_new_ident::low_new_ident
+void *operator new(size_t size, duk_context *ctx);
+void *operator new[](size_t size, duk_context *ctx);
 
-inline void *operator new(size_t size, low_new_ident ident) noexcept     { return low_alloc(size); }
-inline void *operator new[](size_t size, low_new_ident ident) noexcept   { return low_alloc(size); }
-
-inline void *operator new(size_t size, duk_context *ctx)                 { return low_alloc_throw(ctx, size); }
-inline void *operator new[](size_t size, duk_context *ctx)               { return low_alloc_throw(ctx, size); }
-
-template<typename T> class low_allocator : public std::allocator<T>
-{
-  public:
-    template<class U> struct rebind
-    {
-        typedef low_allocator<U> other;
-    };
-
-    T *allocate(size_t n, const void *hint = 0)
-    {
-        T *items = (T *)low_alloc(n * sizeof(T));
-        if(!items)
-            throw std::bad_alloc();
-
-        return items;
-    }
-
-    void deallocate(T *p, size_t n) { low_free(p); }
-};
 #endif /* __cplusplus */
 
 #endif /* __LOW_ALLOC_H__ */

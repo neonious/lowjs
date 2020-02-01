@@ -164,7 +164,7 @@ duk_ret_t low_tls_create_context(duk_context *ctx)
         }
     }
 
-    LowTLSContext *context = new(low_new) LowTLSContext(
+    LowTLSContext *context = new LowTLSContext(
       low, my_cert, cert_len, my_key, key_len, my_ca, ca_len, isServer);
 
     if(!context->IsOK())

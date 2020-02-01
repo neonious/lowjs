@@ -65,7 +65,7 @@ duk_ret_t low_dgram_bind(duk_context *ctx)
     }
 
     LowDatagram *datagram =
-      new(low_new) LowDatagram(low);
+      new LowDatagram(low);
     if(!datagram)
     {
         duk_dup(low->duk_ctx, 4);

@@ -654,7 +654,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                 uint32_t Offset = *(const uint32_t *)(P + 4);
                 if(Offset != 0)
                 {
-                    void *n2 = malloc(Length);
+                    void *n2 = low_alloc(Length);
                     memcpy(n2, P, Length);
                     __register_frame(n2);
                 }

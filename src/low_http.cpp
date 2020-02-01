@@ -40,7 +40,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
     else if(!direct)
     {
         // Client version
-        direct = new(low_new) LowHTTPDirect(low, false);
+        direct = new LowHTTPDirect(low, false);
         if(!direct)
         {
             duk_dup(ctx, 1);

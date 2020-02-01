@@ -48,3 +48,34 @@ char *low_strdup(const char *str)
 
     return dup;
 }
+
+
+// -----------------------------------------------------------------------------
+//  low_strcat
+// -----------------------------------------------------------------------------
+
+char *low_strcat(const char *str1, const char *str2)
+{
+    int len1 = str1 ? strlen(str1) : 0;
+    int len2 = str2 ? strlen(str2) : 0;
+    char *dup = (char *)low_alloc(len1 + len2 + 1);
+
+    if(dup)
+    {
+        if(len1)
+            memcpy(dup, str1, len1);
+        if(len2)
+            memcpy(dup + len1, str2, len2);
+        dup[len1 + len2] = '\0';
+    }
+
+    return dup;
+}
+
+
+// -----------------------------------------------------------------------------
+//  operator new / operator delete
+// -----------------------------------------------------------------------------
+
+void *operator new(size_t size, duk_context *ctx)    { return low_alloc_throw(ctx, size); }
+void *operator new[](size_t size, duk_context *ctx)  { return low_alloc_throw(ctx, size); }

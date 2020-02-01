@@ -42,7 +42,7 @@ duk_ret_t low_crypto_create_hash(duk_context *ctx)
         }
     }
 
-    LowCryptoHash *hash = new(low_new) LowCryptoHash(low, info, key, key_len);
+    LowCryptoHash *hash = new LowCryptoHash(low, info, key, key_len);
 
     int index;
     for(index = 0; index < low->cryptoHashes.size(); index++)

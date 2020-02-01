@@ -108,7 +108,7 @@ duk_ret_t low_net_listen(duk_context *ctx)
     }
 
     LowServerSocket *server =
-      new(low_new) LowServerSocket(low, isHTTP, tlsContext);
+      new LowServerSocket(low, isHTTP, tlsContext);
     if(!server)
     {
         duk_dup(ctx, 5);
@@ -241,7 +241,7 @@ duk_ret_t low_net_connect(duk_context *ctx)
             return 0;
         }
     }
-    LowSocket *socket = new(low_new) LowSocket(low, NULL, 0, tlsContext, host);
+    LowSocket *socket = new LowSocket(low, NULL, 0, tlsContext, host);
     if(!socket)
     {
         low_free(host);

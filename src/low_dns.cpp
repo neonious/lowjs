@@ -46,7 +46,7 @@ duk_ret_t low_dns_lookup(duk_context *ctx)
     }
     hints = (hints & 1) ? AI_ADDRCONFIG : 0 | (hints & 2) ? AI_V4MAPPED : 0;
 
-    LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
+    LowDNSWorker *worker = new LowDNSWorker(duk_get_low_context(ctx));
     if(!worker->Lookup(address, family, hints, 3))
         delete worker;
 
@@ -62,7 +62,7 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
     const char *address = duk_require_string(ctx, 0);
     int port = duk_require_int(ctx, 1);
 
-    LowDNSWorker *worker = new(low_new) LowDNSWorker(duk_get_low_context(ctx));
+    LowDNSWorker *worker = new LowDNSWorker(duk_get_low_context(ctx));
     if(!worker->LookupService(address, port, 2))
         delete worker;
 
@@ -315,7 +315,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 
     pthread_mutex_lock(&low->resolvers_mutex);
     LowDNSResolver_Query *query =
-      new(low_new) LowDNSResolver_Query(low->resolvers[index]);
+      new LowDNSResolver_Query(low->resolvers[index]);
     if(!query)
     {
         pthread_mutex_unlock(&low->resolvers_mutex);
@@ -355,7 +355,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 
     pthread_mutex_lock(&low->resolvers_mutex);
     LowDNSResolver_GetHostByAddr *query =
-      new(low_new) LowDNSResolver_GetHostByAddr(low->resolvers[index]);
+      new LowDNSResolver_GetHostByAddr(low->resolvers[index]);
     if(!query)
     {
         pthread_mutex_unlock(&low->resolvers_mutex);

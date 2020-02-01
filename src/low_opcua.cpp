@@ -195,7 +195,7 @@ int opcua_uaclient_constructor(duk_context *ctx)
     client->publishNotificationCallback = NULL;
 
     // Start the connection
-    *opcua = new(low_new) LowOPCUA(low, client, thisIndex, config->timeout, url);
+    *opcua = new LowOPCUA(low, client, thisIndex, config->timeout, url);
     if(!*opcua)
     {
         low_remove_stash(low->duk_ctx, thisIndex);

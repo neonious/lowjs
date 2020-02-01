@@ -138,7 +138,7 @@ bool LowServerSocket::OnEvents(short events)
     LowHTTPDirect *direct = NULL;
     if (mIsHTTP)
     {
-        direct = new (low_new) LowHTTPDirect(mLow, true);
+        direct = new  LowHTTPDirect(mLow, true);
         if (!direct)
         {
             // error
@@ -161,7 +161,7 @@ bool LowServerSocket::OnEvents(short events)
             mLow->reset_accepts = true;
         }
         if (fd >= 0)
-            socket = new (low_new)
+            socket = new 
                 LowSocket(mLow, fd, (sockaddr *)&remoteAddr, mAcceptCallID,
                           direct, 0, mSecureContext);
     }
@@ -174,7 +174,7 @@ bool LowServerSocket::OnEvents(short events)
             mLow->reset_accepts = true;
         }
         if (fd >= 0)
-            socket = new (low_new) LowSocket(mLow, fd, NULL, mAcceptCallID,
+            socket = new  LowSocket(mLow, fd, NULL, mAcceptCallID,
                                              direct, 0, mSecureContext);
     }
     if (!socket)
