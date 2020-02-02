@@ -518,11 +518,17 @@ bool get_data_block(const char *path,
                     int *len,
                     bool showErr,
                     bool escapeZero = false);
+
+void code_gc();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 {
     low_t *low = duk_get_low_context(ctx);
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+    code_gc();
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     int flags = 0;
     int len = strlen(path);
@@ -608,7 +614,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
         goto cantFind;
     }
 
-    if(!get_data_block(txt, &data, &len, true))
+    if(!get_data_block(txt, &data, &len, true, true))
     {
         struct stat st;
         if(stat(txt, &st) == 0)
@@ -621,7 +627,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
             if(try2)
             {
                 sprintf(txt, "/fs/user%s", path);
-                if(!get_data_block(txt, &data, &len, true))
+                if(!get_data_block(txt, &data, &len, true, true))
                 {
                     low_free(txt);
 

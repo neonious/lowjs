@@ -39,6 +39,8 @@
 #include "freertos/task.h"
 
 #define TAG "low_main"
+
+extern bool gAllocFailed;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
@@ -53,13 +55,15 @@ extern low_system_t g_low_system;
 static void *low_duk_alloc(void *udata, duk_size_t size)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES
-    auto data = low_alloc(size);
-    if(!data)
-    {
-        low_t *low = (low_t *)udata;
-        duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
-    }
-    return data;
+	// TODO: not so nice..., but working
+	// DukTape does gc on alloc failure, so does low.js...
+    if(gAllocFailed)
+        return NULL;
+
+    void *ptr = low_alloc(size);
+    gAllocFailed = false;
+
+    return ptr;
 #else
     return low_alloc(size);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -67,19 +71,16 @@ static void *low_duk_alloc(void *udata, duk_size_t size)
 
 static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
 {
-    if(size == 0)
-    {
-        low_free(ptr);
-        return NULL;
-    }
 #if LOW_ESP32_LWIP_SPECIALITIES
-    auto data = low_realloc(ptr, size);
-    if(!data)
-    {
-        low_t *low = (low_t *)udata;
-        duk_generic_error(low->duk_ctx, "allocation of %d bytes failed", size);
-    }
-    return data;
+	// TODO: not so nice..., but working
+	// DukTape does gc on alloc failure, so does low.js...
+    if(gAllocFailed)
+        return NULL;
+
+    void *ptr2 = low_realloc(ptr, size);
+    gAllocFailed = false;
+
+    return ptr2;
 #else
     return low_realloc(ptr, size);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -248,12 +249,12 @@ low_t *low_init()
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
     {
 #if LOW_ESP32_LWIP_SPECIALITIES
-        err = xTaskCreate((void (*)(void *))low_data_thread_main,
+        err = xTaskCreatePinnedToCore((void (*)(void *))low_data_thread_main,
                                       "data",
                                       CONFIG_DATA_THREAD_STACK_SIZE,
                                       low,
                                       CONFIG_DATA_PRIORITY,
-                                      &low->data_thread[i]);
+                                      &low->data_thread[i], 0);
         if(err != pdPASS)
         {
             fprintf(
@@ -379,12 +380,12 @@ low_t *low_init()
         goto err;
     }
 #if LOW_ESP32_LWIP_SPECIALITIES
-    err = xTaskCreate((void (*)(void *))low_web_thread_main,
+    err = xTaskCreatePinnedToCore((void (*)(void *))low_web_thread_main,
                                   "web",
                                   CONFIG_WEB_THREAD_STACK_SIZE,
                                   low,
                                   CONFIG_WEB_PRIORITY,
-                                  &low->web_thread);
+                                  &low->web_thread, 0);
     if(err != pdPASS)
     {
         fprintf(stderr, "failed to create web task, error code: %d\n", err);
