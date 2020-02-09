@@ -15,6 +15,9 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
+
+#define O_COMPRESSED      0x4000000
+#define O_COMPRESS        0x8000000
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
