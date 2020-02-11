@@ -35,10 +35,12 @@ void add_stats(int index, bool add);
 
 LowSocket::LowSocket(low_t *low, int fd) :
     LowFD(low, LOWFD_TYPE_SOCKET, fd), LowLoopCallback(low), mLow(low),
-    mType(LOWSOCKET_TYPE_STDINOUT), mAcceptConnectCallID(0),
-    mAcceptConnectError(false), mReadCallID(0), mWriteCallID(0),
-    mConnected(true), mClosed(false), mDestroyed(false), mCloseCallID(0),
-    mReadData(NULL), mWriteData(NULL), mDirect(nullptr),
+    mType(LOWSOCKET_TYPE_STDINOUT),
+    mAcceptConnectCallID(0), mCloseCallID(0), mAcceptConnectError(false),
+    mConnected(true), mClosed(false), mDestroyed(false),
+    mReadData(NULL), mWriteData(NULL), mReadCallID(0),
+    mWriteCallID(0),
+    mDirect(nullptr),
     mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
     mSSL(NULL), mHost(NULL)
 {
@@ -64,9 +66,9 @@ LowSocket::LowSocket(low_t *low,
                      bool clearOnReset) :
     LowFD(low, LOWFD_TYPE_SOCKET, fd),
     LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_ACCEPTED),
-    mAcceptConnectCallID(acceptCallID), mAcceptConnectError(false),
-    mReadCallID(0), mWriteCallID(0), mConnected(false), mClosed(false),
-    mDestroyed(false), mCloseCallID(0), mReadData(NULL), mWriteData(NULL),
+    mAcceptConnectCallID(acceptCallID), mCloseCallID(0),  mAcceptConnectError(false),
+    mConnected(false), mClosed(false),
+    mDestroyed(false), mReadData(NULL), mWriteData(NULL), mReadCallID(0), mWriteCallID(0),
     mDirect(direct), mDirectType(directType),
     mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
     mTLSContext(tlsContext), mSSL(NULL), mHost(NULL)
@@ -124,9 +126,11 @@ LowSocket::LowSocket(low_t *low,
                      bool clearOnReset) :
     LowFD(low, LOWFD_TYPE_SOCKET),
     LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_CONNECTED),
-    mAcceptConnectCallID(0), mAcceptConnectError(false), mReadCallID(0),
-    mWriteCallID(0), mConnected(false), mClosed(false), mDestroyed(false),
-    mCloseCallID(0), mReadData(NULL), mWriteData(NULL), mDirect(direct),
+    mAcceptConnectCallID(0), mCloseCallID(0), mAcceptConnectError(false),
+    mConnected(false), mClosed(false), mDestroyed(false),
+    mReadData(NULL), mWriteData(NULL), mReadCallID(0),
+    mWriteCallID(0),
+    mDirect(direct),
     mDirectType(directType), mDirectReadEnabled(direct != NULL),
     mDirectWriteEnabled(direct != NULL), mTLSContext(tlsContext), mSSL(NULL), mHost(host)
 {
@@ -951,7 +955,7 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
     duk_context *ctx = mLow->duk_ctx;
 
     char localHost[INET6_ADDRSTRLEN];
-    int localPort;
+    int localPort = 0;
 
     mAcceptConnectCallID = 0;
 
@@ -1275,6 +1279,9 @@ void LowSocket::PushError(int call)
             ssl = mAcceptConnectErrnoSSL;
             syscall = mAcceptConnectSyscall;
             break;
+
+	default:
+	    return;	// no warning
     }
 
     if(error && ssl)

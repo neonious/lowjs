@@ -34,8 +34,7 @@ static void my_debug(void *ctx, int level, const char *file, int line,
 LowTLSContext::LowTLSContext(low_t *low, const char *cert, int certLen,
                              const char *key, int keyLen, const char *ca,
                              int caLen, bool isServer)
-    : mLow(low), mIsOK(false), mHasCert(false), mHasCA(false), mRef(1),
-      mIndex(-1)
+    : mLow(low), mRef(1), mIndex(-1), mIsOK(false), mHasCert(false), mHasCA(false)
 {
     int ret;
 

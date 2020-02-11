@@ -1056,7 +1056,7 @@ static void clientExecuteRepeatedCallback(LowOPCUA *opcua, UA_ApplicationCallbac
 }
 
 LowOPCUA::LowOPCUA(low_t *low, UA_Client *client, int thisIndex, int timeoutMS, const char *url)
-    : LowLoopCallback(low), LowFD(low, LOWFD_TYPE_SOCKET, client->connection.sockfd), mLow(low), mClient(client), mThisIndex(thisIndex), mTimeoutMS(timeoutMS), mMutex(PTHREAD_MUTEX_INITIALIZER), mConnectState(0), mDisabledState(0), mDetachedState(0), mWriteBuffer(NULL), mLastClientHandle(0)
+    : LowLoopCallback(low), LowFD(low, LOWFD_TYPE_SOCKET, client->connection.sockfd), mLow(low), mTimeoutMS(timeoutMS), mThisIndex(thisIndex), mWriteBuffer(NULL), mClient(client), mMutex(PTHREAD_MUTEX_INITIALIZER), mConnectState(0), mDisabledState(0), mDetachedState(0), mLastClientHandle(0)
 {
     low->run_ref++;
     client->connection.lowOPCUAData = this;

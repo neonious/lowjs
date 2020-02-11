@@ -27,8 +27,8 @@
 // -----------------------------------------------------------------------------
 
 LowFSMisc::LowFSMisc(low_t *low) :
-    LowDataCallback(low), LowLoopCallback(low), mLow(low), mCallID(0),
-    mOldName(NULL), mNewName(NULL), mFileEntries(NULL)
+    LowDataCallback(low), LowLoopCallback(low), mLow(low),
+    mOldName(NULL), mNewName(NULL), mCallID(0), mFileEntries(NULL)
 {
     pthread_mutex_init(&mMutex, NULL);
 }

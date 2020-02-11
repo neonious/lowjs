@@ -22,9 +22,10 @@ void add_stats(int index, bool add);
 LowHTTPDirect::LowHTTPDirect(low_t *low, bool isServer) :
     LowLoopCallback(low), mLow(low), mIsServer(isServer), mSocket(NULL), mRequestCallID(0),
     mReadCallID(0), mWriteCallID(0), mBytesRead(0), mBytesWritten(0),
-    mParamFirst(NULL), mParamLast(NULL), mWriteBufferCount(0), mWriteBufferStashInvalidCount(0),
-    mShutdown(false),
-    mClosed(false), mEraseNextN(false), mReadData(NULL), mRemainingRead(NULL),
+    mShutdown(false), mClosed(false), mEraseNextN(false),
+	mParamFirst(NULL), mParamLast(NULL), mRemainingRead(NULL),
+	mReadData(NULL),
+    mWriteBufferCount(0), mWriteBufferStashInvalidCount(0),
     mReadError(false), mWriteError(false), mHTTPError(false)
 {
 #if LOW_ESP32_LWIP_SPECIALITIES

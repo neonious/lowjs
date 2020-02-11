@@ -197,6 +197,7 @@ bool low_system_init(int argc, const char *argv[])
 
     return true;
 
+    goto err;   // remove warning
 err:
 #if !LOW_ESP32_LWIP_SPECIALITIES
     low_free(g_low_system.lib_path);
