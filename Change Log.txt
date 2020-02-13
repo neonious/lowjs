@@ -210,16 +210,6 @@ ESP32-WROVER. Better option than syncing node_modules directory because modules
 installed via install/uninstall load much faster
 
 
-Version 20190619
-
-https.request support! TLS options other than one certificate are not supported
-yet, but the basic feature is working! http/https upgrade for clients
-implemented => WebSocket connections to outside world possible lowsync 1.0.22:
-install/uninstall commands allow you to install npm packages on plain
-ESP32-WROVER. Better option than syncing node_modules directory because modules
-installed via install/uninstall load much faster
-
-
 Version 20190618
 
 Module axios works Unhandled promise reject now shows correct stack frame, by
