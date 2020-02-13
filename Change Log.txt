@@ -6,7 +6,7 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
-Version 20200211/12 / Version 1.4.4.1
+Version 20200211/12 / Version 1.4.5.2
 
 - no changes in low.js itself, only in ESP32 repository
 
@@ -16,6 +16,21 @@ Version 20200211/12 / Version 1.4.4.1
 
 - rainy day fund is not shown in memory stats anymore, to give a more clear
   picture on the used memory
+
+
+Version 20200129 / Version 1.4.5.1
+
+No changes in low.js itself, only in ESP32 repository
+
+Fixed memory fragmentation problems which could result into crashes,
+especially on the neonious one which needs more internal RAM as it also has
+an Ethernet port.
+
+
+Version 20200114 / Version 1.4.5
+ 
+- new settings option network.hostname
+- fixed deadlock
 
 
 Version 20200105 / Version 1.4.4
