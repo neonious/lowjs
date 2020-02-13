@@ -6,10 +6,16 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
-Version 20200114 / Version 1.4.5
+Version 20200211/12 / Version 1.4.4.1
 
-- new settings option network.hostname
-- fixed deadlock
+- no changes in low.js itself, only in ESP32 repository
+
+- updated underlying library ESP-IDF from 3.1 to 4.1, fixed two possible
+  crashes with this
+- updated DukTape library to newest version
+
+- rainy day fund is not shown in memory stats anymore, to give a more clear
+  picture on the used memory
 
 
 Version 20200105 / Version 1.4.4
