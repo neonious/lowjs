@@ -120,6 +120,8 @@ const STATUS_CODES = {
     511: 'Network Authentication Required' // RFC 6585
 };
 
+const discard2Headers = { 'age': 1, 'authorization': 1, 'content-length': 1, 'content-type': 1, 'etag': 1, 'expires': 1, 'from': 1, 'host': 1, 'if-modified-since': 1, 'if-unmodified-since': 1, 'last-modified': 1, 'location': 1, 'max-forwards': 1, 'proxy-authorization': 1, 'referer': 1, 'retry-after': 1, 'user-agent': 1 };
+
 class IncomingMessage extends stream.Readable {
     // event "aborted"
     aborted = false;
@@ -369,8 +371,6 @@ class ServerResponse extends stream.Writable {
     writeProcessing() { }
 }
 
-const discard2Headers = { 'age': 1, 'authorization': 1, 'content-length': 1, 'content-type': 1, 'etag': 1, 'expires': 1, 'from': 1, 'host': 1, 'if-modified-since': 1, 'if-unmodified-since': 1, 'last-modified': 1, 'location': 1, 'max-forwards': 1, 'proxy-authorization': 1, 'referer': 1, 'retry-after': 1, 'user-agent': 1 };
-
 function handleServerConn(server, socket) {
     if (socket._socketReading)
         throw new Error("http socket already being read from");
@@ -455,8 +455,6 @@ function handleServerConn(server, socket) {
         server.emit('request', message, response);
     });
 }
-
-const discard2Headers = { 'age': 1, 'authorization': 1, 'content-length': 1, 'content-type': 1, 'etag': 1, 'expires': 1, 'from': 1, 'host': 1, 'if-modified-since': 1, 'if-unmodified-since': 1, 'last-modified': 1, 'location': 1, 'max-forwards': 1, 'proxy-authorization': 1, 'referer': 1, 'retry-after': 1, 'user-agent': 1 };
 
 const tokenRegExp = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
 /**
