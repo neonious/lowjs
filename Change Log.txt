@@ -6,6 +6,15 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200219 / Version 1.4.6
+
+- lowsync (also version 1.4.6) supports all current settings and error messages
+- fixed console output glitch in low.js Linux verison
+- fixed error "discard2headers not found" when doing a http request and
+  receiving specific headers
+- better error messages
+
+
 Version 20200211/12 / Version 1.4.5.2
 
 - no changes in low.js itself, only in ESP32 repository
