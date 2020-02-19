@@ -422,7 +422,7 @@ void LowHTTPDirect::DoWrite()
         int size = mSocket->writev(mWriteBuffers, mWriteBufferCount);
         if(size < 0)
         {
-            if(errno != EAGAIN)
+            if(errno != EAGAIN && errno != EINTR)
                 mWriteError = true;
             return;
         }

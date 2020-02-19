@@ -1867,7 +1867,7 @@ bool LowOPCUA::OnEvents(short events)
         int len = (mWriteBuffer == mWriteBufferLast ? mWriteBufferLastLen : LOW_OPCUA_WRITEBUFFER_SIZE) - mWriteBufferRead;
 
         int size = send(FD(), mWriteBuffer + sizeof(void *), len, 0);
-        if(size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        if(size == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
             break;
         if(size == -1)
         {
@@ -1933,7 +1933,7 @@ int LowOPCUA::OnSend(void *data, unsigned char *buf, int len)
     if(!opcua->mWriteBuffer)
     {
         int size = send(opcua->FD(), buf, len, 0);
-        if(size == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
+        if(size == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
             return UA_STATUSCODE_BADNOTCONNECTED;
 
         if(size > 0)

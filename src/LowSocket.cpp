@@ -392,7 +392,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
     bool tryNow = !mTLSContext && mConnected;
     len = mClosed ? 0 : (tryNow ? DoRead() : -1);
     if(len >= 0 ||
-       (tryNow && len == -1 && (mReadErrno != EAGAIN || mReadErrnoSSL)))
+       (tryNow && len == -1 && ((mReadErrno != EAGAIN && mReadErrno != EINTR) || mReadErrnoSSL)))
     {
         if(len == 0)
             mClosed = true;
@@ -440,13 +440,27 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
 #if LOW_ESP32_LWIP_SPECIALITIES
         neoniousConsoleInput((char *)data, len, FD());
 #else
-        ::write(FD(), data, len);
+        int left = len;
+        while(left)
+        {
+            int size = ::write(FD(), data, left);
+            if(size == -1)
+            {
+                if(errno == EAGAIN || errno == EINTR)
+                    size = 0;
+                else
+                    break;
+            }
+
+            data += size;
+            left -= size;
+        }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_null(mLow->duk_ctx);
         duk_push_int(mLow->duk_ctx, len);
-        duk_call(mLow->duk_ctx, 2);
+        low_call_next_tick(mLow->duk_ctx, 2);
         return;
     }
 
@@ -466,7 +480,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
     bool tryNow = !mTLSContext && mConnected;
     len = mClosed ? 0 : (tryNow ? DoWrite() : -1);
     if(len >= 0 ||
-       (tryNow && len == -1 && (mWriteErrno != EAGAIN || mWriteErrnoSSL)))
+       (tryNow && len == -1 && ((mWriteErrno != EAGAIN && mWriteErrno != EINTR) || mWriteErrnoSSL)))
     {
         mWriteData = NULL;
 
@@ -788,7 +802,7 @@ bool LowSocket::OnEvents(short events)
                             // be retriggered if SSL still has data
                 {
                     int len = DoRead();
-                    if(len < 0 && mReadErrno == EAGAIN && !mReadErrnoSSL)
+                    if(len < 0 && (mReadErrno == EAGAIN || mReadErrno == EINTR) && !mReadErrnoSSL)
                     {
                         mDirectReadEnabled = true;
                         break;
@@ -829,7 +843,7 @@ bool LowSocket::OnEvents(short events)
             if(len == 0)
                 mClosed = true;
 
-            if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+            if(len >= 0 || (mReadErrno != EAGAIN && mReadErrno != EINTR) || mReadErrnoSSL)
             {
                 mReadPos = len;
                 change = true;
@@ -838,7 +852,7 @@ bool LowSocket::OnEvents(short events)
         if((events & POLLOUT) && mWriteData && !mWritePos)
         {
             int len = DoWrite();
-            if(len >= 0 || mReadErrno != EAGAIN || mReadErrnoSSL)
+            if(len >= 0 || (mReadErrno != EAGAIN && mReadErrno != EINTR) || mReadErrnoSSL)
             {
                 mWritePos = len;
                 change = true;

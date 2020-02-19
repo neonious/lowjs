@@ -160,7 +160,7 @@ void LowDatagram::Send(int bufferIndex, const char *address, int port, int callI
     mSendLen = len;
 
     int res = sendto(FD(), mSendData, mSendLen, 0, (struct sockaddr *)&mSendAddr, mFamily == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-    if(res != -1 || errno != EAGAIN)
+    if(res != -1 || (errno != EAGAIN && errno != EINTR))
     {
         int err = errno;
         mSendData = NULL;
