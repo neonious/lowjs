@@ -439,6 +439,7 @@ class Writable extends EventEmitter {
             this._writableCorkCount = 0;
         if (this._writableCorkCount == 0)
             this._writableNext();
+
         return this;
     }
 
@@ -515,8 +516,10 @@ class Writable extends EventEmitter {
 
         this._writableEOF = true;
         this.writable = false;
-        this._writableCorkCount = 0;
-        this._writableNext();
+        if(!this._no_uncork_on_end) {
+            this._writableCorkCount = 0;
+            this._writableNext();
+        }
 
         return this;
     }

@@ -115,8 +115,10 @@ class Socket extends stream.Duplex {
 
         this.readable = this._socketFD === undefined ? false : (options ? !!options.readable : false);
         this.writable = this._socketFD === undefined ? false : (options ? !!options.writable : false);
-        if (this._socketFD === undefined)
+        if (this._socketFD === undefined) {
+            this._no_uncork_on_end = true;
             this.cork();
+        }
 
         this._updateRef();
         this.on('close', () => {

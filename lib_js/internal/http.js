@@ -515,6 +515,7 @@ class ClientRequest extends stream.Writable {
                     callback(err);
             }
         });
+        this._no_uncork_on_end = true;
         this.cork();
 
         if (typeof options === 'string') {
@@ -710,7 +711,7 @@ class ClientRequest extends stream.Writable {
 
         this.connection = this.socket = socket;
         socket.setTimeout(this.timeout);
-    
+
         native.httpGetRequest(socket._socketFD, (error, data, bytesRead) => {
             if (error) {
                 socket.emit('error', error);
