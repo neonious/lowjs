@@ -37,7 +37,7 @@ static void handle_dist_loader(int *argc, char ***argv)
 	if(*argc < 2)
 		return;
 
-	const char postfix[] = LOW_LIB_PATH "/low-exe";
+	const char postfix[] = LOW_LIB_PATH "low-exe";
 	int len = strlen((*argv)[0]);
 	if(len < sizeof(postfix) || strcmp((*argv)[0] + len - (sizeof(postfix) - 1), postfix) != 0)
 		return;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     low_t *low;
 
 #ifndef __APPLE__
-	handle_dist_loader(&argc, &argv);
+    handle_dist_loader(&argc, &argv);
 #endif /* __APPLE__ */
 
     if(argc == 2

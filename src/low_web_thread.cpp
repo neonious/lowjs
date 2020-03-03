@@ -623,7 +623,8 @@ void low_web_clear_poll(low_t *low, LowFD *fd)
 
     // Make sure we are not handled
     low_web_thread_break(low);
-    pthread_cond_wait(&low->web_thread_done_cond, &low->web_thread_mutex);
+    if(!low->web_thread_done)
+        pthread_cond_wait(&low->web_thread_done_cond, &low->web_thread_mutex);
 
     pthread_mutex_unlock(&low->web_thread_mutex);
 }
