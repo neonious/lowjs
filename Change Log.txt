@@ -6,6 +6,15 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200303 / Version 1.4.7
+
+- updated lowsync check program for ESP32-WROVER version for more compatibility:
+  new ESP-IDF and lower bitrate
+- fixed UART (UART2 no longer used as it is not usable with ESP32-WROVER as pin
+  16/17 used by PSRAM, and pin demux is only available on UART0 and UART1)
+- smaller fixes
+
+
 Version 20200219 / Version 1.4.6
 
 - lowsync (also version 1.4.6) supports all current settings and error messages
