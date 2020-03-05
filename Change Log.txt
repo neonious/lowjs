@@ -6,6 +6,18 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200305 / Version 1.4.8
+
+No changes in low.js itself, only in ESP32 repository
+
+- low.js supports time zones! The time zone can be changed with lowsync (update
+  to newest version first), the neonious IDE or by the user program via 
+  lowsys.setSettings or lowsys.setSystemTime.
+- low.js supports additional boards with Ethernet, especially the ESP32 Ethernet
+  Kit board by Espressif, which is more expensive and bigger than the neonious
+  one, but supports PoE.
+
+
 Version 20200303 / Version 1.4.7
 
 - updated lowsync check program for ESP32-WROVER version for more compatibility:
@@ -26,7 +38,7 @@ Version 20200219 / Version 1.4.6
 
 Version 20200211/12 / Version 1.4.5.2
 
-- no changes in low.js itself, only in ESP32 repository
+No changes in low.js itself, only in ESP32 repository
 
 - updated underlying library ESP-IDF from 3.1 to 4.1, fixed two possible
   crashes with this
