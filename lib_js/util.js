@@ -1039,6 +1039,7 @@ function formatPromise(ctx, value, recurseTimes, keys) {
             output = [state === kRejected ? `<rejected> ${str}` : str];
         }
     */
+    output = [value.toString()];
     for (var n = 0; n < keys.length; n++) {
         output.push(formatProperty(ctx, value, recurseTimes, keys[n], 0));
     }
