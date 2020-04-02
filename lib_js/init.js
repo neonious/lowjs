@@ -1134,6 +1134,39 @@ Object.defineProperty(
     }
   );
 
+// Required for Buffer.indexOf(...), see https://neonious.com/Forum/topic/41/buffer-indexof-implementation
+if (!Uint8Array.prototype.indexOf)
+  Uint8Array.prototype.indexOf = (function(Object, max, min) {
+    return function indexOf(member, fromIndex) {
+      if (this === null || this === undefined)
+        throw TypeError("Uint8Array.prototype.indexOf called on null or undefined")
+  
+      var that = Object(this), Len = that.length >>> 0, i = min(fromIndex | 0, Len)
+      if (i < 0) i = max(0, Len + i)
+      else if (i >= Len) return -1
+  
+      if (member === void 0) {        // undefined
+        for (; i !== Len; ++i) if (that[i] === void 0 && i in that) return i
+      } else if (member !== member) { // NaN
+        return -1 // Since NaN !== NaN, it will never be found. Fast-path it.
+      } else {                         // all else
+          // the argument to search can be String|Buffer|Number with several bytes
+          // also we convert in Array to compare easily
+          var memberArray = Buffer.from(member);
+          for (var ok ; i !== (Len - memberArray.length + 1); ++i) {
+              for (var j = 0, ok = true; j < memberArray.length; j++) {
+                 if (that[i+j] !== memberArray[j]) {
+                     ok = false;
+                     break;
+                 }
+              }
+              if(ok) return i;
+          }
+      }
+      return -1 // if the value was not found, then return -1
+    }
+  })(Object, Math.max, Math.min)
+
 exports.process = new events.EventEmitter();
 
 let ttyinfo = native.ttyInfo();
