@@ -6,6 +6,15 @@
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
 
+Version 20200409 / Version 1.4.9
+
+- Added polyfill for indexOf to enable
+  Buffer.from('hello world').indexOf(Buffer.from('llo'))
+- Fixed bug which results in error message "FD not found"
+- console.log(promise) no longer crashes
+- Updated ESP-IDF to current master
+
+
 Version 20200305 / Version 1.4.8
 
 No changes in low.js itself, only in ESP32 repository
