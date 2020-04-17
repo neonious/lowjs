@@ -170,7 +170,10 @@ class IncomingMessage extends stream.Readable {
                         }
 
                         this.push(null);
-                        if (!this._isServer) {
+                        if (this._isServer) {
+                            if(!reuse)
+                                this._httpMain.destroy();
+                        } else {
                             if(this._httpMain.agent) {
                                 let socket = this.socket;
                                 this.connection = this.socket = null;
@@ -184,9 +187,6 @@ class IncomingMessage extends stream.Readable {
                                     this._httpMain.agent.removeSocket(socket, this._httpMain._agentOptions);
                                     socket.destroy();
                                 }
-                            } else {
-                                this.connection = this.socket = null;
-                                this._httpMain.connection = this._httpMain.socket = null;
                             }
                             this._httpMain.destroy();
                         }

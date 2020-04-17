@@ -48,7 +48,6 @@ LowSocket::LowSocket(low_t *low, int fd) :
     add_stats(0, true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    AdvertiseFD();
     InitSocket(NULL);
 }
 
@@ -94,15 +93,10 @@ LowSocket::LowSocket(low_t *low,
         return;
     }
     else if(mTLSContext)
-    {
         low_web_set_poll_events(mLow, this, POLLOUT);
-        AdvertiseFD();
-    }
     else
     {
         mConnected = true;
-        AdvertiseFD();
-
         if(mAcceptConnectCallID)
             low_loop_set_callback(mLow, this);
 
@@ -888,6 +882,7 @@ bool LowSocket::OnLoop()
 
     if(mAcceptConnectCallID)
     {
+        AdvertiseFD();
         if(!CallAcceptConnect(mAcceptConnectCallID, true))
         {
             if(mCloseCallID)
