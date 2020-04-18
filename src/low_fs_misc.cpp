@@ -275,7 +275,6 @@ duk_ret_t low_fs_readdir_sync(duk_context *ctx)
     LowFSMisc *fl = new(ctx) LowFSMisc(low);
 
     bool withFileTypes = false;
-    int callIndex;
 
     if(!duk_is_undefined(ctx, 2))
         withFileTypes = false;

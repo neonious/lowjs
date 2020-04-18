@@ -62,7 +62,6 @@ class LowFSMisc
     int mMode;
 
     int mCallID;
-    pthread_mutex_t mMutex;
 
     int mPhase, mError;
     char *mFileEntries;
