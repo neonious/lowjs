@@ -49,6 +49,7 @@ LowSocket::LowSocket(low_t *low, int fd) :
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     InitSocket(NULL);
+    AdvertiseFD();
 }
 
 // -----------------------------------------------------------------------------

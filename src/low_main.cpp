@@ -34,11 +34,8 @@
 #include <unistd.h>
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
-#define TAG "low_main"
 
 extern bool gAllocFailed;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -422,9 +419,9 @@ low_t *low_init()
         goto err;
     }
 
-    low->fds[0] = new LowSocket(low, 0);
-    low->fds[1] = new LowSocket(low, 1);
-    low->fds[2] = new LowSocket(low, 2);
+    new LowSocket(low, 0);
+    new LowSocket(low, 1);
+    new LowSocket(low, 2);
     if(!low->fds[0] || !low->fds[1] || !low->fds[2])
     {
         low_destroy(low);
@@ -571,6 +568,7 @@ bool low_reset(low_t *low)
                 {
                     hasOne = true;
                     delete iter2->second;
+
                     break;
                 }
             }
@@ -600,7 +598,7 @@ bool low_reset(low_t *low)
         duk_destroy_heap(low->duk_ctx);
         low->duk_ctx = NULL;
 
-        duk_context *new_ctx = duk_create_heap(
+        new_ctx = duk_create_heap(
           low_duk_alloc, low_duk_realloc, low_duk_free, low, NULL);
     }
     if(!new_ctx)
@@ -651,9 +649,9 @@ bool low_reset(low_t *low)
         return false;
     low->in_uncaught_exception = false;
 
-    low->fds[0] = new LowSocket(low, 0);
-    low->fds[1] = new LowSocket(low, 1);
-    low->fds[2] = new LowSocket(low, 2);
+    new LowSocket(low, 0);
+    new LowSocket(low, 1);
+    new LowSocket(low, 2);
     if(!low->fds[0] || !low->fds[1] || !low->fds[2])
         return false;
 
