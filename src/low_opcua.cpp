@@ -264,8 +264,6 @@ int opcua_uaclient_node(duk_context *ctx)
     int namespac = duk_require_int(ctx, 0);
     int node = duk_require_int(ctx, 1);
 
-    low_t *low = duk_get_low_context(ctx);
-
     duk_push_this(ctx);
     if(!duk_get_prop_string(ctx, -1, "\xff""nativeObj"))
         duk_reference_error(ctx, "OPC-UA object is already destroyed");
@@ -664,7 +662,6 @@ int opcua_uaclient_subnode(duk_context *ctx)
     }
     browsePath.relativePath.elementsSize = pathSize;
 
-    int elem = 0;
     for(int j = 0; j < pathSize; j++)
     {
         int namespac = 0;

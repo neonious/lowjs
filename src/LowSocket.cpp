@@ -166,14 +166,13 @@ LowSocket::~LowSocket()
         if(mType == LOWSOCKET_TYPE_CONNECTED)
             low_remove_stash(mLow->duk_ctx, mAcceptConnectCallID);
     }
-
     if(mReadCallID)
         low_remove_stash(mLow->duk_ctx, mReadCallID);
     if(mWriteCallID)
         low_remove_stash(mLow->duk_ctx, mWriteCallID);
+
     if(FD() >= 0 && mType != LOWSOCKET_TYPE_STDINOUT)
         close(FD());
-    SetFD(-1);
 
     if(mSSL)
     {
@@ -181,9 +180,7 @@ LowSocket::~LowSocket()
         low_free(mSSL);
     }
     if(mTLSContext)
-    {
         mTLSContext->DecRef();
-    }
 }
 
 // -----------------------------------------------------------------------------

@@ -210,6 +210,7 @@ void *low_web_thread_main(void *arg)
             if(!low->web_changed_first)
                 low->web_changed_last = NULL;
             fd->mNextChanged = NULL;
+            int mFD = fd->mFD;
 
             if(fd->mMarkDelete)
             {
@@ -223,12 +224,12 @@ void *low_web_thread_main(void *arg)
                 delete fd;
                 pthread_mutex_lock(&low->web_thread_mutex);
             }
-            else if((fd->mFD < 0 || !fd->mPollEvents) && fd->mPollIndex != -1)
+            else if((mFD < 0 || !fd->mPollEvents) && fd->mPollIndex != -1)
             {
                 fds[fd->mPollIndex].fd = -1;
                 fd->mPollIndex = -1;
             }
-            else if(fd->mFD >= 0 && fd->mPollEvents)
+            else if(mFD >= 0 && fd->mPollEvents)
             {
                 if(fd->mPollIndex == -1)
                 {
@@ -249,7 +250,7 @@ void *low_web_thread_main(void *arg)
                         lowFDs.push_back(fd);
                     }
                 }
-                fds[fd->mPollIndex].fd = fd->mFD;
+                fds[fd->mPollIndex].fd = mFD;
                 fds[fd->mPollIndex].events = fd->mPollEvents;
             }
         }
@@ -274,7 +275,6 @@ void *low_web_thread_main(void *arg)
         {
             int timeout = -1, i;
 
-            int first_cares_fd = fds.size();
             fd_set read_set1 = read_set;
             fd_set write_set1 = write_set;
 
@@ -411,8 +411,7 @@ void *low_web_thread_main(void *arg)
 
                                 // Remove from web thread list
                                 pthread_mutex_lock(&low->web_thread_mutex);
-                                if(fd->mNextChanged ||
-                                   low->web_changed_last == fd)
+                                if(fd->mNextChanged || low->web_changed_last == fd)
                                 {
                                     if(low->web_changed_first == fd)
                                         low->web_changed_first =
@@ -461,6 +460,7 @@ void *low_web_thread_main(void *arg)
                 if(!low->web_changed_first)
                     low->web_changed_last = NULL;
                 fd->mNextChanged = NULL;
+                int mFD = fd->mFD;
 
                 if(fd->mMarkDelete)
                 {
@@ -477,7 +477,7 @@ void *low_web_thread_main(void *arg)
                     delete fd;
                     pthread_mutex_lock(&low->web_thread_mutex);
                 }
-                else if((fd->mFD < 0 || !fd->mPollEvents) &&
+                else if((mFD < 0 || !fd->mPollEvents) &&
                         fd->mPollIndex != -1)
                 {
                     FD_CLR(fds[fd->mPollIndex].second, &read_set);
@@ -486,7 +486,7 @@ void *low_web_thread_main(void *arg)
                     fds[fd->mPollIndex].second = -1;
                     fd->mPollIndex = -1;
                 }
-                else if(fd->mFD >= 0 && fd->mPollEvents)
+                else if(mFD >= 0 && fd->mPollEvents)
                 {
                     if(fd->mPollIndex == -1)
                     {
@@ -496,27 +496,27 @@ void *low_web_thread_main(void *arg)
                             {
                                 fd->mPollIndex = i;
                                 fds[i].first = fd;
-                                fds[i].second = fd->mFD;
+                                fds[i].second = mFD;
                                 break;
                             }
                         }
                         if(fd->mPollIndex == -1)
                         {
                             fd->mPollIndex = fds.size();
-                            fds.push_back(pair<LowFD *, int>(fd, fd->mFD));
+                            fds.push_back(pair<LowFD *, int>(fd, mFD));
                         }
                     }
                     else
                     {
                         FD_CLR(fds[fd->mPollIndex].second, &read_set);
                         FD_CLR(fds[fd->mPollIndex].second, &write_set);
-                        fds[fd->mPollIndex].second = fd->mFD;
+                        fds[fd->mPollIndex].second = mFD;
                     }
 
                     if(fd->mPollEvents & POLLIN)
-                        FD_SET(fd->mFD, &read_set);
+                        FD_SET(fds[fd->mPollIndex].second, &read_set);
                     if(fd->mPollEvents & POLLOUT)
-                        FD_SET(fd->mFD, &write_set);
+                        FD_SET(fds[fd->mPollIndex].second, &write_set);
                 }
             }
 
@@ -604,28 +604,31 @@ void low_web_set_poll_events(low_t *low, LowFD *fd, short events)
 void low_web_clear_poll(low_t *low, LowFD *fd)
 {
     pthread_mutex_lock(&low->web_thread_mutex);
-    if(fd->mPollIndex == -1 && !fd->mNextChanged && fd != low->web_changed_last)
+    while(true)
     {
-        // Nothing to do
-        pthread_mutex_unlock(&low->web_thread_mutex);
-        return;
-    }
+        if(fd->mPollIndex == -1 && !fd->mNextChanged && fd != low->web_changed_last)
+        {
+            // Nothing to do
+            pthread_mutex_unlock(&low->web_thread_mutex);
+            return;
+        }
 
-    fd->mPollEvents = 0;
-    if(!fd->mNextChanged && fd != low->web_changed_last)
-    {
-        if(low->web_changed_last)
-            low->web_changed_last->mNextChanged = fd;
-        else
-            low->web_changed_first = fd;
-        low->web_changed_last = fd;
-    }
+        fd->mPollEvents = 0;
+        if(!fd->mNextChanged && fd != low->web_changed_last)
+        {
+            if(low->web_changed_last)
+                low->web_changed_last->mNextChanged = fd;
+            else
+                low->web_changed_first = fd;
+            low->web_changed_last = fd;
+        }
 
-    // Make sure we are not handled
-    low_web_thread_break(low);
-    if(!low->web_thread_done)
+        // Make sure we are not handled
+        if(low->web_thread_done)
+            break;
+        low_web_thread_break(low);
         pthread_cond_wait(&low->web_thread_done_cond, &low->web_thread_mutex);
-
+    }
     pthread_mutex_unlock(&low->web_thread_mutex);
 }
 

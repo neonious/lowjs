@@ -11,7 +11,6 @@
 
 #include <errno.h>
 
-
 void add_stats(int index, bool add);
 
 
@@ -237,9 +236,8 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                     low_free(param);
                 }
 
-                if(!mClosed && mWriteDone && !mWriteBufferCount)
+                if(!mClosed && mWriteDone && !mWriteBufferCount && !mIsServer)
                     Detach();
-
                 duk_push_boolean(mLow->duk_ctx,
                                     !mClosed && mWriteDone &&
                                     !mWriteBufferCount);
@@ -266,6 +264,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
             low_call_next_tick(mLow->duk_ctx, 1);
         }
     }
+    else
         mReadCallID = low_add_stash(mLow->duk_ctx, callIndex);
 }
 
@@ -592,7 +591,7 @@ bool LowHTTPDirect::OnLoop()
                     low_free(param);
                 }
 
-                if(!mClosed && mWriteDone && !mWriteBufferCount)
+                if(!mClosed && mWriteDone && !mWriteBufferCount && !mIsServer)
                     Detach();
 
                 duk_push_boolean(mLow->duk_ctx,

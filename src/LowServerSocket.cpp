@@ -135,17 +135,6 @@ bool LowServerSocket::Close(int callIndex) { return false; }
 
 bool LowServerSocket::OnEvents(short events)
 {
-    LowHTTPDirect *direct = NULL;
-    if (mIsHTTP)
-    {
-        direct = new  LowHTTPDirect(mLow, true);
-        if (!direct)
-        {
-            // error
-            return true;
-        }
-    }
-
     int fd = -1;
     LowSocket *socket = NULL;
 
@@ -161,9 +150,22 @@ bool LowServerSocket::OnEvents(short events)
             mLow->reset_accepts = true;
         }
         if (fd >= 0)
+        {
+            LowHTTPDirect *direct = NULL;
+            if (mIsHTTP)
+            {
+                direct = new  LowHTTPDirect(mLow, true);
+                if (!direct)
+                {
+                    // error
+                    return true;
+                }
+            }
+
             socket = new 
                 LowSocket(mLow, fd, (sockaddr *)&remoteAddr, mAcceptCallID,
                           direct, 0, mSecureContext);
+        }
     }
     else
     {
@@ -174,15 +176,27 @@ bool LowServerSocket::OnEvents(short events)
             mLow->reset_accepts = true;
         }
         if (fd >= 0)
-            socket = new  LowSocket(mLow, fd, NULL, mAcceptCallID,
+        {
+            LowHTTPDirect *direct = NULL;
+            if (mIsHTTP)
+            {
+                direct = new  LowHTTPDirect(mLow, true);
+                if (!direct)
+                {
+                    // error
+                    return true;
+                }
+            }
+
+            socket = new LowSocket(mLow, fd, NULL, mAcceptCallID,
                                              direct, 0, mSecureContext);
+        }
     }
     if (!socket)
     {
         // error
         if (fd >= 0)
             close(fd);
-        delete direct;
     }
 
     return true;

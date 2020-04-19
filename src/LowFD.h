@@ -40,7 +40,7 @@ public:
             mLow->fds.erase(mAdvertisedFD);
         low_web_clear_poll(mLow, this);
 
-        if(mLow->reset_accepts)
+        if(mLow->reset_accepts && mAdvertisedFD >= 0 /* make sure we are in code thread */)
         {
             mLow->reset_accepts = false;
             for(auto iter = mLow->fds.begin(); iter != mLow->fds.end(); iter++)
