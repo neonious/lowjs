@@ -63,7 +63,7 @@ class LowSocket
     void KeepAlive(bool enable, int secs);
     void NoDelay(bool enable);
 
-    bool SetDirect(LowSocketDirect *direct,
+    void SetDirect(LowSocketDirect *direct,
                    int type,
                    bool fromWebThread = false);
     LowSocketDirect *GetDirect(int &type);

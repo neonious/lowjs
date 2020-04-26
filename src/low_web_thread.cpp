@@ -268,7 +268,7 @@ void *low_web_thread_main(void *arg)
     while(true)
     {
 #else
-    FD_SET(low->web_thread_pipe[0], &read_set);
+        FD_SET(low->web_thread_pipe[0], &read_set);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
         while(true)

@@ -49,9 +49,7 @@ duk_ret_t low_http_get_request(duk_context *ctx)
             return 0;
         }
 
-        if(!socket->SetDirect(direct, 0))
-            duk_reference_error(
-              ctx, "file descriptor not available for direct object");
+        socket->SetDirect(direct, 0);
         direct->SetRequestCallID(low_add_stash(ctx, 1));
     }
     else
@@ -80,7 +78,9 @@ duk_ret_t low_http_detach(duk_context *ctx)
 
     int directType;
     LowHTTPDirect *direct = (LowHTTPDirect *)socket->GetDirect(directType);
-    if(!direct || directType != 0)
+    if(!direct)
+        return 1;
+    if(directType != 0)
         duk_reference_error(ctx, "file descriptor is not an HTTP stream");
 
     direct->Detach(true);
@@ -111,7 +111,11 @@ duk_ret_t low_http_read(duk_context *ctx)
     int directType;
     LowHTTPDirect *http = (LowHTTPDirect *)socket->GetDirect(directType);
     if(!http || directType != 0)
-        duk_reference_error(ctx, "file descriptor is not an HTTP stream");
+    {
+        duk_push_error_object(ctx, DUK_ERR_ERROR, "file descriptor is not HTTP stream / HTTP error");
+        low_call_next_tick(low->duk_ctx, 1);
+        return 0;
+    }
 
     http->Read(buf, buf_len, 2);
     return 0;
@@ -143,7 +147,11 @@ duk_ret_t low_http_write(duk_context *ctx)
     int directType;
     LowHTTPDirect *http = (LowHTTPDirect *)socket->GetDirect(directType);
     if(!http || directType != 0)
-        duk_reference_error(ctx, "file descriptor is not an HTTP stream");
+    {
+        duk_push_error_object(ctx, DUK_ERR_ERROR, "file descriptor is not HTTP stream / HTTP error");
+        low_call_next_tick(low->duk_ctx, 1);
+        return 0;
+    }
 
     http->Write(buf, buf_len, 1, 2);
     return 0;
@@ -173,7 +181,11 @@ duk_ret_t low_http_write_head(duk_context *ctx)
     int directType;
     LowHTTPDirect *http = (LowHTTPDirect *)socket->GetDirect(directType);
     if(!http || directType != 0)
-        duk_reference_error(ctx, "file descriptor is not an HTTP stream");
+    {
+        duk_push_error_object(ctx, DUK_ERR_ERROR, "file descriptor is not HTTP stream / HTTP error");
+        low_call_next_tick(low->duk_ctx, 1);
+        return 0;
+    }
 
     http->WriteHeaders(headers, 1, len, isChunked);
     return 0;

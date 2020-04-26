@@ -11,6 +11,7 @@
 
 #include <errno.h>
 
+
 void add_stats(int index, bool add);
 
 
@@ -141,9 +142,9 @@ void LowHTTPDirect::Detach(bool pushRemainingRead)
     {
         mSocket->SetDirect(NULL, 0);
         mSocket = NULL;
-    }
 
-    low_loop_set_callback(mLow, this);
+        low_loop_set_callback(mLow, this);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -188,7 +189,7 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
     else
         pthread_mutex_unlock(&mMutex);
 
-    if(mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed ||
+    if(mReadPos || ((mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed) && !mIsServer) ||
        mReadError || mHTTPError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
@@ -236,11 +237,11 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
                     low_free(param);
                 }
 
-                if(!mClosed && mWriteDone && !mWriteBufferCount && !mIsServer)
+                if(!mIsServer && !mClosed && mWriteDone && !mWriteBufferCount)
                     Detach();
+
                 duk_push_boolean(mLow->duk_ctx,
-                                    !mClosed && mWriteDone &&
-                                    !mWriteBufferCount);
+                    !mIsServer && !mClosed && mWriteDone && !mWriteBufferCount);
                 low_call_next_tick(mLow->duk_ctx, 5);
             }
             else
@@ -384,20 +385,6 @@ void LowHTTPDirect::Write(unsigned char *data,
             mBytesWritten = 0;
             low_call_next_tick(mLow->duk_ctx, 2);
         }
-
-        if(!mWriteBufferCount && mWriteDone) // we need to recheck b/c of duk_call
-        {
-            if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
-            {
-                if(!mShutdown && mSocket)
-                {
-                    mSocket->Shutdown();
-                    mShutdown = true;
-                }
-            }
-            else if(mIsServer && mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
-                Init();
-        }
     }
     else
     {
@@ -442,6 +429,19 @@ void LowHTTPDirect::DoWrite()
             mWriteBuffers[0].iov_len -= size;
         }
     }
+    if(!mWriteBufferCount && mWriteDone) // we need to recheck b/c of duk_call
+    {
+        if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
+        {
+            if(!mShutdown && mSocket)
+            {
+                mSocket->Shutdown();
+                mShutdown = true;
+            }
+        }
+        else if(mIsServer && mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
+            Init();
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -451,7 +451,14 @@ void LowHTTPDirect::DoWrite()
 bool LowHTTPDirect::OnLoop()
 {
     if(!mRequestCallID)
+    {
+        if(mClosed && mSocket)
+        {
+            mSocket->SetDirect(NULL, 0);
+            mSocket = NULL;
+        }
         return mSocket ? true : false;
+    }
 
     if(!mIsRequest && mParamFirst && mParamFirst->type == LOWHTTPDIRECT_PARAMDATA_HEADER && mAtTrailer)
     {
@@ -520,7 +527,8 @@ bool LowHTTPDirect::OnLoop()
     if(!mIsRequest)
         return mSocket ? true : false;
 
-    if(mReadCallID && (mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed))
+    if(mReadCallID && (mReadPos || ((mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed) && !mIsServer) ||
+       (mSocket && mReadError) || mHTTPError))
     {
         pthread_mutex_lock(&mMutex);
 
@@ -590,20 +598,18 @@ bool LowHTTPDirect::OnLoop()
 
                     low_free(param);
                 }
-
-                if(!mClosed && mWriteDone && !mWriteBufferCount && !mIsServer)
+                    
+                if(!mIsServer && !mClosed && mWriteDone && !mWriteBufferCount)
                     Detach();
 
                 duk_push_boolean(mLow->duk_ctx,
-                                    !mClosed && mWriteDone &&
-                                    !mWriteBufferCount);
+                    !mIsServer && !mClosed && mWriteDone && !mWriteBufferCount);
                 duk_call(mLow->duk_ctx, 5);
             }
             else
                 duk_call(mLow->duk_ctx, 3);
         }
     }
-
     if(!mWriteBufferCount || (mSocket && mWriteError))
     {
         if(mWriteCallID)
@@ -630,20 +636,6 @@ bool LowHTTPDirect::OnLoop()
 
                 duk_call(mLow->duk_ctx, 2);
             }
-        }
-        if(!mWriteBufferCount &&
-           mWriteDone) // we need to recheck b/c of duk_call
-        {
-            if(!mWriteChunkedEncoding && (mWriteLen < 0 || mWritePos != mWriteLen))
-            {
-                if(!mShutdown && mSocket)
-                {
-                    mSocket->Shutdown();
-                    mShutdown = true;
-                }
-            }
-            else if(mIsServer && mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE)
-                Init();
         }
     }
 
@@ -787,7 +779,6 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
 
             memcpy(mReadData + mReadPos, data, size);
             mReadPos += size;
-            pthread_mutex_unlock(&mMutex);
 
             mDataLen += size;
             data += size;
@@ -807,6 +798,7 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                         Init();
                 }
             }
+            pthread_mutex_unlock(&mMutex);
             setCallback = true;
         }
         else if(mParamStart == mParamPos &&
@@ -922,9 +914,11 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
 
                     if(mAtTrailer)
                     {
+                        pthread_mutex_lock(&mMutex);
                         mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
                         if(mIsServer && mWriteDone && !mWriteBufferCount)
                             Init();
+                        pthread_mutex_unlock(&mMutex);
                     }
                     else
                     {
@@ -942,9 +936,11 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
                             mPhase = LOWHTTPDIRECT_PHASE_BODY;
                         else
                         {
+                            pthread_mutex_lock(&mMutex);
                             mPhase = LOWHTTPDIRECT_PHASE_SENDING_RESPONSE;
                             if(mIsServer && mWriteDone && !mWriteBufferCount)
                                 Init();
+                            pthread_mutex_unlock(&mMutex);
                         }
                     }
                     setCallback = true;
@@ -988,14 +984,14 @@ bool LowHTTPDirect::SocketData(unsigned char *data, int len, bool inLoop)
     pthread_mutex_unlock(&mLow->ref_mutex);
     if(mRequestCallID && setCallback && !inLoop)
         low_loop_set_callback(mLow, this);
+
     return !mRemainingRead;
 
 err:
     mHTTPError = true;
 done:
     mClosed = true;
-    if(mRequestCallID)
-        low_loop_set_callback(mLow, this);
+    low_loop_set_callback(mLow, this);
 
     return false;
 }

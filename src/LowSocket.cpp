@@ -614,13 +614,8 @@ void LowSocket::NoDelay(bool enable)
 //  LowSocket::SetDirect
 // -----------------------------------------------------------------------------
 
-bool LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
+void LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
 {
-    if(direct && (mDirect || !mConnected || mReadData || mWriteData))
-        return false;
-    if(!direct && !mDirect)
-        return false;
-
     if(!direct && mDirect)
     {
         if(!fromWebThread)
@@ -644,8 +639,6 @@ bool LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
                       : (POLLIN | (mTLSContext ? POLLOUT : 0) |
                          (!mConnected || mDirectWriteEnabled ? POLLOUT : 0)));
     }
-
-    return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -1018,7 +1011,7 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
     }
     else if(mConnected)
     {
-        if(onStash)
+       if(onStash)
             low_push_stash(ctx, callIndex, mType == LOWSOCKET_TYPE_CONNECTED);
         else
             duk_dup(ctx, callIndex);
