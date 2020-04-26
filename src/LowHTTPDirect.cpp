@@ -189,8 +189,8 @@ void LowHTTPDirect::Read(unsigned char *data, int len, int callIndex)
     else
         pthread_mutex_unlock(&mMutex);
 
-    if(mReadPos || ((mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed) && !mIsServer) ||
-       mReadError || mHTTPError)
+    if(mReadPos || (mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE && !mIsServer) ||
+       mReadError || mClosed || mHTTPError)
     {
         duk_dup(mLow->duk_ctx, callIndex);
         if(mReadPos || mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed)
@@ -527,8 +527,8 @@ bool LowHTTPDirect::OnLoop()
     if(!mIsRequest)
         return mSocket ? true : false;
 
-    if(mReadCallID && (mReadPos || ((mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE || mClosed) && !mIsServer) ||
-       (mSocket && mReadError) || mHTTPError))
+    if(mReadCallID && (mReadPos || (mPhase == LOWHTTPDIRECT_PHASE_SENDING_RESPONSE && !mIsServer) ||
+       (mSocket && mReadError) || mClosed || mHTTPError))
     {
         pthread_mutex_lock(&mMutex);
 
