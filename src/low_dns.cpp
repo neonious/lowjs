@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+
 // -----------------------------------------------------------------------------
 //  low_dns_lookup
 // -----------------------------------------------------------------------------
@@ -53,6 +54,7 @@ duk_ret_t low_dns_lookup(duk_context *ctx)
     return 0;
 }
 
+
 // -----------------------------------------------------------------------------
 //  low_dns_lookup_service
 // -----------------------------------------------------------------------------
@@ -68,6 +70,7 @@ duk_ret_t low_dns_lookup_service(duk_context *ctx)
 
     return 0;
 }
+
 
 // -----------------------------------------------------------------------------
 //  low_dns_new_resolver
@@ -96,6 +99,7 @@ duk_ret_t low_dns_new_resolver(duk_context *ctx)
     return 1;
 }
 
+
 // -----------------------------------------------------------------------------
 //  low_dns_resolver_cancel
 // -----------------------------------------------------------------------------
@@ -119,6 +123,7 @@ duk_ret_t low_dns_resolver_cancel(duk_context *ctx)
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
+
 
 // -----------------------------------------------------------------------------
 //  low_dns_resolver_get_servers
@@ -214,6 +219,7 @@ duk_ret_t low_dns_resolver_get_servers(duk_context *ctx)
     return 1;
 }
 
+
 // -----------------------------------------------------------------------------
 //  low_dns_resolver_set_servers
 // -----------------------------------------------------------------------------
@@ -294,6 +300,7 @@ duk_ret_t low_dns_resolver_set_servers(duk_context *ctx)
     return 0;
 }
 
+
 // -----------------------------------------------------------------------------
 //  low_dns_resolver_resolve
 // -----------------------------------------------------------------------------
@@ -335,6 +342,7 @@ duk_ret_t low_dns_resolver_resolve(duk_context *ctx)
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
+
 
 // -----------------------------------------------------------------------------
 //  low_dns_resolver_gethostbyaddr
@@ -382,6 +390,7 @@ duk_ret_t low_dns_resolver_gethostbyaddr(duk_context *ctx)
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
     return 0;
 }
+
 
 #if LOW_INCLUDE_CARES_RESOLVER
 

@@ -19,6 +19,11 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#if LOW_ESP32_LWIP_SPECIALITIES
+void data_modified(char *filename);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+
 // -----------------------------------------------------------------------------
 //  LowFile::LowFile
 // -----------------------------------------------------------------------------
@@ -67,7 +72,13 @@ LowFile::~LowFile()
     low_data_clear_callback(mLow, this);
 
     if(FD() >= 0)
+    {
         close(FD());
+#if LOW_ESP32_LWIP_SPECIALITIES
+        if(mPath)
+            data_modified(mPath);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+    }
     if(mPath)
         low_free(mPath);
     if(mCallID)
@@ -242,11 +253,16 @@ bool LowFile::OnData()
     {
         case LOWFILE_PHASE_OPENING:
             SetFD(open(mPath, mFlags, 0666));
-            mError = FD() < 0 ? errno : 0;
-            mSyscall = "open";
-
+#if LOW_ESP32_LWIP_SPECIALITIES
+            if(mFlags & O_CREAT)
+                data_modified(mPath);
+#else
             low_free(mPath);
             mPath = NULL;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+            mError = FD() < 0 ? errno : 0;
+            mSyscall = "open";
 
             mDataDone = true;
             low_loop_set_callback(mLow, this);
@@ -313,6 +329,11 @@ bool LowFile::OnData()
             {
                 mError = close(FD()) < 0 ? errno : 0;
                 mSyscall = "close";
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+                if(mPath)
+                    data_modified(mPath);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             }
             SetFD(-1);
 

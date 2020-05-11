@@ -15,9 +15,6 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
-
-#define O_COMPRESSED      0x4000000
-#define O_COMPRESS        0x8000000
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
@@ -43,22 +40,13 @@ duk_ret_t low_fs_open(duk_context *ctx)
             iflags = O_WRONLY | O_CREAT | O_TRUNC;
 
         for(int i = 1; flags[i]; i++)
-        {
-#if LOW_ESP32_LWIP_SPECIALITIES
-            if(flags[0] == 'r' && flags[i] == 'c')
-                iflags |= O_COMPRESSED;
-            if(flags[0] == 'w' && flags[i] == 'c')
-                iflags |= O_COMPRESS;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             if(flags[i] == '+')
                 iflags = (iflags & ~(O_RDONLY | O_WRONLY)) | O_RDWR;
-        }
     }
     else
         iflags = duk_require_int(ctx, 1);
 #if LOW_ESP32_LWIP_SPECIALITIES
-    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
-                  O_COMPRESS | O_COMPRESSED))
+    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC))
         duk_range_error(ctx, "flags not supported");
 #else
     if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
@@ -67,9 +55,7 @@ duk_ret_t low_fs_open(duk_context *ctx)
     iflags |= O_CLOEXEC; // on spawn, close file
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
-    LowFile *file =
-      new(ctx) LowFile(low, path, iflags, duk_is_undefined(ctx, 3) ? 2 : 3);
-
+    new(ctx) LowFile(low, path, iflags, duk_is_undefined(ctx, 3) ? 2 : 3);
     return 0;
 }
 
@@ -95,22 +81,13 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
             iflags = O_WRONLY | O_CREAT | O_TRUNC;
 
         for(int i = 1; flags[i]; i++)
-        {
-#if LOW_ESP32_LWIP_SPECIALITIES
-            if(flags[0] == 'r' && flags[i] == 'c')
-                iflags |= O_COMPRESSED;
-            if(flags[0] == 'w' && flags[i] == 'c')
-                iflags |= O_COMPRESS;
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
             if(flags[i] == '+')
                 iflags = (iflags & ~(O_RDONLY | O_WRONLY)) | O_RDWR;
-        }
     }
     else
         iflags = duk_require_int(ctx, 1);
 #if LOW_ESP32_LWIP_SPECIALITIES
-    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |
-                  O_COMPRESS | O_COMPRESSED))
+    if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC))
         duk_range_error(ctx, "flags not supported");
 #else
     if(iflags & ~(O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC |

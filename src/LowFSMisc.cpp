@@ -332,7 +332,6 @@ void LowFSMisc::Run(int callIndex)
 //  LowFSMisc::ReadDir
 // -----------------------------------------------------------------------------
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
 void LowFSMisc::ReadDir()
 {
     DIR *dir = opendir(mOldName);
@@ -366,16 +365,15 @@ void LowFSMisc::ReadDir()
     }
     closedir(dir);
 }
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 // -----------------------------------------------------------------------------
 //  LowFSMisc::OnData
 // -----------------------------------------------------------------------------
 
 #if LOW_ESP32_LWIP_SPECIALITIES
-int data_unlink(char *filename, bool recursive, int isDir);
+int data_unlink(char *filename, bool recursive, int isDir, bool recursiveCall = false);
 int data_mkdir(char *filename, bool recursive);
-int data_rename(char *file_old, char *file_new, bool copy, bool overwrite);
+int data_rename(char *file_old, char *file_new, bool copy, bool overwrite, bool recursiveCall = false);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 bool LowFSMisc::OnData()
