@@ -83,7 +83,11 @@ const slashedProtocol = {
     'gopher': true,
     'gopher:': true,
     'file': true,
-    'file:': true
+    'file:': true,
+    'ws': true,
+    'ws:': true,
+    'wss': true,
+    'wss:': true
 };
 const querystring = require('querystring');
 const {
@@ -948,6 +952,8 @@ function URL(url, urlIfBase) {
         this.password = '';
     if(!this.hash)
         this.hash = '';
+    if(!this.pathname)
+        this.pathname = '';
 }
 URL.prototype = Object.create(Url.prototype);
 
