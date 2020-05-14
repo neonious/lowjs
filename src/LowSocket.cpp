@@ -23,13 +23,14 @@
 #define ioctl lwip_ioctl
 
 #include "esp_log.h"
-#define TAG "LowSocket"
 #else
-#define ESP_LOGE(x, x)  do {} while(0)
+#define ESP_LOGE(x, y)  do {} while(0)
 
 #include <netinet/tcp.h>
 #include <sys/uio.h>
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+#define TAG "LowSocket"
 
 void add_stats(int index, bool add);
 
