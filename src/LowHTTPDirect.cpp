@@ -141,8 +141,6 @@ void LowHTTPDirect::Detach(bool pushRemainingRead)
     if(mSocket)
     {
         mSocket->SetDirect(NULL, 0);
-        mSocket = NULL;
-
         low_loop_set_callback(mLow, this);
     }
 }
@@ -453,10 +451,7 @@ bool LowHTTPDirect::OnLoop()
     if(!mRequestCallID)
     {
         if(mClosed && mSocket)
-        {
             mSocket->SetDirect(NULL, 0);
-            mSocket = NULL;
-        }
         return mSocket ? true : false;
     }
 
@@ -581,6 +576,8 @@ bool LowHTTPDirect::OnLoop()
                     if(!mParamFirst)
                         mParamLast = NULL;
                     pthread_mutex_unlock(&mMutex);
+                    if(!param)
+                        break;
 
                     int pos = 0;
                     while(param->data[pos])

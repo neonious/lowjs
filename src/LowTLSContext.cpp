@@ -9,6 +9,9 @@
 
 #include "mbedtls/debug.h"
 
+void add_stats(int index, bool add);
+
+
 // -----------------------------------------------------------------------------
 //  LowTLSContext::LowTLSContext
 // -----------------------------------------------------------------------------
@@ -37,6 +40,10 @@ LowTLSContext::LowTLSContext(low_t *low, const char *cert, int certLen,
     : mLow(low), mRef(1), mIndex(-1), mIsOK(false), mHasCert(false), mHasCA(false)
 {
     int ret;
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(4, true);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
     if(!cert || !key)
         cert = key = NULL;
@@ -106,12 +113,17 @@ LowTLSContext::LowTLSContext(low_t *low, const char *cert, int certLen,
     mIsOK = true;
 }
 
+
 // -----------------------------------------------------------------------------
 //  LowTLSContext::~LowTLSContext
 // -----------------------------------------------------------------------------
 
 LowTLSContext::~LowTLSContext()
 {
+#if LOW_ESP32_LWIP_SPECIALITIES
+    add_stats(4, false);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     if(mIndex >= 0)
         mLow->tlsContexts[mIndex] = NULL;
 
@@ -127,6 +139,7 @@ LowTLSContext::~LowTLSContext()
     mbedtls_entropy_free(&entropy);
 }
 
+
 // -----------------------------------------------------------------------------
 //  LowTLSContext::AddRef
 // -----------------------------------------------------------------------------
@@ -137,6 +150,7 @@ void LowTLSContext::AddRef()
     mRef++;
     pthread_mutex_unlock(&mLow->ref_mutex);
 }
+
 
 // -----------------------------------------------------------------------------
 //  LowTLSContext::DecRef

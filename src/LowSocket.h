@@ -85,7 +85,7 @@ class LowSocket
     bool InitSocket(struct sockaddr *remoteAddr);
     bool CallAcceptConnect(int callIndex, bool onStash);
 
-    int DoRead();
+    int DoRead(unsigned char *data, int len);
     int DoWrite();
 
   private:
@@ -102,7 +102,7 @@ class LowSocket
       mDestroyed;
     const char *mAcceptConnectSyscall;
 
-    unsigned char *mReadData, *mWriteData;
+    unsigned char *mReadData, *mDirectReadData, *mWriteData;
     int mReadLen, mReadCallID, mReadPos, mReadErrno;
     int mWriteLen, mWriteCallID, mWritePos, mWriteErrno;
     bool mReadErrnoSSL, mWriteErrnoSSL;
@@ -115,6 +115,8 @@ class LowSocket
     mbedtls_ssl_context *mSSL;
     char *mHost;
     bool mSSLWantRead, mSSLWantWrite;
+
+    bool mIsWebThreadOnly;
 };
 
 #endif /* __LOWSOCKET_H__ */

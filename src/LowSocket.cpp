@@ -21,7 +21,12 @@
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include <lwip/sockets.h>
 #define ioctl lwip_ioctl
+
+#include "esp_log.h"
+#define TAG "LowSocket"
 #else
+#define ESP_LOGE(x, x)  do {} while(0)
+
 #include <netinet/tcp.h>
 #include <sys/uio.h>
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -38,7 +43,7 @@ LowSocket::LowSocket(low_t *low, int fd) :
     mType(LOWSOCKET_TYPE_STDINOUT),
     mAcceptConnectCallID(0), mCloseCallID(0), mAcceptConnectError(false),
     mConnected(true), mClosed(false), mDestroyed(false),
-    mReadData(NULL), mWriteData(NULL), mReadCallID(0),
+    mReadData(NULL), mDirectReadData(NULL), mWriteData(NULL), mReadCallID(0),
     mWriteCallID(0),
     mDirect(nullptr),
     mDirectReadEnabled(false), mDirectWriteEnabled(false), mTLSContext(NULL),
@@ -47,6 +52,8 @@ LowSocket::LowSocket(low_t *low, int fd) :
 #if LOW_ESP32_LWIP_SPECIALITIES
     add_stats(0, true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+    mIsWebThreadOnly = false;
 
     InitSocket(NULL);
     AdvertiseFD();
@@ -68,7 +75,7 @@ LowSocket::LowSocket(low_t *low,
     LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_ACCEPTED),
     mAcceptConnectCallID(acceptCallID), mCloseCallID(0),  mAcceptConnectError(false),
     mConnected(false), mClosed(false),
-    mDestroyed(false), mReadData(NULL), mWriteData(NULL), mReadCallID(0), mWriteCallID(0),
+    mDestroyed(false), mReadData(NULL), mDirectReadData(NULL), mWriteData(NULL), mReadCallID(0), mWriteCallID(0),
     mDirect(direct), mDirectType(directType),
     mDirectReadEnabled(direct != NULL), mDirectWriteEnabled(direct != NULL),
     mTLSContext(tlsContext), mSSL(NULL), mHost(NULL)
@@ -83,6 +90,7 @@ LowSocket::LowSocket(low_t *low,
     if(mDirect)
         mDirect->SetSocket(this);
 
+    mIsWebThreadOnly = mAcceptConnectCallID == 0;
     if(!InitSocket(remoteAddr))
     {
         if(mAcceptConnectCallID)
@@ -123,7 +131,7 @@ LowSocket::LowSocket(low_t *low,
     LowLoopCallback(low), mLow(low), mType(LOWSOCKET_TYPE_CONNECTED),
     mAcceptConnectCallID(0), mCloseCallID(0), mAcceptConnectError(false),
     mConnected(false), mClosed(false), mDestroyed(false),
-    mReadData(NULL), mWriteData(NULL), mReadCallID(0),
+    mReadData(NULL), mDirectReadData(NULL), mWriteData(NULL), mReadCallID(0),
     mWriteCallID(0),
     mDirect(direct),
     mDirectType(directType), mDirectReadEnabled(direct != NULL),
@@ -133,6 +141,7 @@ LowSocket::LowSocket(low_t *low,
     add_stats(0, true);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
+    mIsWebThreadOnly = true;
     mFDClearOnReset = clearOnReset;
     mLoopClearOnReset = clearOnReset;
 
@@ -156,20 +165,30 @@ LowSocket::~LowSocket()
 
     low_free(mHost);
     if(mDirect)
-    {
         mDirect->SetSocket(NULL);
-        low_free(mReadData);
-    }
+    low_free(mDirectReadData);
 
     if(mAcceptConnectCallID)
     {
-        if(mType == LOWSOCKET_TYPE_CONNECTED)
+        if(mIsWebThreadOnly)
+            ESP_LOGE(TAG, "removing stash 1 in web thread only socket!");
+        else if(mType == LOWSOCKET_TYPE_CONNECTED)
             low_remove_stash(mLow->duk_ctx, mAcceptConnectCallID);
     }
     if(mReadCallID)
-        low_remove_stash(mLow->duk_ctx, mReadCallID);
+    {
+        if(mIsWebThreadOnly)
+            ESP_LOGE(TAG, "removing stash 2 in web thread only socket!");
+        else
+            low_remove_stash(mLow->duk_ctx, mReadCallID);
+    }
     if(mWriteCallID)
-        low_remove_stash(mLow->duk_ctx, mWriteCallID);
+    {
+        if(mIsWebThreadOnly)
+            ESP_LOGE(TAG, "removing stash 3 in web thread only socket!");
+        else
+            low_remove_stash(mLow->duk_ctx, mWriteCallID);
+    }
 
     if(FD() >= 0 && mType != LOWSOCKET_TYPE_STDINOUT)
         close(FD());
@@ -299,6 +318,7 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
         syscall = "connect";
         return false;
     }
+    mIsWebThreadOnly = callIndex == -1;
 
     SetFD(socket(remoteAddr->sa_family, SOCK_STREAM, 0));
     if(FD() < 0)
@@ -307,7 +327,6 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
         syscall = "socket";
         return false;
     }
-    AdvertiseFD();
 
     if(InitSocket(remoteAddr))
     {
@@ -341,7 +360,10 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
             if(callIndex == -1)
                 return true;
             else
+            {
+                AdvertiseFD();
                 return CallAcceptConnect(callIndex, false);
+            }
         }
         else
         {
@@ -382,7 +404,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
 
     // If TLS context is used, always use other thread to read
     bool tryNow = !mTLSContext && mConnected;
-    len = mClosed ? 0 : (tryNow ? DoRead() : -1);
+    len = mClosed ? 0 : (tryNow ? DoRead(mReadData, mReadLen) : -1);
     if(len >= 0 ||
        (tryNow && len == -1 && ((mReadErrno != EAGAIN && mReadErrno != EINTR) || mReadErrnoSSL)))
     {
@@ -452,7 +474,9 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
         duk_dup(mLow->duk_ctx, callIndex);
         duk_push_null(mLow->duk_ctx);
         duk_push_int(mLow->duk_ctx, len);
-        low_call_next_tick(mLow->duk_ctx, 2);
+        // Do this directly, simply so console.log in a loop works
+        // Our streams interface can handle this well
+        duk_call(mLow->duk_ctx, 2);
         return;
     }
 
@@ -554,12 +578,16 @@ bool LowSocket::Close(int callIndex)
         return true;
 
     if(callIndex != -1)
-        mCloseCallID = low_add_stash(mLow->duk_ctx, callIndex);
+    {
+        if(mIsWebThreadOnly)
+            ESP_LOGE(TAG, "set close call stash in web only socket");
+        else
+            mCloseCallID = low_add_stash(mLow->duk_ctx, callIndex);
+    }
 
     mDestroyed = true;
     if(mCloseCallID)
         low_loop_set_callback(mLow, this);
-
     // for direct
     else
         low_web_mark_delete(mLow, this);
@@ -616,21 +644,39 @@ void LowSocket::NoDelay(bool enable)
 
 void LowSocket::SetDirect(LowSocketDirect *direct, int type, bool fromWebThread)
 {
+    if(!fromWebThread)
+        low_web_clear_poll(mLow, this);
     if(!direct && mDirect)
     {
-        if(!fromWebThread)
-            low_web_clear_poll(mLow, this);
-        low_free(mReadData);
-        mReadData = NULL;
+        low_free(mDirectReadData);
+        mDirectReadData = NULL;
+    }
+    // If direct is set, either there is no mReadCallID or mWriteCallID or it
+    // is called from code thread
+    else if(direct && !mDirect)
+    {
+        if(mReadCallID)
+        {
+            low_remove_stash(mLow->duk_ctx, mReadCallID);
+            mReadCallID = 0;
+        }
+        if(mWriteCallID)
+        {
+            low_remove_stash(mLow->duk_ctx, mWriteCallID);
+            mWriteCallID = 0;
+        }
+        mReadData = mWriteData = NULL;
     }
 
+    if(!direct)
+        mDirect->SetSocket(NULL);
     mDirect = direct;
     mDirectType = type;
     if(mDirect)
     {
+        mDirect->SetSocket(this);
         mDirectReadEnabled = true;
 
-        mDirect->SetSocket(this);
         if(!mDestroyed)
             low_web_set_poll_events(
               mLow,
@@ -679,11 +725,16 @@ void LowSocket::TriggerDirect(int trigger)
 
 bool LowSocket::OnEvents(short events)
 {
-    if((mDestroyed || mAcceptConnectError) && !mCloseCallID)
+    if(mDestroyed || mAcceptConnectError)
     {
-        // We will be destroyed on other ways ASAP
-        low_web_set_poll_events(mLow, this, 0);
-        return true;
+        if(mIsWebThreadOnly)
+            return false;
+        else
+        {
+            // We will be destroyed on other ways ASAP
+            low_web_set_poll_events(mLow, this, 0);
+            return true;
+        }
     }
     if(mClosed)
     {
@@ -726,7 +777,12 @@ bool LowSocket::OnEvents(short events)
                     low_loop_set_callback(mLow, this);
                 }
                 else
-                    return false;
+                {
+                    if(mIsWebThreadOnly)
+                        return false;
+                    else
+                        ESP_LOGE(TAG, "no way to delete HTTPS failed web only socket");
+                }
 
                 return true;
             }
@@ -758,7 +814,12 @@ bool LowSocket::OnEvents(short events)
                 low_loop_set_callback(mLow, this);
             }
             else
-                return false;
+            {
+                if(mIsWebThreadOnly)
+                    return false;
+                else
+                    ESP_LOGE(TAG, "no way to delete not connected web only socket");
+            }
 
             return true;
         }
@@ -775,18 +836,15 @@ bool LowSocket::OnEvents(short events)
         if(((events & (POLLIN | POLLHUP | POLLERR)) || mTLSContext) &&
             mDirectReadEnabled)
         {
-            if(!mReadData)
-            {
-                mReadData = (unsigned char *)low_alloc(1024);
-                mReadLen = 1024;
-            }
-            if(mReadData)
+            if(!mDirectReadData)
+                mDirectReadData = (unsigned char *)low_alloc(1024);
+            if(mDirectReadData)
             {
                 mDirectReadEnabled = false; // no race conditions
                 while(true) // required with SSL b/c Read might not always
                             // be retriggered if SSL still has data
                 {
-                    int len = DoRead();
+                    int len = DoRead(mDirectReadData, 1024);
                     if(len < 0 && (mReadErrno == EAGAIN || mReadErrno == EINTR) && !mReadErrnoSSL)
                     {
                         mDirectReadEnabled = true;
@@ -795,7 +853,7 @@ bool LowSocket::OnEvents(short events)
 
                     if(len == 0)
                         mClosed = true;
-                    if(!mDirect->OnSocketData(mReadData, len))
+                    if(!mDirect->OnSocketData(mDirectReadData, len))
                         break;
 
                     if(!mTLSContext)
@@ -824,7 +882,7 @@ bool LowSocket::OnEvents(short events)
         if((events & (POLLIN | POLLHUP | POLLERR)) && mReadData &&
             !mReadPos)
         {
-            int len = DoRead();
+            int len = DoRead(mReadData, mReadLen);
             if(len == 0)
                 mClosed = true;
 
@@ -873,7 +931,8 @@ bool LowSocket::OnLoop()
 
     if(mAcceptConnectCallID)
     {
-        AdvertiseFD();
+        if(!mAcceptConnectError)
+            AdvertiseFD();
         if(!CallAcceptConnect(mAcceptConnectCallID, true))
         {
             if(mCloseCallID)
@@ -901,10 +960,10 @@ bool LowSocket::OnLoop()
 
     if(mReadData && (mClosed || mReadPos))
     {
-        mReadData = NULL;
-
         int callID = mReadCallID;
         mReadCallID = 0;
+
+        mReadData = NULL;
 
         low_push_stash(ctx, callID, true);
         if(mReadPos >= 0)
@@ -921,10 +980,10 @@ bool LowSocket::OnLoop()
     }
     if(mWriteData && mWritePos)
     {
-        mWriteData = NULL;
-
         int callID = mWriteCallID;
         mWriteCallID = 0;
+
+        mWriteData = NULL;
 
         low_push_stash(ctx, callID, true);
         if(mWritePos > 0)
@@ -1045,17 +1104,17 @@ bool LowSocket::CallAcceptConnect(int callIndex, bool onStash)
 //  LowSocket::DoRead
 // -----------------------------------------------------------------------------
 
-int LowSocket::DoRead()
+int LowSocket::DoRead(unsigned char *data, int readLen)
 {
     int len = 0;
-    while(len != mReadLen)
+    while(len != readLen)
     {
         int size = mTLSContext
-                     ? mbedtls_ssl_read(mSSL, mReadData + len, mReadLen - len)
+                     ? mbedtls_ssl_read(mSSL, data + len, readLen - len)
 #if LOW_ESP32_LWIP_SPECIALITIES
-                     : lwip_read(FD(), mReadData + len, mReadLen - len);
+                     : lwip_read(FD(), data + len, readLen - len);
 #else
-                     : read(FD(), mReadData + len, mReadLen - len);
+                     : read(FD(), data + len, readLen - len);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         if(size < 0)
         {
