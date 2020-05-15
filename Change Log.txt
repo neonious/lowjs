@@ -5,6 +5,27 @@
 
 To flash the newest version of low.js, use lowsync version >= 1.4.0!
 
+If you update from Version 20200514 / Version 1.4.9 or below to Version
+20200515 / Version 1.5.0 or above, please note that YOUR DATA WILL BE DESTROYED
+and the device will return to factory state after the update.
+The reason for this is a change of the internal file system from SPIFFS to ARM
+LittleFS, resulting in a 8x speed increase on file operations. Please download
+all your data before updating.
+
+
+Version 20200515 / Version 1.5.0
+
+- Support for the Ethernet PHY LAN8170 in addition to the existing LAN8270
+  support, as used in upcoming ESP32-EROVER-EVB board
+- If there is no space for a read/write file system (happens with Custom
+  firmware), file open returns ENOSPC error code, lowsync returns 507 HTTP
+  code, also file open now returns correct error message in other cases
+- Switch file system from SPIFFS to LittleFS for a 8x (!) speed increase
+- url.parse updated to newest Node.JS behaviour to support ws links better
+- Added CAN error message "CAN_BUS_OFF", to be returned by can.transmit
+- Updated ESP-IDF and DukTape to current master
+- Fixed crash
+
 
 Version 20200409 / Version 1.4.9
 
