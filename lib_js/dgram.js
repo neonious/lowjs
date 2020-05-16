@@ -142,16 +142,18 @@ class Socket extends events.EventEmitter {
             throw new Error('Socket already bound/binding.');
         this._tryConnect = true;
 
-        let port, address, exclusive;
+        let address;
         if (port !== null && typeof port === 'object') {
             if(port.fd !== undefined)
                 throw new Error('bind to fd not supported with low.js, as bad pactrice');
 
             address = port.address || '';
-            port = port.port | 0;
-        } else
+            port = port.port || 0;
+        } else {
             address = typeof address_ === 'function' ? '' : address_;
-        // 'exclusive' argument not used, we do not support cluster with low.js by design
+            port = port || 0; //If it is undefined, default to zero which means a random port
+            // 'exclusive' argument not used, we do not support cluster with low.js by design
+        }
 
         let family = !address ? 0 : native.isIP(address);
         if (!address || family)
