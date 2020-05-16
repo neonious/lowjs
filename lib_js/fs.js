@@ -116,6 +116,15 @@ exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(st
 exports.stat = (path, cb) => native.stat(path, (err, stat) => cb(err, new Stats(stat)));
 exports.statSync = (path, cb) => new Stats(native.statSync(path));
 
+exports.existsSync = path => {
+    try {
+        exports.statSync(path);
+        return true;
+    } catch(e) {
+        return false;
+    }
+};
+
 exports.readSync = (fd, buffer, offset, length, position) => {
     let resErr, resBytesRead;
     function res(err, bytesRead) {
