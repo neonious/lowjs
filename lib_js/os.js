@@ -33,7 +33,12 @@ export function homedir() {
 }
 
 export function tmpdir() {
-    return "/";
+    switch(process.platform) {
+        case "linux":
+            return "/tmp";
+        default:
+            return "/";
+    }
 }
 
 export function hostname() {
