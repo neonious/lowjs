@@ -314,6 +314,10 @@ class ServerResponse extends stream.Writable {
         native.httpWriteHead(this.connection._socketFD, headersAsTxt, len, chunked);
     }
 
+    _implicitHeader() {
+        return this.writeHead(this.statusCode);
+    }
+
     setHeader(name, value) {
         if (this.headersSent)
             return;
