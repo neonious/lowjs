@@ -16,9 +16,6 @@ module.exports = {
     rename: native.rename,
     renameSync: native.renameSync,
 
-    rename: native.rename,
-    renameSync: native.renameSync,
-
     access: native.access,
     accessSync: native.accessSync,
 

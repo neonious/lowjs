@@ -102,6 +102,5 @@ module.exports = {
     isWeakSet,
     isRegExp,
     isDate,
-    isTypedArray,
     isModuleNamespaceObject
 };
