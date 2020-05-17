@@ -25,7 +25,7 @@ function toASCII(x) {
     return x;   // todo
 }
 
-const { hexTable } = require('internal/querystring');
+const { hexTable, encodeStr } = require('internal/querystring');
 
 const {
     ERR_INVALID_ARG_TYPE
