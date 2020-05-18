@@ -111,7 +111,7 @@ exports.Stats = Stats;
 
 exports.fstat = (fd, cb) => native.fstat(fd, (err, stat) => cb(err, new Stats(stat)));
 exports.stat = (path, cb) => native.stat(path, (err, stat) => cb(err, new Stats(stat)));
-exports.statSync = (path, cb) => new Stats(native.statSync(path));
+exports.statSync = (path) => new Stats(native.statSync(path));
 
 exports.existsSync = path => {
     try {
