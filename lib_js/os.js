@@ -33,11 +33,10 @@ export function homedir() {
 }
 
 export function tmpdir() {
-    switch(process.platform) {
-        case "linux":
-            return "/tmp";
-        default:
-            return "/";
+    if (process.platform == 'esp32') {
+        return "/";
+    } else {
+        return "/tmp";
     }
 }
 
