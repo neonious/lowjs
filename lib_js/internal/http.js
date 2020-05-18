@@ -349,7 +349,11 @@ class ServerResponse extends stream.Writable {
     }
 
     addTrailers(headers) { }
-    getHeaderNames() { }
+
+    getHeaderNames() {
+        return Object.keys(this._httpHeadersLowerCase);
+    }
+
     setTimeout(msecs, callback) { }
     writeContinue() { }
 
@@ -764,7 +768,7 @@ class ClientRequest extends stream.Writable {
             if (upgrade && this.listenerCount('upgrade')) {
                 let buffer = native.httpDetach(socket._socketFD);
                 socket._socketHTTPWrapped = false;
-    
+
                 if (this.emit('upgrade', message, socket, buffer))
                     return;
             }
