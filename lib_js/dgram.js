@@ -148,7 +148,7 @@ class Socket extends events.EventEmitter {
                 throw new Error('bind to fd not supported with low.js, as bad pactrice');
 
             address = port.address || '';
-            port = port.port || 0;
+            port = port.port | 0;
         } else {
             address = typeof address_ === 'function' ? '' : address_;
             port = port || 0; //If it is undefined, default to zero which means a random port
