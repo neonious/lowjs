@@ -33,7 +33,11 @@ export function homedir() {
 }
 
 export function tmpdir() {
-    return "/";
+    if (process.platform == 'esp32') {
+        return "/";
+    } else {
+        return "/tmp";
+    }
 }
 
 export function hostname() {
