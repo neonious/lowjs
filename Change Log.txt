@@ -13,6 +13,15 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20200525 / Version 1.5.1
+
+- Fixed bug in LittleFS implementation which may result in read/write errors
+- Switched to native ESP-IDF 4.0 SPI Flash implementation for external Flash
+  (sdcard module or neonious one)
+- Implemented fs.existsSync, http._implicitHeader (for express),
+  querystring.encodeStr (for url)
+
+
 Version 20200515 / Version 1.5.0
 
 - Support for the Ethernet PHY LAN8170 in addition to the existing LAN8270
