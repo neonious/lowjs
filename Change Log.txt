@@ -13,6 +13,12 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20200622 / Version 1.5.1.1
+
+only ESP32 version:
+fixed crash on memory full (should exit application instead)
+
+
 Version 20200525 / Version 1.5.1
 
 - Fixed bug in LittleFS implementation which may result in read/write errors
