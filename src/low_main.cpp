@@ -36,8 +36,6 @@
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
-extern bool gAllocFailed;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 
@@ -51,36 +49,12 @@ extern low_system_t g_low_system;
 
 static void *low_duk_alloc(void *udata, duk_size_t size)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
-	// TODO: not so nice..., but working
-	// DukTape does gc on alloc failure, so does low.js...
-    if(gAllocFailed)
-        return NULL;
-
-    void *ptr = low_alloc(size);
-    gAllocFailed = false;
-
-    return ptr;
-#else
     return low_alloc(size);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 }
 
 static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
-	// TODO: not so nice..., but working
-	// DukTape does gc on alloc failure, so does low.js...
-    if(gAllocFailed)
-        return NULL;
-
-    void *ptr2 = low_realloc(ptr, size);
-    gAllocFailed = false;
-
-    return ptr2;
-#else
     return low_realloc(ptr, size);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 }
 
 static void low_duk_free(void *udata, void *ptr)
