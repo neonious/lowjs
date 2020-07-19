@@ -403,6 +403,11 @@ function handleServerConn(server, socket) {
     }
     socket.on('error', handleError);
 
+    socket.on('timeout', () => {
+        socket.destroy();
+    });
+    socket.setTimeout(server.timeout);
+
     native.httpGetRequest(socket._socketFD, (error, data, bytesRead) => {
         if (error) {
             socket.emit('error', error);

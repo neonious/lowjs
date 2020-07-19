@@ -259,6 +259,7 @@ class Server extends net.Server {
             acceptCallback = options;
             options = {};
         }
+        super();
 
         if(acceptCallback)
             this.on('request', acceptCallback);

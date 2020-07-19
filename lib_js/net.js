@@ -106,7 +106,7 @@ class Socket extends stream.Duplex {
                             if (--this._socketServer.connections == 0 && !this._socketServer.listening)
                                 this._socketServer.emit('close');
                             else if(this._socketServer.listening)
-                                native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
+                                native.netConnections(this._socketServer._serverFD, this._socketServer.connections, this._socketServer.maxConnections === undefined ? -1 : this._socketServer.maxConnections);
                         }
                         callback(err);
                     });
@@ -448,6 +448,7 @@ class Server extends events.EventEmitter {
             if (err) {
                 // May happen if TLS connection goes wrong
                 // We do not even have a real socket, yet, so keep this silent
+                native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
                 return;
             }
             if (this.destroyed || (this.maxConnections !== undefined && this.connections >= this.maxConnections)) {
@@ -455,8 +456,10 @@ class Server extends events.EventEmitter {
                     if (err)
                         this.emit('error', err);
                 });
+                native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
                 return;
             }
+            this.connections++;
             native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
 
             let socket = new Socket();
@@ -474,7 +477,7 @@ class Server extends events.EventEmitter {
             socket.remotePort = remotePort;
             socket.uncork();
             socket.ref();
-
+    
             this.emit('connection', socket);
             socket.emit('ready');
         });
