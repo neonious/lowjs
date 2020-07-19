@@ -343,4 +343,5 @@ duk_ret_t low_net_connections(duk_context *ctx)
     LowServerSocket *socket = (LowServerSocket *)iter->second;
 
     socket->Connections(duk_require_int(ctx, 1), duk_require_int(ctx, 2));
+    return 0;
 }
