@@ -174,8 +174,22 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
 
 static duk_ret_t low_process_umask(duk_context *ctx)
 {
-    //Since there is no method to set the umask, we can always return the default
-    duk_push_int(ctx, 0);
+#if LOW_ESP32_LWIP_SPECIALITIES
+    duk_push_int(ctx, 022);
+#else
+    int mode;
+    if(!duk_is_undefined(ctx, 0))
+	mode = umask(duk_require_int(ctx, 0));
+    else
+    {
+        // Race condition possible! Thus depreciated in Nodev14
+	mode = umask(0);
+	umask(mode);
+    }
+
+    duk_push_int(ctx, mode);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
     return 1;
 }
 
@@ -325,7 +339,7 @@ duk_ret_t low_process_info(duk_context *ctx)
     duk_put_prop_string(ctx, 0, "chdir");
     duk_push_c_function(ctx, low_call_next_tick_js, DUK_VARARGS);
     duk_put_prop_string(ctx, 0, "nextTick");
-    duk_push_c_function(ctx, low_process_umask, 0); //Deprecated in node v14
+    duk_push_c_function(ctx, low_process_umask, 1);
     duk_put_prop_string(ctx, 0, "umask");
     //    duk_push_c_function(ctx, low_process_memoryUsage, 0);
     //    duk_put_prop_string(ctx, 0, "memoryUsage");
