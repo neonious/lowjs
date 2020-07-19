@@ -151,7 +151,7 @@ class Socket extends events.EventEmitter {
             port = port.port | 0;
         } else {
             address = typeof address_ === 'function' ? '' : address_;
-            port = port || 0; //If it is undefined, default to zero which means a random port
+            port = port | 0;
             // 'exclusive' argument not used, we do not support cluster with low.js by design
         }
 
