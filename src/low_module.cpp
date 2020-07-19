@@ -883,21 +883,22 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
 
         /* call the function wrapper */
         duk_get_prop_string(ctx, isLib ? -3 : -2, "exports"); /* exports */
+        duk_dup(ctx, -1);
         if(isLib)
         {
-            duk_dup(ctx, -3); /* require */
-            duk_remove(ctx, -4);
+            duk_dup(ctx, -4); /* require */
+            duk_remove(ctx, -5);
         }
         else
-            duk_get_prop_string(ctx, -3, "require"); /* require */
-        duk_dup(ctx, -4);                            /* module */
+            duk_get_prop_string(ctx, -4, "require"); /* require */
+        duk_dup(ctx, -5);                            /* module */
 
         duk_push_string(ctx, path); /* __filename */
         for(len = strlen(path) - 1; len > 0; len--)
             if(path[len] == '/')
                 break;
         duk_push_lstring(ctx, path, len == -1 ? 0 : len); /* __dirname */
-        duk_call(ctx, 5);
+        duk_call_method(ctx, 5);
 
         /* [ ... module result ] */
 
