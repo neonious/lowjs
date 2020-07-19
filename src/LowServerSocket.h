@@ -22,6 +22,9 @@ class LowServerSocket : public LowFD
     void Write(int pos, unsigned char *data, int len, int callIndex) {}
     bool Close(int callIndex);
 
+    void Connections(int count, int max);
+    bool WaitForNotTooManyConnections() { return mWaitForNotTooManyConnections; }
+
   protected:
     virtual bool OnEvents(short events);
 
@@ -32,6 +35,8 @@ class LowServerSocket : public LowFD
     int mFamily, mAcceptCallID;
 
     LowTLSContext *mSecureContext;
+
+    bool mWaitForNotTooManyConnections, mTrackTooManyConnections;
 };
 
 #endif /* __LOWSERVERSOCKET_H__ */

@@ -38,6 +38,7 @@ OBJECTS =							\
 	src/LowFSMisc.o					\
 	src/LowServerSocket.o			\
 	src/LowSocket.o					\
+	src/LowFD.o					\
 	src/LowHTTPDirect.o				\
 	src/LowSignalHandler.o			\
 	src/LowDNSWorker.o				\

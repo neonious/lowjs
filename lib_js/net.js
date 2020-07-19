@@ -105,6 +105,8 @@ class Socket extends stream.Duplex {
                         if (this._socketServer && this._socketServer.connections) {
                             if (--this._socketServer.connections == 0 && !this._socketServer.listening)
                                 this._socketServer.emit('close');
+                            else if(this._socketServer.listening)
+                                native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
                         }
                         callback(err);
                     });
@@ -455,7 +457,7 @@ class Server extends events.EventEmitter {
                 });
                 return;
             }
-            this.connections++;
+            native.netConnections(this._serverFD, this.connections, this.maxConnections === undefined ? -1 : this.maxConnections);
 
             let socket = new Socket();
             socket.readable = true;

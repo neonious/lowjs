@@ -324,3 +324,23 @@ duk_ret_t low_net_shutdown(duk_context *ctx)
     socket->Shutdown(1);
     return 0;
 }
+
+// -----------------------------------------------------------------------------
+//  low_net_connections
+// -----------------------------------------------------------------------------
+
+duk_ret_t low_net_connections(duk_context *ctx)
+{
+    low_t *low = duk_get_low_context(ctx);
+    int fd = duk_require_int(ctx, 0);
+
+    auto iter = low->fds.find(fd);
+    if(iter == low->fds.end())
+        return 0;
+
+    if(iter->second->FDType() != LOWFD_TYPE_SERVER)
+        duk_reference_error(ctx, "file descriptor is not a server");
+    LowServerSocket *socket = (LowServerSocket *)iter->second;
+
+    socket->Connections(duk_require_int(ctx, 1), duk_require_int(ctx, 2));
+}

@@ -58,6 +58,7 @@ duk_function_list_entry g_low_native_methods[] = {
   {"connect", low_net_connect, 6},
   {"setsockopt", low_net_setsockopt, 5},
   {"shutdown", low_net_shutdown, 2},
+  {"netConnections", low_net_connections, 3},
   {"isIP", low_is_ip, 1},
   {"lookup", low_dns_lookup, 4},
   {"lookupService", low_dns_lookup_service, 3},

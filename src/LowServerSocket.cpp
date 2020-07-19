@@ -30,7 +30,8 @@
 LowServerSocket::LowServerSocket(low_t *low, bool isHTTP,
                                  LowTLSContext *secureContext)
     : LowFD(low, LOWFD_TYPE_SERVER), mLow(low), mIsHTTP(isHTTP),
-      mAcceptCallID(0), mSecureContext(secureContext)
+      mAcceptCallID(0), mSecureContext(secureContext),
+      mWaitForNotTooManyConnections(false), mTrackTooManyConnections(false)
 {
     if (mSecureContext)
         mSecureContext->AddRef();
@@ -129,6 +130,7 @@ bool LowServerSocket::Listen(struct sockaddr *addr, int addrLen, int callIndex,
 
 bool LowServerSocket::Close(int callIndex) { return false; }
 
+
 // -----------------------------------------------------------------------------
 //  LowServerSocket::OnEvents
 // -----------------------------------------------------------------------------
@@ -157,11 +159,17 @@ bool LowServerSocket::OnEvents(short events)
                 direct = new  LowHTTPDirect(mLow, true);
                 if (!direct)
                 {
-                    // error
+                    // Error
+                    close(fd);
                     return true;
                 }
             }
 
+            if(mTrackTooManyConnections)
+            {
+                mWaitForNotTooManyConnections = true;
+                low_web_set_poll_events(mLow, this, 0);
+            }
             socket = new 
                 LowSocket(mLow, fd, (sockaddr *)&remoteAddr, mAcceptCallID,
                           direct, 0, mSecureContext);
@@ -183,11 +191,17 @@ bool LowServerSocket::OnEvents(short events)
                 direct = new  LowHTTPDirect(mLow, true);
                 if (!direct)
                 {
-                    // error
+                    // Error
+                    close(fd);
                     return true;
                 }
             }
 
+            if(mTrackTooManyConnections)
+            {
+                mWaitForNotTooManyConnections = true;
+                low_web_set_poll_events(mLow, this, 0);
+            }
             socket = new LowSocket(mLow, fd, NULL, mAcceptCallID,
                                              direct, 0, mSecureContext);
         }
@@ -200,4 +214,19 @@ bool LowServerSocket::OnEvents(short events)
     }
 
     return true;
+}
+
+
+// -----------------------------------------------------------------------------
+//  LowServerSocket::Connections
+// -----------------------------------------------------------------------------
+
+void LowServerSocket::Connections(int count, int max)
+{
+    mTrackTooManyConnections = max >= 0;
+    if(mWaitForNotTooManyConnections && (max < 0 || count < max))
+    {
+        mWaitForNotTooManyConnections = false;
+        low_web_set_poll_events(mLow, this, POLLIN);
+    }
 }
