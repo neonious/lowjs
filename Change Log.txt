@@ -13,7 +13,19 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20200719 / Version 1.5.2
+
+- Support for net/tls/http/https.maxConnections
+- this on module level is now module.exports as with Node.JS
+- Support for process.umask
+- Fix for udp.bind
+- Updated ESP-IDF to current master
+- Fixed use of too much memory on ESP32
+- Fixed hangup on neonious one
+
+
 Version 20200622 / Version 1.5.1.1
+
 
 only ESP32 version:
 fixed crash on memory full (should exit application instead)
