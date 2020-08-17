@@ -1,6 +1,6 @@
 {
   "name": "lowjs",
-  "version": "1.5.3.1",
+  "version": "1.5.3",
   "description": "The Node.JS port for embedded devices.",
   "author": "neonious GmbH",
   "scripts": {
