@@ -752,3 +752,13 @@ int native_api_call(duk_context *ctx)
 
     return module_load(ctx, path);
 }
+
+
+// -----------------------------------------------------------------------------
+//  native_api_unload_all
+// -----------------------------------------------------------------------------
+
+void native_api_unload_all()
+{
+    // TODO
+}

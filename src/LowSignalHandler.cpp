@@ -63,6 +63,8 @@ LowSignalHandler::LowSignalHandler(low_t *low, const char *name)
 //  LowSignalHandler::OnLoop
 // -----------------------------------------------------------------------------
 
+#include "low_process.h"
+
 bool LowSignalHandler::OnLoop()
 {
     if(!mName)
@@ -85,13 +87,13 @@ bool LowSignalHandler::OnLoop()
         sigaction(mSignal, &action, NULL);
 
         // Exit
-	low_system_destroy();
+	    low_system_destroy();
         raise(mSignal);
 #else
         while(true)
         {
         }
-#endif /* LOW_HAS_SIGNALS */
+#endif /* LOW_HAS_SYS_SIGNALS */
     }
 
     return false;

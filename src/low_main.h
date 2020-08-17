@@ -83,7 +83,7 @@ struct low_t
 
     pthread_mutex_t ref_mutex;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     char *cwd;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -104,9 +104,7 @@ void low_destroy(low_t *low);
 duk_context *low_get_duk_context(low_t *low);
 low_t *duk_get_low_context(duk_context *ctx);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
 bool low_reset(low_t *low);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 extern "C" void low_call_thread(duk_context *ctx, low_thread thread, int priority, void (*func)(duk_context *ctx, void *userdata), void *userdata);
 extern "C" low_thread low_get_current_thread(duk_context *ctx);

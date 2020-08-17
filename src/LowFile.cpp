@@ -19,9 +19,15 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 void data_modified(char *filename);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+#if defined(LOWJS_SERV)
+#define NOT_ESP32_ADD_1     + 1
+#else
+#define NOT_ESP32_ADD_1
+#endif /* __XTENSA__ */
 
 
 // -----------------------------------------------------------------------------
@@ -41,7 +47,7 @@ LowFile::LowFile(low_t *low, const char *path, int flags, int callID) :
     else
         mCallID = 0;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(path) + strlen(low->cwd);
 
     mPath = (char *)low_alloc(len);
@@ -74,7 +80,7 @@ LowFile::~LowFile()
     if(FD() >= 0)
     {
         close(FD());
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         if(mPath)
             data_modified(mPath);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -252,8 +258,8 @@ bool LowFile::OnData()
     switch(mPhase)
     {
         case LOWFILE_PHASE_OPENING:
-            SetFD(open(mPath, mFlags, 0666));
-#if LOW_ESP32_LWIP_SPECIALITIES
+            SetFD(open(mPath NOT_ESP32_ADD_1, mFlags, 0666));
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(mFlags & O_CREAT)
                 data_modified(mPath);
 #else
@@ -330,7 +336,7 @@ bool LowFile::OnData()
                 mError = close(FD()) < 0 ? errno : 0;
                 mSyscall = "close";
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 if(mPath)
                     data_modified(mPath);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */

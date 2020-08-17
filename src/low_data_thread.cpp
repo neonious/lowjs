@@ -7,6 +7,8 @@
 
 #include "low_main.h"
 
+#include <unistd.h>
+
 
 // -----------------------------------------------------------------------------
 //  low_data_thread_main
@@ -17,7 +19,7 @@ void *low_data_thread_main(void *arg)
     low_t *low = (low_t *)arg;
 
     pthread_mutex_lock(&low->data_thread_mutex);
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     while(true)
     {
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -63,7 +65,7 @@ void *low_data_thread_main(void *arg)
         }
         pthread_cond_broadcast(&low->data_thread_done_cond);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         low->data_thread_done = true;
         while(low->destroying)
             pthread_cond_wait(&low->data_thread_cond, &low->data_thread_mutex);

@@ -4,7 +4,7 @@ C = gcc
 CFLAGS = $(FLAGS) -Isrc -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include
 
 CXX = g++
-CXXFLAGS = $(FLAGS) -Isrc -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
+CXXFLAGS = $(CXXFLAGS_SERV) $(FLAGS) -Isrc -Iapp -Ideps/duktape/src-low -Ideps/mbedtls/include -Ideps/mbedtls/crypto/include -Ideps/open62541/build/src_generated -Ideps/open62541/include -Ideps/open62541/arch -Ideps/open62541/plugins/include -Ideps/open62541/src/client -Ideps/open62541/deps -Ideps/open62541/src --std=c++11
 
 LD = g++
 LDFLAGS = $(FLAGS) -lm -ldl -lpthread deps/open62541/build/bin/libopen62541.a -lresolv
@@ -55,10 +55,14 @@ clean:
 	cd deps/c-ares && make clean
 	cd deps/mbedtls && make clean
 	cd deps/open62541 && rm -rf build
+	rm deps/c-ares/configure
 
 bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
 	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
+
+bin_lowjs_serv: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark util/dukc
+
 util/dukc: deps/duktape/src-low/duktape.o util/dukc.o
 	 $(LD) -o util/dukc deps/duktape/src-low/duktape.o util/dukc.o $(LDFLAGS)
 

@@ -10,6 +10,7 @@
 duk_ret_t low_gc(duk_context *ctx);
 duk_ret_t low_hrtime(duk_context *ctx);
 
+duk_ret_t low_process_exit(duk_context *ctx);
 duk_ret_t low_process_info(duk_context *ctx);
 duk_ret_t low_os_info(duk_context *ctx);
 

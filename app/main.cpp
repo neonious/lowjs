@@ -26,6 +26,12 @@
 #endif /* __APPLE__ */
 
 
+// Stubs, used by low.js to call lowjs_esp32
+// Are unused in POSIX version of lowjs
+void duk_copy_breakpoints(duk_context *from, duk_context *to) {}
+extern "C" void alloc_use_fund() {}
+
+
 #ifndef __APPLE__
 
 // -----------------------------------------------------------------------------

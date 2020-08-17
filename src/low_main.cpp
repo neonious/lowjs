@@ -92,7 +92,7 @@ low_t *low_init()
 
     low->destroying = false;
     low->duk_flag_stop = 0;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     // we are doing this on reset
     low->duk_ctx = NULL;
 #else
@@ -403,11 +403,12 @@ low_t *low_init()
         return NULL;
     }
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     low->cwd = low_strdup("/");
     if(!low->cwd)
         return NULL;
-#else
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+#if !LOW_ESP32_LWIP_SPECIALITIES
     g_low_system.signal_pipe_fd = low->web_thread_pipe[1];
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
     low->in_uncaught_exception = false;
@@ -449,7 +450,7 @@ duk_context *low_get_duk_context(low_t *low)
 }
 
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 
 // -----------------------------------------------------------------------------
 //  low_reset
@@ -618,10 +619,12 @@ bool low_reset(low_t *low)
         elem = elem->mNext;
     }
 
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     low_free(low->cwd);
     low->cwd = low_strdup("/");
     if(!low->cwd)
         return false;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     low->in_uncaught_exception = false;
 
     new LowSocket(low, 0);
@@ -633,7 +636,8 @@ bool low_reset(low_t *low)
     return true;
 }
 
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+#endif /* LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV) */
+
 
 // -----------------------------------------------------------------------------
 //  low_lib_init

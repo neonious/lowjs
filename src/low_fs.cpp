@@ -15,7 +15,9 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+#else
+void code_wait_loop_thread(unsigned int millisecs = -1);
+#endif
 
 
 // -----------------------------------------------------------------------------
@@ -103,7 +105,7 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
         if(file->FinishPhase())
             break;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
             code_wait_loop_thread();
 #else
@@ -177,7 +179,7 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
             return 0;
         }
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
             code_wait_loop_thread();
 #else
@@ -293,7 +295,7 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
         if(file->FinishPhase())
             return 0;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
             code_wait_loop_thread();
 #else
@@ -339,14 +341,14 @@ bool low_fs_resolve(char *res,
                     const char *base,
                     const char *add,
                     const char *add_node_modules_at
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     , bool add_esp_base
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
                     )
 {
     char *start, *path;
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     if(add_esp_base)
     {
         strcpy(res, "/fs/user/");

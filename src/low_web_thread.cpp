@@ -16,15 +16,19 @@
 #include "low_alloc.h"
 
 #include <unistd.h>
+#include <signal.h>
 #if LOW_HAS_POLL
 #include <poll.h>
 #endif /* LOW_HAS_POLL */
 
 #if LOW_ESP32_LWIP_SPECIALITIES
 extern "C" void lowjs_esp32_break_web(bool fromInterrupt);
-void lowjs_esp32_web_tick();
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
+void lowjs_esp32_web_tick();
 extern int gWebThreadNextTick;
+extern bool gCodeRunning;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
 #include <vector>
@@ -39,7 +43,7 @@ void *low_web_thread_main(void *arg)
 {
     low_t *low = (low_t *)arg;
 
-#if LOW_HAS_POLL
+#if LOW_HAS_POLL && !defined(LOWJS_SERV)
     vector<pollfd> fds;
     vector<LowFD *> lowFDs;
 
@@ -114,8 +118,7 @@ void *low_web_thread_main(void *arg)
             read(fds[0].fd, &s, 1);
             if(s != 0xFF)
             {
-                LowSignalHandler *signal =
-                    new LowSignalHandler(low, s);
+                LowSignalHandler *signal = new LowSignalHandler(low, s);
                 if(!signal)
                 {
                 } // not much we can do here !
@@ -264,10 +267,11 @@ void *low_web_thread_main(void *arg)
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     while(true)
     {
-#else
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+#if !LOW_ESP32_LWIP_SPECIALITIES
         FD_SET(low->web_thread_pipe[0], &read_set);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -309,7 +313,7 @@ void *low_web_thread_main(void *arg)
             }
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             int timeout2 = gWebThreadNextTick - low_tick_count();
             while(timeout2 <= 0)
             {
@@ -318,7 +322,8 @@ void *low_web_thread_main(void *arg)
             }
             if(timeout == -1 || timeout > timeout2)
                 timeout = timeout2;
-
+#endif
+#if LOW_ESP32_LWIP_SPECIALITIES
             int count;
             if(timeout == -1)
                 count = lwip_select(FD_SETSIZE, &read_set1, &write_set1, NULL,
@@ -350,8 +355,7 @@ void *low_web_thread_main(void *arg)
 
             if(low->destroying)
                 break;
-
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(!count)
                 lowjs_esp32_web_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -377,17 +381,44 @@ void *low_web_thread_main(void *arg)
             {
                 unsigned char s;
                 read(low->web_thread_pipe[0], &s, 1);
-                if(s != 0xFF)
+                if(s != 0xFF
+#if defined(LOWJS_SERV)
+                && s != SIGHUP
+#endif /* LOWJS_SERV */
+                )
                 {
-                    LowSignalHandler *signal =
-                        new LowSignalHandler(low, s);
-                    if(!signal)
+#if defined(LOWJS_SERV)
+                    if(!gCodeRunning)
                     {
-                    } // not much we can do here !
+                        // Go back to default handler
+                        struct sigaction action;
+                        memset(&action, 0, sizeof(action));
+                        sigemptyset(&action.sa_mask);
+                        action.sa_flags = SA_RESTART;
+                        action.sa_handler = SIG_DFL;
+                        sigaction(s, &action, NULL);
+
+                        // Not needed, terminal not changed with lowserv anyways
+                        //low_system_destroy();
+                        // Exit
+                        raise(s);
+                    }
+                    else
+                    {
+#endif /* LOWJS_SERV */
+                        LowSignalHandler *signal =
+                            new LowSignalHandler(low, s);
+                        if(!signal)
+                        {
+                        } // not much we can do here !
+#if defined(LOWJS_SERV)
+                    }
+#endif /* LOWJS_SERV */
                 }
                 count--;
             }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
             if(count > 0)
             {
                 int firstNone = 0;
@@ -524,7 +555,7 @@ void *low_web_thread_main(void *arg)
             pthread_mutex_unlock(&low->web_thread_mutex);
         }
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         pthread_mutex_lock(&low->web_thread_mutex);
         low->web_thread_done = true;
         pthread_cond_broadcast(&low->web_thread_done_cond);
@@ -567,7 +598,7 @@ void low_web_thread_break(low_t *low)
 #if LOW_ESP32_LWIP_SPECIALITIES
     lowjs_esp32_break_web(false);
 #else
-    char c = '!';
+    char c = 0xFF;
     write(low->web_thread_pipe[1], &c, 1);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 }

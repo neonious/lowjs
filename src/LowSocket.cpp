@@ -244,7 +244,7 @@ bool LowSocket::InitSocket(struct sockaddr *remoteAddr)
         mNodeFamily = 0; // UNIX
 
     u_long mode = 1;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     if(!(FD() >= 0 && FD() <= 2))
 #else
     if(FD() != 1 && FD() != 2)
@@ -383,7 +383,7 @@ bool LowSocket::Connect(struct sockaddr *remoteAddr,
 
 void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     if(FD() >= 0 && FD() <= 2)
     {
         // don't call back, we are busy waiting for "input"
@@ -444,7 +444,7 @@ void LowSocket::Read(int pos, unsigned char *data, int len, int callIndex)
 //  LowSocket::Write
 // -----------------------------------------------------------------------------
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 void neoniousConsoleInput(char *data, int len, int fd);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -452,7 +452,7 @@ void LowSocket::Write(int pos, unsigned char *data, int len, int callIndex)
 {
     if(FD() >= 1 && FD() <= 2)
     {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         neoniousConsoleInput((char *)data, len, FD());
 #else
         int left = len;

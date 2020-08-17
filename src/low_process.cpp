@@ -17,8 +17,6 @@
 #if LOW_ESP32_LWIP_SPECIALITIES
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
-
-void console_log(const char *loglevel, const char *txt);
 #elif defined(__APPLE__)
 #include <libproc.h>
 #include <mach/clock.h>
@@ -35,6 +33,8 @@ void console_log(const char *loglevel, const char *txt);
 #include <signal.h>
 #endif /* __APPLE__ */
 
+void console_log(const char *loglevel, const char *txt);
+
 #if LOW_INCLUDE_CARES_RESOLVER
 #include "../deps/c-ares/ares.h"
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
@@ -45,7 +45,7 @@ void console_log(const char *loglevel, const char *txt);
 #define NANOS_PER_MICROSEC 1000
 
 // Global variables
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 extern int gProcessStdinJSObject;
 #else
 extern char **environ;
@@ -67,7 +67,7 @@ duk_ret_t low_gc(duk_context *ctx)
 //  low_process_exit
 // -----------------------------------------------------------------------------
 
-static duk_ret_t low_process_exit(duk_context *ctx)
+duk_ret_t low_process_exit(duk_context *ctx)
 {
     int code = duk_get_int(ctx, 0);
 
@@ -80,7 +80,7 @@ static duk_ret_t low_process_exit(duk_context *ctx)
         duk_push_int(ctx, code);
         duk_call_prop(ctx, -4, 2);
     }
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     low->duk_flag_stop = 1;
     duk_generic_error(ctx, "abort (should not be visible)");
     duk_throw(ctx);
@@ -99,7 +99,7 @@ static duk_ret_t low_process_exit(duk_context *ctx)
 
 static duk_ret_t low_process_abort(duk_context *ctx)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     console_log("e", "Process aborted.\n");
 
     low_t *low = duk_get_low_context(ctx);
@@ -121,7 +121,7 @@ static duk_ret_t low_process_abort(duk_context *ctx)
 
 static duk_ret_t low_process_cwd(duk_context *ctx)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     duk_push_string(ctx, duk_get_low_context(ctx)->cwd);
 #else
     char path[1024];
@@ -145,7 +145,7 @@ static duk_ret_t low_process_chdir(duk_context *ctx)
 {
     const char *path = duk_require_string(ctx, 0);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     low_t *low = duk_get_low_context(ctx);
 
     char *cwd = low_strdup(path);
@@ -226,7 +226,7 @@ duk_ret_t low_process_info(duk_context *ctx)
 {
     low_t *low = duk_get_low_context(ctx);
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     duk_get_prop_string(ctx, -1, "stdin");
     gProcessStdinJSObject = low_add_stash(ctx, duk_get_top_index(ctx));
     duk_pop(ctx);
@@ -477,7 +477,7 @@ duk_ret_t low_os_info(duk_context *ctx)
 //  low_tty_info
 // -----------------------------------------------------------------------------
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
 duk_ret_t low_tty_info(duk_context *ctx)
 {
 #if LOW_HAS_TERMIOS
@@ -503,7 +503,8 @@ duk_ret_t low_tty_info(duk_context *ctx)
     return 0;
 #endif /* LOW_HAS_TERMIOS */
 }
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV) */
+
 
 // -----------------------------------------------------------------------------
 //  low_hrtime

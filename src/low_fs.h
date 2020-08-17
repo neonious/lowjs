@@ -25,7 +25,7 @@ bool low_fs_resolve(char *res,
                     const char *base,
                     const char *add,
                     const char *add_node_modules_at = NULL
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     , bool add_esp_base = true
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
                     );

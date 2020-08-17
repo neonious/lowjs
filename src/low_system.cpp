@@ -46,6 +46,7 @@
 // Global variables
 low_system_t g_low_system;
 
+
 #if LOW_HAS_SYS_SIGNALS
 
 // -----------------------------------------------------------------------------
@@ -123,7 +124,7 @@ bool low_system_init(int argc, const char *argv[])
     sigaction(SIGSEGV, &action, NULL);
 #endif /* LOW_HAS_SYS_SIGNALS */
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
     g_low_system.argc = argc;
     g_low_system.argv = argv;
 
@@ -199,7 +200,7 @@ bool low_system_init(int argc, const char *argv[])
 
     goto err;   // remove warning
 err:
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
     low_free(g_low_system.lib_path);
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
     return false;
@@ -216,7 +217,7 @@ void low_system_destroy()
 
     low_set_raw_mode(false);
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
     low_free(g_low_system.lib_path);
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 }
@@ -225,7 +226,7 @@ void low_system_destroy()
 //  low_set_raw_mode -
 // -----------------------------------------------------------------------------
 
-#if !LOW_ESP32_LWIP_SPECIALITIES
+#if !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
 bool low_set_raw_mode(bool mode)
 {
 #if LOW_HAS_TERMIOS
@@ -271,7 +272,7 @@ bool low_set_raw_mode(bool mode)
     return false;
 #endif /* LOW_HAS_TERMIOS */
 }
-#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV) */
 
 
 // -----------------------------------------------------------------------------
@@ -735,7 +736,7 @@ void low_error(const char *txt)
     output_backtrace();
 #else
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 void console_log(const char *loglevel, const char *txt);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -743,7 +744,7 @@ void low_error(const char *txt)
 {
 #endif
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     console_log("e", txt);
     console_log("e", "\n");
 #else

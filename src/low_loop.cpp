@@ -15,9 +15,13 @@
 //  low_loop_run
 // -----------------------------------------------------------------------------
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 void user_cpu_load(bool active);
+#if LOW_ESP32_LWIP_SPECIALITIES
 void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
+#else
+void code_wait_loop_thread(unsigned int millisecs = -1);
+#endif
 
 bool lowjs_esp32_loop_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -37,7 +41,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             duk_call(ctx, num_args);
             duk_pop_n(ctx, duk_get_top(ctx));
         }
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         if(lowjs_esp32_loop_tick())
         {
             duk_pop_n(ctx, duk_get_top(ctx));
@@ -172,7 +176,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 
         if(!low->loop_callback_first)
         {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             user_cpu_load(false);
 #else
             duk_debugger_cooperate(ctx);
@@ -180,7 +184,7 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
             if(millisecs >= 0)
             {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 code_wait_loop_thread(millisecs);
 #else
                 /*
@@ -209,14 +213,14 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             }
             else
             {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 code_wait_loop_thread();
 #else
                 pthread_cond_wait(&low->loop_thread_cond,
                                 &low->loop_thread_mutex);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
             }
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             user_cpu_load(true);
 #else
             pthread_mutex_unlock(&low->loop_thread_mutex);
@@ -478,6 +482,9 @@ void low_loop_set_callback(low_t *low, LowLoopCallback *callback)
 
 void low_loop_clear_callback(low_t *low, LowLoopCallback *callback)
 {
+    if(!low)        // lowserv has LoopCallbacks statically, which call this on error before low exists
+        return;
+
     pthread_mutex_lock(&low->loop_thread_mutex);
     if(callback->mNext || low->loop_callback_last == callback)
     {

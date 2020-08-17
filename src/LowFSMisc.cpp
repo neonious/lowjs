@@ -22,6 +22,13 @@
 #include <dirent.h>
 
 
+#if defined(LOWJS_SERV)
+#define NOT_ESP32_ADD_1     + 1
+#else
+#define NOT_ESP32_ADD_1
+#endif /* __XTENSA__ */
+
+
 // -----------------------------------------------------------------------------
 //  LowFSMisc::LowFSMisc
 // -----------------------------------------------------------------------------
@@ -66,7 +73,7 @@ LowFSMisc::~LowFSMisc()
 
 void LowFSMisc::Rename(const char *old_name, const char *new_name)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(old_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -112,7 +119,7 @@ void LowFSMisc::Rename(const char *old_name, const char *new_name)
 
 void LowFSMisc::Unlink(const char *file_name)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -145,7 +152,7 @@ void LowFSMisc::Unlink(const char *file_name)
 
 void LowFSMisc::Stat(const char *file_name)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -178,7 +185,7 @@ void LowFSMisc::Stat(const char *file_name)
 
 void LowFSMisc::Access(const char *file_name, int mode)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -212,7 +219,7 @@ void LowFSMisc::Access(const char *file_name, int mode)
 
 void LowFSMisc::ReadDir(const char *file_name, bool withFileTypes)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -246,7 +253,7 @@ void LowFSMisc::ReadDir(const char *file_name, bool withFileTypes)
 
 void LowFSMisc::MkDir(const char *file_name, bool recursive, int mode)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -281,7 +288,7 @@ void LowFSMisc::MkDir(const char *file_name, bool recursive, int mode)
 
 void LowFSMisc::RmDir(const char *file_name)
 {
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
     int len = 32 + strlen(file_name) + strlen(mLow->cwd);
 
     mOldName = (char *)low_alloc(len);
@@ -370,7 +377,7 @@ void LowFSMisc::ReadDir()
 //  LowFSMisc::OnData
 // -----------------------------------------------------------------------------
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 int data_unlink(char *filename, bool recursive, int isDir, bool recursiveCall = false);
 int data_mkdir(char *filename, bool recursive);
 int data_rename(char *file_old, char *file_new, bool copy, bool overwrite, bool recursiveCall = false);
@@ -382,7 +389,7 @@ bool LowFSMisc::OnData()
     {
         case LOWFSMISC_PHASE_RENAME:
             mError = 0;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(data_rename(mOldName, mNewName, false, true) != 0)
                 mError = errno;
 #else
@@ -396,7 +403,7 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_UNLINK:
             mError = 0;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(data_unlink(mOldName, false, 0) != 0)
                 mError = errno;
 #else
@@ -407,7 +414,7 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_RMDIR:
             mError = 0;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(data_unlink(mOldName, false, 1) != 0)
                 mError = errno;
 #else
@@ -423,7 +430,7 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_MKDIR:
             mError = 0;
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(data_mkdir(mOldName, mRecursive) != 0)
                 mError = errno;
 #else
@@ -446,13 +453,13 @@ bool LowFSMisc::OnData()
 
         case LOWFSMISC_PHASE_STAT:
             mError = 0;
-            if(stat(mOldName, &mStat) != 0)
+            if(stat(mOldName NOT_ESP32_ADD_1, &mStat) != 0)
                 mError = errno;
             break;
 
         case LOWFSMISC_PHASE_ACCESS:
             mError = 0;
-            if(access(mOldName, mMode) != 0)
+            if(access(mOldName NOT_ESP32_ADD_1, mMode) != 0)
                 mError = errno;
             break;
     }

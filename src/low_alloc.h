@@ -21,6 +21,8 @@
 extern "C"
 {
     char *low_strdup(const char *str);
+    char *low_strcat(const char *str1, const char *str2);
+
     void *low_alloc_throw(duk_context *ctx, size_t size);
 }
 #else
