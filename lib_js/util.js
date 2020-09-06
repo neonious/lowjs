@@ -35,6 +35,13 @@ function previewEntries(value) {
     return [value + ''];
 }
 
+function getPromiseDetails(promise) {
+    return [promise._promiseStatus, promise._value];
+}
+
+const kPending = 0;
+const kRejected = 2;
+
 const types = require('internal/util/types');
 const {
     isAnyArrayBuffer,
@@ -581,7 +588,10 @@ function formatValue(ctx, value, recurseTimes) {
     }
     if (noIterator) {
         braces = ['{', '}'];
-        if (constructor === 'Object') {
+        if (isPromise(value)) {
+            braces[0] = `${getPrefix(constructor, tag)}{`;
+            formatter = formatPromise;
+        } else if (constructor === 'Object') {
             if (isArgumentsObject(value)) {
                 braces[0] = '[Arguments] {';
                 if (keyLength === 0)
@@ -647,9 +657,6 @@ function formatValue(ctx, value, recurseTimes) {
             braces[0] = `${getPrefix(constructor, tag)}{`;
             // .buffer goes last, it's not a primitive like the others.
             keys.unshift('byteLength', 'byteOffset', 'buffer');
-        } else if (isPromise(value)) {
-            braces[0] = `${getPrefix(constructor, tag)}{`;
-            formatter = formatPromise;
         } else if (isWeakSet(value)) {
             braces[0] = `${getPrefix(constructor, tag)}{`;
             if (ctx.showHidden) {
@@ -1030,19 +1037,15 @@ function formatSetIterator(ctx, value, recurseTimes, keys) {
 
 function formatPromise(ctx, value, recurseTimes, keys) {
     let output;
-    /*
-        const [state, result] = getPromiseDetails(value);
-        if (state === kPending) {
-            output = ['<pending>'];
-        } else {
-            const str = formatValue(ctx, result, recurseTimes);
-            output = [state === kRejected ? `<rejected> ${str}` : str];
-        }
-    */
-    output = [value.toString()];
-    for (var n = 0; n < keys.length; n++) {
-        output.push(formatProperty(ctx, value, recurseTimes, keys[n], 0));
+
+    const [state, result] = getPromiseDetails(value);
+    if (state === kPending) {
+        output = ['<pending>'];
+    } else {
+        const str = formatValue(ctx, result, recurseTimes);
+        output = [state === kRejected ? `<rejected> ${str}` : str];
     }
+    
     return output;
 }
 

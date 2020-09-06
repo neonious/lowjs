@@ -20,6 +20,7 @@
 #include "low_system.h"
 
 #include "low_native_api.h"
+#include "low_promise.h"
 #include "low_opcua.h"
 
 #include "duktape.h"
@@ -650,10 +651,12 @@ static duk_ret_t low_lib_init_safe(duk_context *ctx, void *udata)
     duk_put_prop_string(ctx, -2, "low");
     duk_pop(ctx);
 
+    low_register_promise(low);
+
     low_module_init(ctx);
     low_load_module(ctx, "lib:init", false);
 
-    low_register_opcua(low);     // 100% native modules
+    low_register_opcua(low);
 
     return 0;
 }
@@ -965,8 +968,9 @@ void low_duk_print_error(duk_context *ctx)
         if(duk_get_prop_string(ctx, -1, "stack"))
             low_error(duk_safe_to_string(ctx, -1));
         else
-            low_error("JavaScript error with stack");
+            low_error("JavaScript error without stack");
+        duk_pop(ctx);
     }
     else
-        low_error("JavaScript error with without error object");
+        low_error(duk_safe_to_string(ctx, -1));
 }

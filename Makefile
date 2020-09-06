@@ -45,6 +45,7 @@ OBJECTS =							\
 	src/LowDNSResolver.o			\
 	src/LowTLSContext.o				\
 	src/low_native_api.o			\
+	src/low_promise.o				\
 	src/low_opcua.o
 
 all: bin/low lib/BUILT
