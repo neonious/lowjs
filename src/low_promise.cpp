@@ -6,7 +6,6 @@
 
 #include "low_system.h"
 
-// http://www.ecma-international.org/ecma-262/6.0/#sec-promise-objects
 
 // -----------------------------------------------------------------------------
 //  low_register_promise
@@ -19,6 +18,10 @@ bool low_register_promise(low_t *low)
     duk_push_global_object(ctx);
 
     duk_push_c_function(ctx, promise_constructor, 1);
+
+    duk_push_string(ctx, "name");
+    duk_push_string(ctx, "Promise"); // this is used in call stack
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE);
 
     duk_function_list_entry methods[] = {{"all", promise_all, 1},
                                          {"race", promise_race, 1},
@@ -88,10 +91,51 @@ int promise_param_resolve(duk_context *ctx)
 
     if(duk_require_int(ctx, -1) == 0)
     {
-        duk_push_int(ctx, 1);
-        duk_put_prop_string(ctx, -3, "_promiseStatus");
-        duk_dup(ctx, 0);
-        duk_put_prop_string(ctx, -3, "_value");
+        bool isPromise = false;
+        if(duk_is_object(ctx, 0))
+        {
+            if(duk_get_prop_string(ctx, 0, "_promiseStatus"))
+                isPromise = true;
+            else
+                duk_pop(ctx);
+        }
+        if(isPromise)
+        {
+            // [ promise this thisStatus promiseStatus ]
+            int subStatus = duk_require_int(ctx, -1);
+            if(subStatus)
+            {
+                duk_put_prop_string(ctx, -3, "_promiseStatus");
+                duk_get_prop_string(ctx, 0, "_value");
+                duk_put_prop_string(ctx, -3, "_value");
+
+                if(subStatus == 2)
+                {
+                    duk_push_boolean(ctx, true);
+                    duk_put_prop_string(ctx, 0, "_warnedUnhandled");
+                }
+            }
+            else
+            {
+                // Remove _then or _catch and let this promise get fulfilled by the new promise
+                duk_del_prop_string(ctx, 1, "_then");
+                duk_del_prop_string(ctx, 1, "_catch");
+
+                duk_get_prop_string(ctx, 0, "_chain");
+                duk_dup(ctx, 1);
+                duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
+
+                return 0;
+            }
+        }
+        else
+        {
+            duk_push_int(ctx, 1);
+            // [ val this thisStatus status ]
+            duk_put_prop_string(ctx, -3, "_promiseStatus");
+            duk_dup(ctx, 0);
+            duk_put_prop_string(ctx, -3, "_value");
+        }
 
         duk_push_c_lightfunc(ctx, promise_handle_thens, 1, 1, 0);
         duk_push_this(ctx);
@@ -525,10 +569,6 @@ int promise_race(duk_context *ctx)
 }
 
 
-
-
-// OK TO BELOW
-
 // -----------------------------------------------------------------------------
 //  promise_catch
 // -----------------------------------------------------------------------------
@@ -557,6 +597,13 @@ int promise_then(duk_context *ctx)
 
 int promise_resolve(duk_context *ctx)
 {
+    if(duk_is_object(ctx, 0) && duk_get_prop_string(ctx, 0, "_promiseStatus"))
+    {
+        // If we get a promise, return it
+        duk_pop(ctx);
+        return 1;
+    }
+
     duk_push_global_object(ctx);
     duk_get_prop_string(ctx, -1, "Promise");
     duk_get_prop_string(ctx, -1, "prototype");
