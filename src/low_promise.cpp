@@ -117,10 +117,6 @@ int promise_param_resolve(duk_context *ctx)
             }
             else
             {
-                // Remove _then or _catch and let this promise get fulfilled by the new promise
-                duk_del_prop_string(ctx, 1, "_then");
-                duk_del_prop_string(ctx, 1, "_catch");
-
                 duk_get_prop_string(ctx, 0, "_chain");
                 duk_dup(ctx, 1);
                 duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
@@ -328,6 +324,11 @@ int promise_all(duk_context *ctx)
     {
         duk_get_prop_index(ctx, 0, i);
 
+        if(!duk_is_object(ctx, -1))
+        {
+            duk_put_prop_index(ctx, 5, i);
+            continue;
+        }
         if(!duk_get_prop_string(ctx, -1, "_promiseStatus"))
         {
             duk_pop(ctx);
@@ -516,6 +517,14 @@ int promise_race(duk_context *ctx)
     for(int i = 0; i < count; i++)
     {
         duk_get_prop_index(ctx, 0, i);
+        if(!duk_is_object(ctx, -1))
+        {
+            // That's it, copy!
+            duk_put_prop_string(ctx, 4, "_value");
+            duk_push_int(ctx, 1);
+            duk_put_prop_string(ctx, 4, "_promiseStatus");
+            return 1;
+        }
         if(!duk_get_prop_string(ctx, -1, "_promiseStatus"))
         {
             // That's it, copy!
