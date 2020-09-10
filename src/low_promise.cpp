@@ -277,9 +277,13 @@ int promise_handle_thens(duk_context *ctx)
             duk_push_boolean(ctx, true);
             duk_put_prop_string(ctx, -3, "_warnedUnhandled");
 
-            // Unhandled!
-            low_error("Unhandled promise rejection!");
-            duk_throw(ctx);
+            low_t *low = duk_get_low_context(ctx);
+            if(!low->duk_flag_stop)
+            {
+                // Unhandled!
+                low_error("Unhandled promise rejection!");
+                duk_throw(ctx);
+            }
         }
         else
             duk_pop(ctx);
