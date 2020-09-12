@@ -13,6 +13,14 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20200912 / Version 1.5.3
+
+- Much faster Promises and async/await by implementing Promises in native C++
+- Introduced lowsys.deepSleep(ms)
+- Updated ESP-IDF to newest toolchain (esp-2020r3) to fix random C++ exception
+  crashes (did not happen frequently however)
+
+
 Version 20200719 / Version 1.5.2
 
 - Support for net/tls/http/https.maxConnections
