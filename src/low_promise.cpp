@@ -687,15 +687,24 @@ void promise_then_catch(duk_context *ctx, bool isCatch)
 
     if(isCatch)
     {
-        duk_dup(ctx, 0);
-        duk_put_prop_string(ctx, -2, "_catch");
+        if(duk_is_function(ctx, 0))
+        {
+            duk_dup(ctx, 0);
+            duk_put_prop_string(ctx, -2, "_catch");
+        }
     }
     else
     {
-        duk_dup(ctx, 0);
-        duk_put_prop_string(ctx, -2, "_then");
-        duk_dup(ctx, 1);
-        duk_put_prop_string(ctx, -2, "_catch");
+        if(duk_is_function(ctx, 0))
+        {
+            duk_dup(ctx, 0);
+            duk_put_prop_string(ctx, -2, "_then");
+        }
+        if(duk_is_function(ctx, 1))
+        {
+            duk_dup(ctx, 1);
+            duk_put_prop_string(ctx, -2, "_catch");
+        }
     }
 
     duk_push_this(ctx);
