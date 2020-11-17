@@ -124,7 +124,7 @@ bool low_system_init(int argc, const char *argv[])
     sigaction(SIGSEGV, &action, NULL);
 #endif /* LOW_HAS_SYS_SIGNALS */
 
-#if LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
+#if !LOW_ESP32_LWIP_SPECIALITIES && !defined(LOWJS_SERV)
     g_low_system.argc = argc;
     g_low_system.argv = argv;
 
