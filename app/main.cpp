@@ -167,8 +167,7 @@ int main(int argc, char *argv[])
     }
     if(!restArgv)
         argc = 1;
-
-    if(optTranspileOutput && argc == 1)
+    if(optTranspile && argc == 1)
     {
         usage(argv[0]);
         return EXIT_SUCCESS;
