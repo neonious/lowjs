@@ -5,18 +5,7 @@
 // See test/bugs/native_Reflect_construct.js for more information
 delete Reflect.construct;
 
-// Required with newest Duktape version
-if (typeof global === 'undefined') {
-    (function () {
-        var global = new Function('return this;')();
-        Object.defineProperty(global, 'global', {
-            value: global,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        });
-    })();
-}
+exports.global = exports;
 
 let native = require('native');
 let events = require('events');
@@ -930,35 +919,7 @@ for (const name of Object.getOwnPropertyNames(Buffer)) {
     }
   }
 
-Buffer = ((oldFunc) => {
-    let newBuffer = function (...args) {
-        if(typeof args[0] === 'string' && (args[1] == 'hex' || args[1] == 'base64'))
-            return oldFunc.call(this, Duktape.dec(args[1], args[0]));
-        else
-            return oldFunc.call(this, ...args);
-    }
-    newBuffer.byteLength = oldFunc.byteLength;
-    newBuffer.compare = oldFunc.compare;
-    newBuffer.concat = oldFunc.concat;
-    newBuffer.isBuffer = oldFunc.isBuffer;
-    newBuffer.isEncoding = oldFunc.isEncoding;
-    newBuffer.poolSize = oldFunc.poolSize;
-    newBuffer.prototype = oldFunc.prototype;
-
-    // Not implemented by DukTape
-    newBuffer.from = (...args) => { return new newBuffer(...args); }
-    newBuffer.allocUnsafe = newBuffer.alloc = (...args) => { return new newBuffer(...args); }
-    return newBuffer;
-})(Buffer);
-
-Buffer.prototype.toString = ((oldFunc) => {
-    return function (encoding, b, c) {
-        if (encoding == 'hex' || encoding == 'base64')
-            return Duktape.enc(encoding, this);
-        else
-            return oldFunc.call(this, encoding, b, c);
-    }
-})(Buffer.prototype.toString);
+Buffer = require('buffer').Buffer;
 
 // DukTape push_buffer does not create a Node.JS buffer, make toString work
 Uint8Array.prototype.toString = ((oldFunc) => {
