@@ -18,7 +18,7 @@ class LowDataCallback
 
 public:
     LowDataCallback(low_t *low)
-        : mLow(low), mNext(nullptr), mDataClearOnReset(true)
+        : mLow(low), mNext(nullptr), mInDataThread(false), mDataClearOnReset(true)
     {
     }
     virtual ~LowDataCallback() { low_data_clear_callback(mLow, this); }
@@ -29,6 +29,8 @@ protected:
 private:
     low_t *mLow;
     LowDataCallback *mNext;
+
+    bool mInDataThread;
 
 protected:
     bool mDataClearOnReset;

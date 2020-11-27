@@ -17,12 +17,7 @@
 
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
 void user_cpu_load(bool active);
-#if LOW_ESP32_LWIP_SPECIALITIES
-void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
-#else
-void code_wait_loop_thread(unsigned int millisecs = -1);
-#endif
-
+bool code_watchdog_event_loop();
 bool lowjs_esp32_loop_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
@@ -174,58 +169,22 @@ duk_ret_t low_loop_run_safe(duk_context *ctx, void *udata)
             }
         }
 
+#if !LOW_ESP32_LWIP_SPECIALITIES
+        pthread_mutex_lock(&low->loop_thread_mutex);
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
         if(!low->loop_callback_first)
         {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             user_cpu_load(false);
-#else
-            duk_debugger_cooperate(ctx);
-            pthread_mutex_lock(&low->loop_thread_mutex);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            if(millisecs >= 0)
-            {
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-                code_wait_loop_thread(millisecs);
-#else
-                /*
-                // TODO under os x
-                pthread_condattr_t attr;
-                pthread_cond_t cond;
-                pthread_condattr_init(&attr);
-                pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
-                pthread_cond_init(&cond, &attr);
-                */
-                struct timespec ts;
-                int secs = millisecs / 1000;
-
-                clock_gettime(CLOCK_REALTIME, &ts);
-                ts.tv_sec += secs;
-                ts.tv_nsec += (millisecs - secs * 1000) * 1000000;
-                if(ts.tv_nsec >= 1000000000)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= 1000000000;
-                }
-
-                pthread_cond_timedwait(
-                    &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            }
-            else
-            {
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-                code_wait_loop_thread();
-#else
-                pthread_cond_wait(&low->loop_thread_cond,
-                                &low->loop_thread_mutex);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
-            }
+            low_loop_wait(ctx, millisecs);
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             user_cpu_load(true);
-#else
-            pthread_mutex_unlock(&low->loop_thread_mutex);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         }
+#if !LOW_ESP32_LWIP_SPECIALITIES
+        pthread_mutex_unlock(&low->loop_thread_mutex);
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     return 0;
@@ -535,4 +494,57 @@ int low_call_next_tick_js(duk_context *ctx)
 {
     low_call_next_tick(ctx, duk_get_top(ctx) - 1);
     return 0;
+}
+
+
+// -----------------------------------------------------------------------------
+//  low_loop_wait -
+// -----------------------------------------------------------------------------
+
+void low_loop_wait(duk_context *ctx, int millisecs)
+{
+    low_t *low = duk_get_low_context(ctx);
+
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
+    if(code_watchdog_event_loop())
+        if(millisecs > 1000)
+            millisecs = 1000;
+#endif /* LOW_ESP32_LWIP_SPECIALITIES */
+
+#if LOW_ESP32_LWIP_SPECIALITIES
+    duk_debugger_cooperate(low->duk_ctx);
+    xSemaphoreTake(low->loop_thread_sema, millisecs);
+#else
+    duk_debugger_cooperate(low->duk_ctx);
+    if(millisecs >= 0)
+    {
+        /*
+        // TODO under os x
+        pthread_condattr_t attr;
+        pthread_cond_t cond;
+        pthread_condattr_init(&attr);
+        pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+        pthread_cond_init(&cond, &attr);
+        */
+        struct timespec ts;
+        int secs = millisecs / 1000;
+
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += secs;
+        ts.tv_nsec += (millisecs - secs * 1000) * 1000000;
+        if(ts.tv_nsec >= 1000000000)
+        {
+            ts.tv_sec++;
+            ts.tv_nsec -= 1000000000;
+        }
+
+        pthread_cond_timedwait(
+            &low->loop_thread_cond, &low->loop_thread_mutex, &ts);
+    }
+    else
+    {
+        pthread_cond_wait(&low->loop_thread_cond,
+                        &low->loop_thread_mutex);
+    }
+#endif /* __XTENSA__ */
 }

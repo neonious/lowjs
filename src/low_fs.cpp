@@ -13,12 +13,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if LOW_ESP32_LWIP_SPECIALITIES
-void code_wait_loop_thread(TickType_t millisecs = portMAX_DELAY);
-#else
-void code_wait_loop_thread(unsigned int millisecs = -1);
-#endif
-
 
 // -----------------------------------------------------------------------------
 //  low_fs_open
@@ -105,18 +99,10 @@ duk_ret_t low_fs_open_sync(duk_context *ctx)
         if(file->FinishPhase())
             break;
 
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-            code_wait_loop_thread();
-#else
         pthread_mutex_lock(&low->loop_thread_mutex);
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
-        }
+        while(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+            low_loop_wait(low->duk_ctx, -1);
         pthread_mutex_unlock(&low->loop_thread_mutex);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     duk_push_int(ctx, file->FD());
@@ -179,18 +165,10 @@ duk_ret_t low_fs_close_sync(duk_context *ctx)
             return 0;
         }
 
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-            code_wait_loop_thread();
-#else
         pthread_mutex_lock(&low->loop_thread_mutex);
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
-        }
+        while(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+            low_loop_wait(low->duk_ctx, -1);
         pthread_mutex_unlock(&low->loop_thread_mutex);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     return 0;
@@ -295,18 +273,10 @@ duk_ret_t low_fs_waitdone(duk_context *ctx)
         if(file->FinishPhase())
             return 0;
 
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-            code_wait_loop_thread();
-#else
         pthread_mutex_lock(&low->loop_thread_mutex);
-        if(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
-        {
-            duk_debugger_cooperate(low->duk_ctx);
-            pthread_cond_wait(&low->loop_thread_cond, &low->loop_thread_mutex);
-        }
+        while(!file->LowLoopCallback::mNext && low->loop_callback_last != file)
+            low_loop_wait(low->duk_ctx, -1);
         pthread_mutex_unlock(&low->loop_thread_mutex);
-#endif /* LOW_ESP32_LWIP_SPECIALITIES */
     }
 
     return 0;

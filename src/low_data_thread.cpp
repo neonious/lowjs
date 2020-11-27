@@ -33,18 +33,39 @@ void *low_data_thread_main(void *arg)
                     LowDataCallback *callback =
                         low->data_callback_first[priority];
 
-                    low->data_callback_first[priority] = callback->mNext;
-                    if(!low->data_callback_first[priority])
-                        low->data_callback_last[priority] = NULL;
-                    callback->mNext = NULL;
+                    if(callback->mInDataThread)
+                    {
+                        LowDataCallback *last = callback;
+                        callback = callback->mNext;
 
-                    low->data_thread_at = callback;
+                        while(callback && callback->mInDataThread)
+                        {
+                            last = callback;
+                            callback = callback->mNext;
+                        }
+
+                        if(!callback)
+                            continue;
+
+                        last->mNext = callback->mNext;
+                        if(low->data_callback_last[priority] == callback)
+                            low->data_callback_last[priority] = last;
+                    }
+                    else
+                    {
+                        low->data_callback_first[priority] = callback->mNext;
+                        if(!low->data_callback_first[priority])
+                            low->data_callback_last[priority] = NULL;
+                    }
+
+                    callback->mNext = NULL;
+                    callback->mInDataThread = true;
                     pthread_mutex_unlock(&low->data_thread_mutex);
 
                     if(!callback->OnData())
                     {
                         pthread_mutex_lock(&low->data_thread_mutex);
-                        low->data_thread_at = NULL;
+                        callback->mInDataThread = false;
                         pthread_cond_broadcast(&low->data_thread_done_cond);
                         pthread_mutex_unlock(&low->data_thread_mutex);
 
@@ -52,7 +73,7 @@ void *low_data_thread_main(void *arg)
                     }
 
                     pthread_mutex_lock(&low->data_thread_mutex);
-                    low->data_thread_at = NULL;
+                    callback->mInDataThread = false;
                     goto start;
                 }
             if(low->destroying)
@@ -82,6 +103,7 @@ void low_data_set_callback(low_t *low, LowDataCallback *callback,
                            int priority)
 {
     pthread_mutex_lock(&low->data_thread_mutex);
+
     if(callback->mNext || low->data_callback_last[0] == callback ||
        low->data_callback_last[1] == callback)
     {
@@ -95,7 +117,8 @@ void low_data_set_callback(low_t *low, LowDataCallback *callback,
         low->data_callback_first[priority] = callback;
     low->data_callback_last[priority] = callback;
 
-    pthread_cond_broadcast(&low->data_thread_cond);
+    if(!callback->mInDataThread)
+        pthread_cond_broadcast(&low->data_thread_cond);
     pthread_mutex_unlock(&low->data_thread_mutex);
 }
 
@@ -106,6 +129,7 @@ void low_data_set_callback(low_t *low, LowDataCallback *callback,
 void low_data_clear_callback(low_t *low, LowDataCallback *callback)
 {
     pthread_mutex_lock(&low->data_thread_mutex);
+
     if(low->data_callback_first[0] == callback)
     {
         LowDataCallback *elem = low->data_callback_first[0];
@@ -142,7 +166,7 @@ void low_data_clear_callback(low_t *low, LowDataCallback *callback)
     }
     callback->mNext = NULL;
 
-    while(low->data_thread_at && low->data_thread_at == callback)
+    while(callback->mInDataThread)
         pthread_cond_wait(&low->data_thread_done_cond, &low->data_thread_mutex);
     pthread_mutex_unlock(&low->data_thread_mutex);
 }

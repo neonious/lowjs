@@ -61,7 +61,7 @@ bin/low: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark
 	mkdir -p bin
 	 $(LD) -o bin/low deps/mbedtls/library/*.o deps/mbedtls/crypto/library/*.o deps/c-ares/libcares_la-*.o $(OBJECTS) $(OBJECTS_LOW) $(LDFLAGS)
 
-bin_lowjs_serv: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark util/dukc
+obj_lowjs_serv: $(OBJECTS) $(OBJECTS_LOW) deps/mbedtls/programs/test/benchmark util/dukc
 
 util/dukc: deps/duktape/src-low/duktape.o util/dukc.o
 	 $(LD) -o util/dukc deps/duktape/src-low/duktape.o util/dukc.o $(LDFLAGS)

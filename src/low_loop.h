@@ -43,4 +43,6 @@ void low_loop_clear_callback(
 extern "C" void low_call_next_tick(duk_context *ctx, int num_args);
 int low_call_next_tick_js(duk_context *ctx);
 
+void low_loop_wait(duk_context *ctx, int millisecs);
+
 #endif /* __LOW_LOOP_H__ */

@@ -56,7 +56,6 @@ struct low_t
 
     LowLoopCallback *loop_callback_first, *loop_callback_last;
 
-    LowDataCallback *data_thread_at;
     pthread_mutex_t data_thread_mutex;
     pthread_cond_t data_thread_cond, data_thread_done_cond;
     LowDataCallback *data_callback_first[2], *data_callback_last[2];
