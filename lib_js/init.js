@@ -1640,3 +1640,7 @@ exports.regeneratorRuntime = (function (exports) {
   // the regeneratorRuntime variable at the top of this file.
   typeof module === "object" ? module.exports : {}
 ));
+
+let url = require('url');
+exports.URL = url.URL;
+exports.URLSearchParams = url.URLSearchParams;
