@@ -2,7 +2,10 @@ Buffer = ((oldFunc) => {
     let newBuffer = function (...args) {
         if(typeof args[0] === 'string' && (args[1] == 'hex' || args[1] == 'base64'))
             return oldFunc.call(this, Duktape.dec(args[1], args[0]));
-        else
+        else if(args[0].slice && typeof args[1] !== 'string' && args[2] !== undefined)
+	    // Workaround: DukTape does not allow slicing in constructor
+            return oldFunc.call(this, args[0].slice(args[1], args[1] + args[2]));
+	else
             return oldFunc.call(this, ...args);
     }
     newBuffer.byteLength = oldFunc.byteLength;
