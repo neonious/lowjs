@@ -340,22 +340,22 @@ void *low_web_thread_main(void *arg)
             if(count < 0)
                 vTaskDelay(1000); // do not block!
 #else
-        int count;
-        if(timeout == -1)
-            count = select(FD_SETSIZE, &read_set1, &write_set1, NULL, NULL);
-        else
-        {
-            struct timeval tv;
-            tv.tv_sec = timeout / 1000;
-            tv.tv_usec = (timeout - tv.tv_sec * 1000) * 1000;
+            int count;
+            if(timeout == -1)
+                count = select(FD_SETSIZE, &read_set1, &write_set1, NULL, NULL);
+            else
+            {
+                struct timeval tv;
+                tv.tv_sec = timeout / 1000;
+                tv.tv_usec = (timeout - tv.tv_sec * 1000) * 1000;
 
-            count = select(FD_SETSIZE, &read_set1, &write_set1, NULL, &tv);
-        }
+                count = select(FD_SETSIZE, &read_set1, &write_set1, NULL, &tv);
+            }
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
 
             if(low->destroying)
                 break;
-#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
+#if LOW_ESP32_LWIP_SPECIALITIES
             if(!count)
                 lowjs_esp32_web_tick();
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -381,6 +381,10 @@ void *low_web_thread_main(void *arg)
             {
                 unsigned char s;
                 read(low->web_thread_pipe[0], &s, 1);
+#if defined(LOWJS_SERV)
+                if(s == 0xFF)
+                    lowjs_esp32_web_tick();
+#endif /* LOWJS_SERV */
                 if(s != 0xFF
 #if defined(LOWJS_SERV)
                 && s != SIGHUP
