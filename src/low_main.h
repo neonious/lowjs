@@ -34,6 +34,11 @@ struct low_t
     bool destroying;
     duk_context *duk_ctx, *next_tick_ctx;
 
+#if !LOW_ESP32_LWIP_SPECIALITIES
+    unsigned int heap_size, max_heap_size;
+    bool in_gc;
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+
     int run_ref, last_stash_index;
 
     int signal_call_id;

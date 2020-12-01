@@ -48,21 +48,6 @@ extern low_system_t g_low_system;
 //  low_init
 // -----------------------------------------------------------------------------
 
-static void *low_duk_alloc(void *udata, duk_size_t size)
-{
-    return low_alloc(size);
-}
-
-static void *low_duk_realloc(void *udata, void *ptr, duk_size_t size)
-{
-    return low_realloc(ptr, size);
-}
-
-static void low_duk_free(void *udata, void *ptr)
-{
-    low_free(ptr);
-}
-
 low_t *low_init()
 {
 #if LOW_INCLUDE_CARES_RESOLVER
@@ -85,6 +70,12 @@ low_t *low_init()
 #endif /* LOW_INCLUDE_CARES_RESOLVER */
         return NULL;
     }
+
+#if !LOW_ESP32_LWIP_SPECIALITIES
+    low->heap_size = 0;
+    low->max_heap_size = 512 * 1024 * 1024;
+    low->in_gc = false;
+#endif /* !LOW_ESP32_LWIP_SPECIALITIES */
 
     low->web_thread = NULL;
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)

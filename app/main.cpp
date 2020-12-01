@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/sysinfo.h>
 #endif /* __APPLE__ */
 
 
@@ -105,12 +106,13 @@ static void usage(const char *prog_name)
     printf("Usage: %s [options] [script.js [arguments]]\n", prog_name);
     printf("\n");
     printf("Options\n");
-    printf("  --transpile          Transpile JavaScript on-the-fly with Babel\n");
-    printf("                       This is slow! Use only for testing.\n");
-    printf("  --transpile-output   Output the transpiled main file\n");
+    printf("  --transpile               Transpile JavaScript on-the-fly with Babel\n");
+    printf("                            This is slow! Use only for testing.\n");
+    printf("  --transpile-output        Output the transpiled main file\n");
+    printf("  --max-old-space-size=...  Memory limit of JavaScript objects in MB\n");
     printf("\n");
-    printf("  -h, --help           Show this message (no other arg allowed)\n");
-    printf("  -v, --version        Show low.js version (no other arg allowed)\n");
+    printf("  -h, --help                Show this message (no other arg allowed)\n");
+    printf("  -v, --version             Show low.js version (no other arg allowed)\n");
 }
 
 
@@ -141,9 +143,12 @@ int main(int argc, char *argv[])
 
     bool optTranspile = false, optTranspileOutput = false;
     char **restArgv = NULL;
+    int maxMemSize = 0;
 
     for(int i = 1; i < argc; i++)
     {
+        char maxOldSpaceSize[] = "--max-old-space-size=";
+
         if(argv[i][0] != '-')
         {
             argc = argc - i + 1;
@@ -158,6 +163,18 @@ int main(int argc, char *argv[])
         {
             optTranspile = true;
             optTranspileOutput = true;
+        }
+        else if(strlen(argv[i]) > sizeof(maxOldSpaceSize) - 1
+        && memcmp(argv[i], maxOldSpaceSize, sizeof(maxOldSpaceSize) - 1) == 0)
+        {
+            maxMemSize = atoi(argv[i] + sizeof(maxOldSpaceSize) - 1);
+            if(maxMemSize <= 0)
+            {
+                usage(argv[0]);
+                return EXIT_FAILURE;
+            }
+            if(maxMemSize < 4)
+                maxMemSize = 4;     // needed for init
         }
         else
         {
@@ -182,6 +199,20 @@ int main(int argc, char *argv[])
 
     if(!low_lib_init(low))
         goto err;
+    if(maxMemSize)
+        low->max_heap_size = maxMemSize * 1024 * 1024;
+    else
+    {
+#ifndef __APPLE__
+        struct sysinfo info;
+        if(sysinfo(&info) < 0)
+            goto err;
+
+        int max = info.freeram + info.freeswap / 2;
+        if(low->max_heap_size > max)
+            low->max_heap_size = max;
+#endif /* __APPLE__ */
+    }
 
     if(optTranspile)
     {

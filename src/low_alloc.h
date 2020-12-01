@@ -10,6 +10,10 @@
 #include <duktape.h>
 #include <stddef.h>
 
+void *low_duk_alloc(void *udata, duk_size_t size);
+void *low_duk_realloc(void *udata, void *ptr, duk_size_t size);
+void low_duk_free(void *udata, void *ptr);
+
 #if LOW_USE_SYSTEM_ALLOC
 #include <cstdlib>
 
