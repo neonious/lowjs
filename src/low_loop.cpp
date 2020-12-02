@@ -202,7 +202,9 @@ bool low_loop_run(low_t *low)
                         0,
                         1) != DUK_EXEC_SUCCESS)
             {
-                if(!low->duk_flag_stop) // flag stop also produces error
+                if(low->duk_flag_stop) // flag stop also produces error
+                    return true;
+                else
                 {
                     // Check for uncaughtException handler
                     if(!low->signal_call_id)

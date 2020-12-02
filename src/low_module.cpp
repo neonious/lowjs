@@ -208,56 +208,54 @@ bool low_module_main(low_t *low, const char *path)
 {
     try
     {
-        while(true)
-        {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-            if(duk_safe_call(low->duk_ctx, low_module_main_safe, (void *)path, 0, 1) !=
+        if(duk_safe_call(low->duk_ctx, low_module_main_safe, (void *)path, 0, 1) !=
             DUK_EXEC_SUCCESS)
 #else
-            char path2[PATH_MAX];
-            if(path)
-                realpath(path, path2);
+        char path2[PATH_MAX];
+        if(path)
+            realpath(path, path2);
 
-            if(duk_safe_call(low->duk_ctx,
-                            low_module_main_safe,
-                            (void *)(path ? path2 : NULL),
-                            0,
-                            1) != DUK_EXEC_SUCCESS)
+        if(duk_safe_call(low->duk_ctx,
+                        low_module_main_safe,
+                        (void *)(path ? path2 : NULL),
+                        0,
+                        1) != DUK_EXEC_SUCCESS)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
+        {
+            printf("IN NOT UCCESS\n");
+            if(!low->duk_flag_stop) // flag stop also produces error
             {
-                if(!low->duk_flag_stop) // flag stop also produces error
+                // Check for uncaughtException handler
+                if(!low->signal_call_id)
                 {
-                    // Check for uncaughtException handler
-                    if(!low->signal_call_id)
-                    {
-                        low_duk_print_error(low->duk_ctx);
-                        duk_pop(low->duk_ctx);
-                        return false;
-                    }
-
-                    low_push_stash(low->duk_ctx, low->signal_call_id, false);
-                    duk_push_string(low->duk_ctx, "emit");
-                    duk_push_string(low->duk_ctx, "uncaughtException");
-                    duk_dup(low->duk_ctx, -4);
-                    low->in_uncaught_exception = true;
-                    duk_call_prop(low->duk_ctx, -4, 2);
-                    low->in_uncaught_exception = false;
-
-                    if(!duk_require_boolean(low->duk_ctx, -1))
-                    {
-                        duk_pop_2(low->duk_ctx);
-                        low_duk_print_error(low->duk_ctx);
-                        duk_pop(low->duk_ctx);
-                        return false;
-                    }
-                    duk_pop_3(low->duk_ctx);
+                    low_duk_print_error(low->duk_ctx);
+                    duk_pop(low->duk_ctx);
+                    return false;
                 }
+
+                low_push_stash(low->duk_ctx, low->signal_call_id, false);
+                duk_push_string(low->duk_ctx, "emit");
+                duk_push_string(low->duk_ctx, "uncaughtException");
+                duk_dup(low->duk_ctx, -4);
+                low->in_uncaught_exception = true;
+                duk_call_prop(low->duk_ctx, -4, 2);
+                low->in_uncaught_exception = false;
+
+                if(!duk_require_boolean(low->duk_ctx, -1))
+                {
+                    duk_pop_2(low->duk_ctx);
+                    low_duk_print_error(low->duk_ctx);
+                    duk_pop(low->duk_ctx);
+                    return false;
+                }
+                duk_pop_3(low->duk_ctx);
             }
-            else
-            {
-                duk_pop(low->duk_ctx);
-                return true;
-            }
+        }
+        else
+        {
+            duk_pop(low->duk_ctx);
+            return true;
         }
     }
     catch(std::exception &e)

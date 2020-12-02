@@ -74,8 +74,8 @@ low_t *low_init()
 #if !LOW_ESP32_LWIP_SPECIALITIES
     low->heap_size = 0;
     low->max_heap_size = 512 * 1024 * 1024;
-    low->in_gc = false;
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
+    low->in_gc = false;
 
     low->web_thread = NULL;
     for(int i = 0; i < LOW_NUM_DATA_THREADS; i++)
