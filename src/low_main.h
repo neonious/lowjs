@@ -37,7 +37,7 @@ struct low_t
 #if !LOW_ESP32_LWIP_SPECIALITIES
     unsigned int heap_size, max_heap_size;
 #endif /* !LOW_ESP32_LWIP_SPECIALITIES */
-    bool in_gc;
+    bool in_gc, disallow_native;
 
     int run_ref, last_stash_index;
 

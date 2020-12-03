@@ -223,7 +223,6 @@ bool low_module_main(low_t *low, const char *path)
                         1) != DUK_EXEC_SUCCESS)
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
         {
-            printf("IN NOT UCCESS\n");
             if(!low->duk_flag_stop) // flag stop also produces error
             {
                 // Check for uncaughtException handler
@@ -784,6 +783,9 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     }
     else if(flags & LOW_MODULE_FLAG_NATIVE)
     {
+        if(low->disallow_native)
+            duk_generic_error(ctx, "loading of native modules is disabled on this system");
+
         const char *err;
         bool err_malloc = false;
 
