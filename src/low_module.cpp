@@ -26,8 +26,11 @@ extern bool gInRequire;
 
 #if defined(LOWJS_SERV)
 #define NOT_ESP32_ADD_1     + 1
+
+int client_stat2(const char *path, struct stat *st);
 #else
 #define NOT_ESP32_ADD_1
+#define client_stat2 stat 
 #endif /* __XTENSA__ */
 
 
@@ -624,7 +627,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
     if(!get_data_block(txt, &data, &len, true, true))
     {
         struct stat st;
-        if(stat(txt NOT_ESP32_ADD_1, &st) == 0)
+        if(client_stat2(txt NOT_ESP32_ADD_1, &st) == 0)
         {
             low_free(txt);
             goto cantLoad;
@@ -639,7 +642,7 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
                     low_free(txt);
 
                     struct stat st;
-                    if(stat(txt NOT_ESP32_ADD_1, &st) == 0)
+                    if(client_stat2(txt NOT_ESP32_ADD_1, &st) == 0)
                         goto cantLoad;
                     else
                         goto cantFind;
@@ -981,7 +984,7 @@ bool low_module_resolve_c(duk_context *ctx,
 #else
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        if(stat(res_id NOT_ESP32_ADD_1, &st) == 0)
+        if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);
             return true;
@@ -994,7 +997,7 @@ bool low_module_resolve_c(duk_context *ctx,
 #else
         sprintf(res_id, "%s%s", g_low_system.lib_path, module_id);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
-        if(stat(res_id NOT_ESP32_ADD_1, &st) == 0)
+        if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0)
         {
             sprintf(res_id, "lib:%s", module_id);
             return true;
@@ -1072,9 +1075,8 @@ bool low_module_resolve_c(duk_context *ctx,
         if(!isFolder)
         {
             // LOAD_AS_FILE
-
             path[0] = 0;
-            if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+            if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 if(!user_space)
@@ -1091,7 +1093,7 @@ bool low_module_resolve_c(duk_context *ctx,
             if(path + 3 - res_id >= 1024)
                 return false;
             strcpy(path, ".js");
-            if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+            if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 if(!user_space)
@@ -1108,7 +1110,7 @@ bool low_module_resolve_c(duk_context *ctx,
             if(path + 5 - res_id >= 1024)
                 return false;
             strcpy(path, ".json");
-            if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+            if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 if(!user_space)
@@ -1125,7 +1127,7 @@ bool low_module_resolve_c(duk_context *ctx,
             if(path + 3 - res_id >= 1024)
                 return false;
             strcpy(path, ".so");
-            if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+            if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
             {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                 if(!user_space)
@@ -1146,11 +1148,26 @@ bool low_module_resolve_c(duk_context *ctx,
             return false;
         strcpy(path, "/package.json");
 
-        if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+        if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
         {
             int len = st.st_size;
             void *data = duk_push_buffer(ctx, len, false);
 
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
+            unsigned char *cdata;
+            int clen;
+
+            if(!get_data_block(res_id, &cdata, &clen, true, true))
+                return false;
+            if(len != clen)
+            {
+                duk_pop(ctx);
+                low_free(cdata);
+                return false;
+            }
+
+            memcpy(data, cdata, len);
+#else
             int fd = open(res_id, O_RDONLY);
             if(fd < 0)
                 return false;
@@ -1162,6 +1179,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 return false;
             }
             close(fd);
+#endif
 
             // Read package.json content
             duk_buffer_to_string(ctx, -1);
@@ -1187,7 +1205,7 @@ bool low_module_resolve_c(duk_context *ctx,
                     path--;
 
                 path[0] = 0;
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1205,7 +1223,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 3 - res_id2 >= 1024)
                     return false;
                 strcpy(path, ".js");
-                if(stat(res_id2, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1224,7 +1242,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 5 - res_id2 >= 1024)
                     return false;
                 strcpy(path, ".json");
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1243,7 +1261,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 3 - res_id2 >= 1024)
                     return false;
                 strcpy(path, ".so");
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1262,7 +1280,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 9 - res_id2 >= 1024)
                     return false;
                 strcpy(path, "/index.js");
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1281,7 +1299,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 11 - res_id2 >= 1024)
                     return false;
                 strcpy(path, "/index.json");
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1300,7 +1318,7 @@ bool low_module_resolve_c(duk_context *ctx,
                 if(path + 9 - res_id2 >= 1024)
                     return false;
                 strcpy(path, "/index.so");
-                if(stat(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+                if(client_stat2(res_id2 NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
                 {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
                     if(!user_space)
@@ -1325,7 +1343,7 @@ bool low_module_resolve_c(duk_context *ctx,
         if(path + 9 - res_id >= 1024)
             return false;
         strcpy(path, "/index.js");
-        if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+        if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(!user_space)
@@ -1342,7 +1360,7 @@ bool low_module_resolve_c(duk_context *ctx,
         if(path + 11 - res_id >= 1024)
             return false;
         strcpy(path, "/index.json");
-        if(stat(res_id, &st) == 0 && S_ISREG(st.st_mode))
+        if(client_stat2(res_id, &st) == 0 && S_ISREG(st.st_mode))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(!user_space)
@@ -1359,7 +1377,7 @@ bool low_module_resolve_c(duk_context *ctx,
         if(path + 9 - res_id >= 1024)
             return false;
         strcpy(path, "/index.so");
-        if(stat(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
+        if(client_stat2(res_id NOT_ESP32_ADD_1, &st) == 0 && S_ISREG(st.st_mode))
         {
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
             if(!user_space)
