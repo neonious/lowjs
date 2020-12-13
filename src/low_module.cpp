@@ -606,10 +606,8 @@ void low_load_module(duk_context *ctx, const char *path, bool parent_on_stack)
         goto cantLoad;
 
     if(isLib)
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         sprintf(txt, addLow ? "/lib/%s.low" : "/lib/%s", path + 4);
-#elif defined(LOWJS_SERV)
-        sprintf(txt, addLow ? "/data/lib/%s.low" : "/data/lib/%s", path + 4);
 #endif
     else if(memcmp(path, "module:", 7) == 0)
         sprintf(txt, "/modules%s", path + 7);
@@ -977,10 +975,8 @@ bool low_module_resolve_c(duk_context *ctx,
         duk_pop_3(ctx);
 
         // system module
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         sprintf(res_id, "/lib/%s.low", module_id);
-#elif defined(LOWJS_SERV)
-        sprintf(res_id, "/data/lib/%s.low", module_id);
 #else
         sprintf(res_id, "%s%s.low", g_low_system.lib_path, module_id);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
@@ -990,10 +986,8 @@ bool low_module_resolve_c(duk_context *ctx,
             return true;
         }
 
-#if LOW_ESP32_LWIP_SPECIALITIES
+#if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
         sprintf(res_id, "/lib/%s.low", module_id);
-#elif defined(LOWJS_SERV)
-        sprintf(res_id, "/data/lib/%s.low", module_id);
 #else
         sprintf(res_id, "%s%s", g_low_system.lib_path, module_id);
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
