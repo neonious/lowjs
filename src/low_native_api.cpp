@@ -3,6 +3,7 @@
 // -----------------------------------------------------------------------------
 
 #define __register_frame __register_frame_other_proto
+#define __unregister_frame __unregister_frame_other_proto
 
 #include "low_native_api.h"
 #include "low_config.h"
@@ -21,6 +22,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <vector>
+
+using namespace std;
 
 #if !LOW_ESP32_LWIP_SPECIALITIES
 #include <sys/mman.h>
@@ -54,7 +59,13 @@
 
 #undef __register_frame
 extern "C" void __register_frame(const void *);
+#undef __unregister_frame
+extern "C" void __unregister_frame(const void *);
 
+#ifdef LOWJS_SERV
+vector<void *> gNativeAPIRegisteredFrames;
+vector<pair<void *, uintptr_t> > gNativeAPIMemMapped;
+#endif /* LOWJS_SERV */
 
 #if !LOW_ESP32_LWIP_SPECIALITIES
 
@@ -332,6 +343,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
     // Copy image into memory
     char *base;
     base = exec = (char *)mmap(NULL, exec_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#ifdef LOWJS_SERV
+    gNativeAPIMemMapped.push_back(pair<void *, uintptr_t>((void *)base, exec_size));
+#endif /* LOWJS_SERV */
     if(!exec)
     {
         *err = "Memory is full.";
@@ -657,6 +671,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
                     void *n2 = low_alloc(Length);
                     memcpy(n2, P, Length);
                     __register_frame(n2);
+#ifdef LOWJS_SERV
+                    gNativeAPIRegisteredFrames.push_back(n2);
+#endif /* LOWJS_SERV */
                 }
                 P += 4 + Length;
                 if(P > End)
@@ -680,6 +697,9 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             }
             *(uint32_t *)(P + shdr[i].sh_size) = 0;
             __register_frame(P);
+#ifdef LOWJS_SERV
+            gNativeAPIRegisteredFrames.push_back(P);
+#endif /* LOWJS_SERV */
 #endif /* __APPLE__ */
 
             break;
@@ -754,11 +774,25 @@ int native_api_call(duk_context *ctx)
 }
 
 
+#ifdef LOWJS_SERV
+
 // -----------------------------------------------------------------------------
 //  native_api_unload_all
 // -----------------------------------------------------------------------------
 
 void native_api_unload_all()
 {
-    // TODO
+    // One of the several reasons why neonious IDE on macOS is not ready to use
+    // __unregister_frame does not exist
+#ifndef __APPLE__
+    for(int i = 0; i < gNativeAPIRegisteredFrames.size(); i++)
+        __unregister_frame(gNativeAPIRegisteredFrames[i]);
+    gNativeAPIRegisteredFrames.clear();
+#endif /* __APPLE__ */
+
+    for(int i = 0; i < gNativeAPIMemMapped.size(); i++)
+        munmap(gNativeAPIMemMapped[i].first, gNativeAPIMemMapped[i].second);
+    gNativeAPIMemMapped.clear();
 }
+
+#endif /* LOWJS_SERV */
