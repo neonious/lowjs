@@ -62,6 +62,12 @@ extern "C" void __register_frame(const void *);
 #undef __deregister_frame
 extern "C" void __deregister_frame(const void *);
 
+#ifdef __arm__
+// Do not exist with arm. arm uses setjmp/longjmp...
+void __register_frame(const void *) {}
+void __deregister_frame(const void *) {}
+#endif /* __arm__ */
+
 #ifdef LOWJS_SERV
 vector<void *> gNativeAPIRegisteredFrames;
 vector<pair<void *, uintptr_t> > gNativeAPIMemMapped;
@@ -259,7 +265,7 @@ struct native_api_entry_t NATIVE_API_ENTRIES[] = {
 
 void *native_api_load(const char *data, unsigned int size, const char **err, bool *err_malloc)
 {
-#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__)
+#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
     const Elf_Ehdr *hdr;
     const Elf_Phdr *phdr;
     const Elf_Shdr *shdr;
@@ -782,6 +788,7 @@ int native_api_call(duk_context *ctx)
 
 void native_api_unload_all()
 {
+#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
     for(int i = 0; i < gNativeAPIRegisteredFrames.size(); i++)
         __deregister_frame(gNativeAPIRegisteredFrames[i]);
     gNativeAPIRegisteredFrames.clear();
@@ -789,6 +796,7 @@ void native_api_unload_all()
     for(int i = 0; i < gNativeAPIMemMapped.size(); i++)
         munmap(gNativeAPIMemMapped[i].first, gNativeAPIMemMapped[i].second);
     gNativeAPIMemMapped.clear();
+#endif
 }
 
 #endif /* LOWJS_SERV */
