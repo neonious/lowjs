@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 
 #define __register_frame __register_frame_other_proto
-#define __unregister_frame __unregister_frame_other_proto
+#define __deregister_frame __deregister_frame_other_proto
 
 #include "low_native_api.h"
 #include "low_config.h"
@@ -59,8 +59,8 @@ using namespace std;
 
 #undef __register_frame
 extern "C" void __register_frame(const void *);
-#undef __unregister_frame
-extern "C" void __unregister_frame(const void *);
+#undef __deregister_frame
+extern "C" void __deregister_frame(const void *);
 
 #ifdef LOWJS_SERV
 vector<void *> gNativeAPIRegisteredFrames;
@@ -698,7 +698,7 @@ void *native_api_load(const char *data, unsigned int size, const char **err, boo
             *(uint32_t *)(P + shdr[i].sh_size) = 0;
             __register_frame(P);
 #ifdef LOWJS_SERV
-            gNativeAPIRegisteredFrames.push_back(P);
+            gNativeAPIRegisteredFrames.push_back((void *)P);
 #endif /* LOWJS_SERV */
 #endif /* __APPLE__ */
 
@@ -782,13 +782,9 @@ int native_api_call(duk_context *ctx)
 
 void native_api_unload_all()
 {
-    // One of the several reasons why neonious IDE on macOS is not ready to use
-    // __unregister_frame does not exist
-#ifndef __APPLE__
     for(int i = 0; i < gNativeAPIRegisteredFrames.size(); i++)
-        __unregister_frame(gNativeAPIRegisteredFrames[i]);
+        __deregister_frame(gNativeAPIRegisteredFrames[i]);
     gNativeAPIRegisteredFrames.clear();
-#endif /* __APPLE__ */
 
     for(int i = 0; i < gNativeAPIMemMapped.size(); i++)
         munmap(gNativeAPIMemMapped[i].first, gNativeAPIMemMapped[i].second);
