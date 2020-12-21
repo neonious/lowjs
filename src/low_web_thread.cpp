@@ -392,7 +392,7 @@ void *low_web_thread_main(void *arg)
                 )
                 {
 #if defined(LOWJS_SERV)
-                    if(!gCodeRunning)
+                    if(!gCodeRunning && (s == SIGTERM || s == SIGINT || s == SIGHUP))
                     {
                         // Go back to default handler
                         struct sigaction action;
