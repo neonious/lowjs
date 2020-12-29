@@ -70,10 +70,12 @@ void *low_data_thread_main(void *arg)
                         pthread_mutex_unlock(&low->data_thread_mutex);
 
                         delete callback;
+                        callback = NULL;
                     }
 
                     pthread_mutex_lock(&low->data_thread_mutex);
-                    callback->mInDataThread = false;
+                    if(callback)
+                        callback->mInDataThread = false;
                     goto start;
                 }
             if(low->destroying)

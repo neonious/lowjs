@@ -33,22 +33,14 @@ extern void *gRainyDayFund;
 
 void *low_duk_alloc(void *udata, duk_size_t size)
 {
+    low_t *low = (low_t *)udata;
+
 #if LOW_ESP32_LWIP_SPECIALITIES
-    void *ptr = low_duk_alloc(udata, size);
-    if(!ptr && !low->in_gc)
-    {
-        if(gRainyDayFund)
-            alloc_use_fund();
-
-        low->in_gc = true;
-        duk_gc(low->duk_ctx, 0);
-        low->in_gc = false;
-
-        ptr = low_duk_alloc(udata, size);
-    }
+    low->in_gc = true;
+    void *ptr = low_alloc(size);
+    low->in_gc = false;
     return ptr;
 #else
-    low_t *low = (low_t *)udata;
     if(size > 0xFFFFFFF0 - low->heap_size)
         return NULL;
 
@@ -90,24 +82,12 @@ void *low_duk_alloc(void *udata, duk_size_t size)
 
 void *low_duk_realloc(void *udata, void *data, duk_size_t size)
 {
+    low_t *low = (low_t *)udata;
+
 #if LOW_ESP32_LWIP_SPECIALITIES
-    void *ptr = low_duk_realloc(udata, size);
-    if(!ptr && size && !low->in_gc)
-    {
-        if(gRainyDayFund)
-            alloc_use_fund();
-
-        low->in_gc = true;
-        duk_gc(low->duk_ctx, 0);
-        low->in_gc = false;
-
-        ptr = low_duk_realloc(udata, size);
-        if(!ptr)
-        {
-            gAllocFailed = true;
-            low->duk_flag_stop = 1;
-        }
-    }
+    low->in_gc = true;
+    void *ptr = low_realloc(data, size);
+    low->in_gc = false;
     return ptr;
 #else
     if(!data)
@@ -115,7 +95,6 @@ void *low_duk_realloc(void *udata, void *data, duk_size_t size)
     
     unsigned int *ptr = ((unsigned int *)data) - 1;
     size_t old_size = (size_t)*ptr;
-    low_t *low = (low_t *)udata;
 
     if(size > 0xFFFFFFF0 - (low->heap_size - old_size))
         return NULL;

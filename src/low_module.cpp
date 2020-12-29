@@ -998,12 +998,13 @@ bool low_module_resolve_c(duk_context *ctx,
         }
     }
 
-    if(!parent_id || memcmp(parent_id, "lib:", 4) == 0)
+    int parent_id_len = parent_id ? strlen(parent_id) : 0;
+    if(!parent_id || (parent_id_len >= 4 && memcmp(parent_id, "lib:", 4) == 0))
         return false;
 
     const char *parent_end = NULL;
 #if LOW_ESP32_LWIP_SPECIALITIES || defined(LOWJS_SERV)
-    bool user_space = memcmp(parent_id, "module:", 7) != 0;
+    bool user_space = parent_id_len < 7 || memcmp(parent_id, "module:", 7) != 0;
     bool in_base = false;
 #endif /* LOW_ESP32_LWIP_SPECIALITIES */
     while(true)
