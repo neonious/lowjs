@@ -13,6 +13,22 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20201229 / Version 1.6.0
+
+- neonious IDE: Files with problems (syntax) no longer run, now throw with the
+  info that the user shall fix the errors noted in the Problems tab
+- neonious IDE: Locals and call stack are now shown more reliably when the
+  program is paused
+- Support for memory ceiling when using low on POSIX machines
+- Better memory handling
+- Native API now also works on ARM machines
+- Added URL to global scope
+- New neonious.one certificate added
+- Fix for transpilation on POSIX machines
+- Fix for MQTT module
+- Some bugs fixed which were found by validator software
+
+
 Version 20200915 / Version 1.5.3.1
 
 - Promise then() and catch() allow non-function arguments (which are simply
