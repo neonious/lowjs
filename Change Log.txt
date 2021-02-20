@@ -13,6 +13,16 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
+Version 20200221 / Version 1.6.1
+
+- Fixed I2C destroy problem
+  https://www.neonious.com/Forum/topic/93/i2c-module-hangs-on-i2c-error
+- Fixed POST problem
+  https://www.neonious.com/Forum/topic/101/http-request-on-end-not-firing
+- Fixed missing root certs
+  https://www.neonious.com/Forum/topic/97/https-example
+
+
 Version 20201229 / Version 1.6.0
 
 - neonious IDE: Files with problems (syntax) no longer run, now throw with the

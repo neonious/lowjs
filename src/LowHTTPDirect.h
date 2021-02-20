@@ -89,7 +89,6 @@ class LowHTTPDirect
 
     bool mShutdown, mClosed, mEraseNextN, mAtTrailer;
 
-    int mContentLength;
     bool mNoBodyDefault, mChunkedEncoding;
 
     int mContentLen, mDataLen;
