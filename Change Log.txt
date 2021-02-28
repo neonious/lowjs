@@ -13,7 +13,19 @@ LittleFS, resulting in a 8x speed increase on file operations. Please download
 all your data before updating.
 
 
-Version 20200221 / Version 1.6.1
+Version 20210228 / Version 1.6.2
+
+- Allowed usage of pin 37 and 38 in case user uses ESP32 with PSRAM instead of ESP32-WROVER (which does not support the pins)
+  https://github.com/neonious/lowjs/issues/127
+- Fixed POST problem 2/2
+  https://neonious.com/Forum/topic/102/http-request-on-end-not-respecting-promises
+- Fixed setSettings with onlyValidate option
+  https://www.neonious.com/Forum/topic/106/lowsys-setsettings-settings-onlyvalidate-doesn-t-respect-true-for-onlyvalidate
+- Fixed setting of network settings via lowsync
+  https://neonious.com/Forum/topic/98/confused-noob-here/4
+
+
+Version 20210221 / Version 1.6.1
 
 - Fixed I2C destroy problem
   https://www.neonious.com/Forum/topic/93/i2c-module-hangs-on-i2c-error
